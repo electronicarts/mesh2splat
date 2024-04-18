@@ -38,10 +38,10 @@
 #define PI atan(1.0)*4;
 #define EPSILON 1e-8
 #define MAX_TEXTURE_WIDTH 1024
-#define SH_COEFF0 0.2820948f
+#define SH_COEFF0 0.28209479177387814f
 #define DEFAULT_PURPLE glm::vec3(102, 51, 153); //0,...,255
 
-#define OBJ_NAME "materialCube"
+#define OBJ_NAME "hairball"
 #define OBJ_FORMAT ".obj"
 #define TEXTURE_FORMAT ".jpg"
 #define BASE_DATASET_FOLDER "C:\\Users\\sscolari\\Desktop\\dataset\\"  OBJ_NAME  "\\"
@@ -727,7 +727,7 @@ int main() {
             
             // Calculate σ based on the density and desired overlap, I derive this simple formula from 
             //TODO: Should find a better way to compute sigma and do it based on the size of the current triangle to tesselate
-            float scale_factor_multiplier = .5f;
+            float scale_factor_multiplier = .75f;
             float sigma = scale_factor_multiplier * sqrt(2.0f / image_area);
                         
             glm::vec3 normal =
