@@ -33,6 +33,7 @@
 #define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 #include <experimental/filesystem>
 
+#define RASTERIZE 1
 #define DEBUG 0
 #define _USE_MATH_DEFINES
 #define PI atan(1.0)*4;
@@ -41,7 +42,7 @@
 #define SH_COEFF0 0.28209479177387814f
 #define DEFAULT_PURPLE glm::vec3(102, 51, 153); //0,...,255
 
-#define OBJ_NAME "hairball"
+#define OBJ_NAME "ship2"
 #define OBJ_FORMAT ".obj"
 #define TEXTURE_FORMAT ".jpg"
 #define BASE_DATASET_FOLDER "C:\\Users\\sscolari\\Desktop\\dataset\\"  OBJ_NAME  "\\"
@@ -601,7 +602,7 @@ int main() {
     if (file_exists(material_path)) {
         materials = parseMtlFile(material_path);
     }
-    else {
+    else if(!file_exists(material_path) || materials.size() == 0) {
         materials = { { DEFAULT_MATERIAL_NAME , Material() } };
     }
 
@@ -657,6 +658,7 @@ int main() {
     for (const auto& mesh : meshes) {
         std::cout << mesh.faces.size() << " num triangles" << std::endl;
         for (const auto& triangleFace : mesh.faces) {
+            
             std::vector<glm::vec3> triangleVertices;
             std::vector<glm::vec2> triangleUVs;
             std::vector<glm::vec3> triangleNormals;
@@ -671,7 +673,7 @@ int main() {
                 triangleUVs.push_back(globalUvs[uvIndices[i]]);
                 triangleNormals.push_back(globalNormals[normalIndices[i]]);
             }
-
+#if RASTERIZE
             // Compute the bounding box in UV space
             std::pair<glm::vec2, glm::vec2> minMaxUV = computeUVBoundingBox(triangleUVs);
 
@@ -700,13 +702,16 @@ int main() {
                             triangleVertices[1] * v +
                             triangleVertices[2] * w;
 
-                        glm::vec3 interpolatedNormal =
+                        glm::vec3 interpolatedNormal = glm::normalize(
                             triangleNormals[0] * u +
                             triangleNormals[1] * v +
-                            triangleNormals[2] * w;
+                            triangleNormals[2] * w);
+
+                        glm::vec4 normalColor((interpolatedNormal + glm::vec3(1.0f, 1.0f, 1.0f)) / 2.0f, 1.0f);
 
                         if (rgb_exists)
                         {
+                            //glm::vec4 rgba = normalColor;
                             glm::vec4 rgba = rgbaAtPos(rgbTextureWidth, x, (rgbTextureHeight - 1) - y, rgb_image);
                             //TODO: Insert displacement offset retrieval and normal mapping here
                             //float displacementValue = displacementAtPos(displacementTextureWidth, x, (displacementTextureHeight - 1) - y, displacement_map) / 5.0f;
@@ -714,7 +719,8 @@ int main() {
                             positionsOnTriangleSurfaceAndRGBs.push_back(std::make_tuple(interpolatedNormal, interpolatedPos, rgba, Material()));
                         }
                         else {
-                            glm::vec4 rgba = glm::vec4(material.diffuse, 1.0f);
+                            //glm::vec4 rgba = normalColor;
+                            glm::vec4 rgba = glm::vec4(glm::vec3(material.diffuse.r, material.diffuse.g, material.diffuse.b), 1.0f);
                             positionsOnTriangleSurfaceAndRGBs.push_back(std::make_tuple(interpolatedNormal, interpolatedPos, rgba, material));
 
                         }
@@ -724,18 +730,61 @@ int main() {
 
                 }
             }
-            
+
             // Calculate σ based on the density and desired overlap, I derive this simple formula from 
             //TODO: Should find a better way to compute sigma and do it based on the size of the current triangle to tesselate
-            float scale_factor_multiplier = .75f;
+            float scale_factor_multiplier = .5f;
             float sigma = scale_factor_multiplier * sqrt(2.0f / image_area);
-                        
+
             glm::vec3 normal =
                 glm::normalize(glm::cross(triangleVertices[1] - triangleVertices[0], triangleVertices[2] - triangleVertices[0]));
 
             std::pair<glm::vec4, glm::vec3> rotAndScale = getScaleRotationGaussian(sigma, triangleVertices, triangleUVs);
             glm::vec4 rotation = std::get<0>(rotAndScale);
             glm::vec3 scale = std::get<1>(rotAndScale);
+
+#else
+            //https://arxiv.org/pdf/2402.01459.pdf
+            glm::vec3 r1 = glm::normalize(glm::cross((triangleVertices[1] - triangleVertices[0]), (triangleVertices[2] - triangleVertices[0])));
+            glm::vec3 m = (triangleVertices[0] + triangleVertices[1] + triangleVertices[2]) / 3.0f;
+            glm::vec3 r2 = glm::normalize(triangleVertices[0] - m);
+            //To obtain r3 we first get it as triangleVertices[1] - m and then orthonormalize it with respect to r1 and r2
+            glm::vec3 initial_r3 = triangleVertices[1] - m; //DO NOT NORMALIZE THIS
+            // Gram-Schmidt Orthonormalization to find r3
+            // Project initial_r3 onto r1
+            glm::vec3 proj_r1 = (glm::dot(initial_r3, r1) / glm::length2(r1)) * r1;
+
+            // Project r3_minus_r1 onto r2
+            glm::vec3 proj_r2 = (glm::dot(initial_r3, r2) / glm::length2(r2)) * r2;
+            //TODO: try out some other combinations and reason why it is not working properly
+            // Subtract the projection from r3_minus_r1 to get the orthogonal component
+            glm::vec3 r3 = initial_r3 - proj_r1 - proj_r2;
+
+            glm::mat3 rotMat = { r1, r2, glm::normalize(r3) };
+
+            glm::quat q = glm::quat_cast(rotMat);
+            glm::vec4 rotation(q.w, q.x, q.y, q.z);
+
+            float s2 = glm::length(m - triangleVertices[0]);
+            float s3 = glm::dot(triangleVertices[1], r3);
+            float s1 = std::min(s2, s3) / 10.0f;
+            glm::vec3 scale(log(s1), log(s2), log(s3));
+
+            std::vector<std::tuple<glm::vec3, glm::vec3, glm::vec4, Material>> positionsOnTriangleSurfaceAndRGBs;
+            if (rgb_exists)
+            {
+                glm::vec2 mUv = (triangleUVs[0] + triangleUVs[1] + triangleUVs[2]) / 3.0f;
+                glm::ivec2 uvPos = uvToPixel(mUv, rgbTextureWidth - 1, rgbTextureHeight - 1);
+                glm::vec4 rgba = rgbaAtPos(rgbTextureWidth, uvPos.x, (rgbTextureHeight - 1) - uvPos.y, rgb_image);
+                positionsOnTriangleSurfaceAndRGBs.push_back(std::make_tuple(r1, m, rgba, material));
+                
+            } else {
+                glm::vec4 rgba = glm::vec4(material.diffuse, 1.0f);
+                positionsOnTriangleSurfaceAndRGBs.push_back(std::make_tuple(r1, m, rgba, material));
+            }
+
+#endif
+
             
             //float scaleRatio = scale.x / scale.y;
 
@@ -744,7 +793,6 @@ int main() {
             //---------------
             //float lambert = glm::dot(gaussian_3d.normal, lightDir);
             //float ambientTerm = 1.0f;
-
             //glm::vec4 shadedColor = rgba * (lambert + ambientTerm);
 
             for (auto& normalPosRgbDispl : positionsOnTriangleSurfaceAndRGBs)
@@ -757,7 +805,7 @@ int main() {
                 gaussian_3d.normal = interpolatedNormal; 
                 gaussian_3d.rotation = rotation;
                 gaussian_3d.scale = scale;
-                gaussian_3d.sh0 = getColor(glm::vec3(rgba.r, rgba.g, rgba.b));
+                gaussian_3d.sh0 = getColor(glm::vec3(linear_to_srgb_float(rgba.r), linear_to_srgb_float(rgba.g), linear_to_srgb_float(rgba.b)));
                 gaussian_3d.opacity = rgba.a;
                 gaussian_3d.position = std::get<1>(normalPosRgbDispl); //+(gaussian_3d.normal * z_displacement);
                 gaussian_3d.material = material;
@@ -773,6 +821,17 @@ int main() {
     
     std::cout << "Started writing to file" << std::endl;
 
+    /*
+    gaussians_3D_list.push_back(Gaussian3D(
+        glm::vec3(0.0f, -10.0f, 0.0f),
+        glm::vec3(0.0f, 1.0f, 0.0f),
+        glm::vec3(2.0f, 2.0f, 2.0f),
+        gaussians_3D_list[gaussians_3D_list.size() - 1].rotation,
+        glm::vec3(1.0f, 0.0f, 0.0f),
+        1.0f, 
+        Material()
+    ));
+    */
     writeBinaryPLY("C:\\Users\\sscolari\\Desktop\\halcyon\\Content\\GaussianSplatting\\Mesh2SplatOut.ply", gaussians_3D_list);
     
     //And save it in output folder to have them all to go back later

@@ -1,5 +1,6 @@
 #include "parsers.hpp"
 
+
 std::tuple<std::vector<Mesh>, std::vector<glm::vec3>, std::vector<glm::vec2>, std::vector<glm::vec3>> parseObjFileToMeshes(const std::string& filename) {
     std::vector<glm::vec3> globalVertices;
     std::vector<glm::vec2> globalUvs;
@@ -70,6 +71,28 @@ std::tuple<std::vector<Mesh>, std::vector<glm::vec3>, std::vector<glm::vec2>, st
 
     return std::make_tuple(meshes, globalVertices, globalUvs, globalNormals);
 }
+
+glm::vec3 computeNormal(glm::vec3 A, glm::vec3 B, glm::vec3 C) {
+    return glm::normalize(glm::cross(B - A, C - A));
+}
+
+glm::vec3 projectOntoPlane(glm::vec3 point, glm::vec3 normal) {
+    glm::mat3 I = glm::mat3(1.0f);  // Identity matrix
+    glm::mat3 outerProduct = glm::outerProduct(normal, normal);
+    glm::mat3 projectionMatrix = I - outerProduct;
+    return projectionMatrix * point;
+}
+
+std::vector<glm::vec2> projectMeshVertices(const std::vector<glm::vec3>& vertices, glm::vec3 normal) {
+    std::vector<glm::vec2> projectedVertices;
+    for (const auto& vertex : vertices) {
+        glm::vec3 projectedVertex3D = projectOntoPlane(vertex, normal);
+        // Assuming projection onto XY plane for 2D use in Triangle
+        projectedVertices.push_back(glm::vec2(projectedVertex3D.x, projectedVertex3D.y));
+    }
+    return projectedVertices;
+}
+
 
 std::map<std::string, Material> parseMtlFile(const std::string& filename) {
     std::map<std::string, Material> materials;
