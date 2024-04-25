@@ -129,23 +129,27 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="gaussianComputations.cpp" />
-    <ClCompile Include="gaussianUtilities.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="parsers.cpp" />
-    <ClCompile Include="stb_image.h" />
-    <ClCompile Include="utils.cpp" />
+    <ClCompile Include="src\gaussianComputations.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\parsers.cpp" />
+    <ClCompile Include="src\utils\gaussianShapesUtilities.cpp" />
+    <ClCompile Include="src\utils\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="gaussianComputations.hpp" />
-    <ClInclude Include="gaussianUtilities.hpp" />
-    <ClInclude Include="json.hpp" />
-    <ClInclude Include="params.hpp" />
-    <ClInclude Include="parsers.hpp" />
-    <ClInclude Include="stb_image_resize.h" />
-    <ClInclude Include="stb_image_write.h" />
-    <ClInclude Include="tiny_gltf.h" />
-    <ClInclude Include="utils.hpp" />
+    <ClInclude Include="src\gaussianComputations.hpp" />
+    <ClInclude Include="src\parsers.hpp" />
+    <ClInclude Include="src\utils\gaussianShapesUtilities.hpp" />
+    <ClInclude Include="src\utils\params.hpp" />
+    <ClInclude Include="src\utils\utils.hpp" />
+    <ClInclude Include="thirdParty\json.hpp" />
+    <ClInclude Include="thirdParty\obj_loader.hpp" />
+    <ClInclude Include="thirdParty\stb_image.h" />
+    <ClInclude Include="thirdParty\stb_image_resize.h" />
+    <ClInclude Include="thirdParty\stb_image_write.h" />
+    <ClInclude Include="thirdParty\tiny_gltf.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".gitignore" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

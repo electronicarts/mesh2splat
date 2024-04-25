@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils.hpp"
+#include "utils/utils.hpp"
 
 unsigned char* loadImage(std::string texturePath, int& textureWidth, int& textureHeight);
 

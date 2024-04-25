@@ -2,9 +2,9 @@
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "tiny_gltf.h"
+#include "../thirdParty/tiny_gltf.h"
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
-#include "stb_image_resize.h"
+#include "../thirdParty/stb_image_resize.h"
 
 unsigned char* loadImage(std::string texturePath, int& textureWidth, int& textureHeight)
 {

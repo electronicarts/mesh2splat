@@ -9,7 +9,7 @@
 #define SH_COEFF0 0.28209479177387814f
 #define DEFAULT_PURPLE glm::vec3(102, 51, 153); //RGB - 0 , ... , 255
 
-#define OBJ_NAME					"sphereSmooth"
+#define OBJ_NAME					"sphere2"
 #define OBJ_FORMAT					".glb"
 #define TEXTURE_FORMAT				".jpg"
 #define OUTPUT_GAUSSIAN_FORMAT		".ply"

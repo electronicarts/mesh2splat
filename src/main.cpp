@@ -7,7 +7,7 @@
 #include <stdint.h>
 
 #include "parsers.hpp"
-#include "gaussianUtilities.hpp"
+#include "utils/gaussianShapesUtilities.hpp"
 #include "gaussianComputations.hpp"
 
 

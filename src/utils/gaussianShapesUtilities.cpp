@@ -1,4 +1,4 @@
-#include "gaussianUtilities.hpp"
+#include "gaussianShapesUtilities.hpp"
 
 std::vector<Gaussian3D> drawLine(glm::vec3 initialPos, glm::vec3 finalPos, glm::vec3 color, float isotropicScale, float opacity = 1.0f)
 {
