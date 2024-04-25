@@ -1,35 +1,53 @@
 # Mesh2Splat
 
 ## Introduction
-Welcome to **Mesh2Splat**, a revolutionary approach to 3D model processing that leverages the inherent wealth of information in 3D scenes to enhance visual fidelity. By using direct 3D models rather than a series of renders, Mesh2Splat captures an abundance of details in scene composition, lighting, materials, and geometry. This methodology sidesteps the need for reconstructing 3D geometry through Structure-From-Motion algorithms, thereby accelerating performance and potentially surpassing traditional Gaussian Splatting pipelines in speed and visual output quality.
+Welcome to **Mesh2Splat**, a novel approach to convert 3D meshes into 3DGS (3D Gaussian Splatting) models.<br>
+3DGS was born to recontruct a photorealistic 3D representation from a series of images. This is possible thanks to an optimization process which relies on a series of reference images which are compared to 3DGS rendered scene obtained via a differentiable renderer that makes it possible to optimize a set of initial scene parameters [1].<br>
+What if we want to represent a synthetic object (3D model) in 3DGS format rather than a real scene? Currently, the only way to do so is to generate a synthetic dataset (camera poses, renders and sparse point cloud) of the 3D model, and feed this into the 3DGS pipeline. This process can take up to 30min-45min.<br><br>
+**Mesh2Splat** instead, by directly using the geometry, materials and texture information from the 3D model, rather than going through the classical 3DGS pipeline, is able to obtain a 3DGS representation of the input 3D models in seconds.<br>
+This methodology sidesteps the need for greater interoperability between classical 3D mesh representation and the novel 3DGS format.<br>
 
-## Background
-Traditionally, Gaussian Splatting has been the go-to method for representing 3D scenes due to its optimization process that handles view-dependent color and reflection. However, this approach can be computationally expensive and time-consuming as it relies on an optimization process for scene reconstruction from multiple views [1]. Mesh2Splat introduces an alternative that eliminates the need for these extensive computations without significantly compromising the accuracy of the scene's visual representation.
 
 ## Concept
-The core concept behind Mesh2Splat is to utilize direct 3D models to inform the Gaussian Splatting process. This has the potential to:
-
-- Increase the performance by avoiding complex 3D geometry estimations.
-- Maintain high visual fidelity by utilizing the rich details available in the direct 3D model.
-- Reduce the overall computational load, allowing for faster processing times.
-
-However, it is important to note that by circumventing the traditional optimization stage, there may be a trade-off in the accuracy of view-dependent effects, which are hallmarks of Gaussian Splatting [1].
+The (current) core concept behind Mesh2Splat is quite simple:
+- Initially "rasterize" a series of 3D Gaussians in 2D UV space, with isotropic scaling in 2D space.
+- Use the UV mapping to place the 3D gaussians back in 3D space
+- As previous work suggests [1, 2], flatten the Gaussians along the normal making them anisotropic helps to better approximate the surface of the mesh.
+- Retrieve the material information from the model and embed this information into the 3DGS .ply file.
 
 ## Features
 
-- **Direct 3D Model Processing**: Utilize full 3D models to extract detailed information about the scene.
-- **Enhanced Performance**: Experience improved processing times by bypassing the Structure-From-Motion algorithm [1].
-- **Visual Fidelity**: Achieve high-quality visual output that closely represents the original 3D scene.
+- **Direct 3D Model Processing**: Directly obtain a 3DGS model from a 3D mesh.
+- **Enhanced Performance**: Significantly reduce the time needed to transform a 3D mesh into a 3DGS.
+- **Relightability**: Compared to 3DGS scenes which are already lit, the 3DGS models obtained from this method have consistent normal information and are totally unlit.
 
-## Potential Limitations
+## Usage
+Currently, in order to convert a 3D mesh into a 3DGS, you need to specify all the different parameters in ```src/utils/params.hpp```:
+- ```OBJ_NAME```: the name of the object (will reflect both on the folder name and the .glb and texture name)
+- Modifying how this is handled is simple, but at the moment the code expects the following folder structure:<br>
+**dataset/**<br>
+├─ **object_x/**<br>
+│  ├─ object_x.glb<br>
+│  ├─ object_x.png<br>
+├─ **object_y/**<br>
+│  ├─ object_y.glb<br>
+│  ├─ object_x.png<br>
 
-- **View-Dependent Accuracy**: The accuracy of view-dependent color and reflection may be slightly reduced due to bypassing the optimization process.
+
+
+## Current Limitations
+
+- **View-Dependent Accuracy**: Compared to traditional
 
 ## References
 
-[1] Gaussian Splatting Pipeline: A traditional method for scene representation, characterized by an optimization process for color and reflection based on multiple views.
+[1] Bernhard Kerbl, Georgios Kopanas, Thomas Leimkühler, & George Drettakis. (2023). 3D Gaussian Splatting for Real-Time Radiance Field Rendering.
+[2] Antoine Guédon, & Vincent Lepetit. (2023). SuGaR: Surface-Aligned Gaussian Splatting for Efficient 3D Mesh Reconstruction and High-Quality Mesh Rendering.
+[3] Joanna Waczyńska, Piotr Borycki, Sławomir Tadeja, Jacek Tabor, & Przemysław Spurek. (2024). GaMeS: Mesh-Based Adapting and Modification of Gaussian Splatting.
 
----
 
-Thank you for considering Mesh2Splat for your 3D model processing needs. We are excited to see how our approach can enhance your projects and workflows!
+
+
+
+
 
