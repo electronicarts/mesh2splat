@@ -35,14 +35,15 @@ Currently, in order to convert a 3D mesh into a 3DGS, you need to specify all th
 - For the output, as I am working with Halcyon, I directly output the 3DGS model into ```/halcyon/Content/GaussianSplatting/```, in order to easily reload them from the selection menu.
 
 
-## Current Limitations
+## Current Limitations and Next Steps
 
-- **View-Dependent Accuracy**: Compared to traditional
+- **View-Dependent Accuracy**: Mesh2Splat is not yet capable of capturing view-dependant lighting effects.
+- **Material information**: Currently not yet able to load all material information, just Albedo.
 
 ## References
 
-[1] Bernhard Kerbl, Georgios Kopanas, Thomas Leimkühler, & George Drettakis. (2023). 3D Gaussian Splatting for Real-Time Radiance Field Rendering.
-[2] Antoine Guédon, & Vincent Lepetit. (2023). SuGaR: Surface-Aligned Gaussian Splatting for Efficient 3D Mesh Reconstruction and High-Quality Mesh Rendering.
+[1] Bernhard Kerbl, Georgios Kopanas, Thomas Leimkühler, & George Drettakis. (2023). 3D Gaussian Splatting for Real-Time Radiance Field Rendering.<br>
+[2] Antoine Guédon, & Vincent Lepetit. (2023). SuGaR: Surface-Aligned Gaussian Splatting for Efficient 3D Mesh Reconstruction and High-Quality Mesh Rendering.<br>
 [3] Joanna Waczyńska, Piotr Borycki, Sławomir Tadeja, Jacek Tabor, & Przemysław Spurek. (2024). GaMeS: Mesh-Based Adapting and Modification of Gaussian Splatting.
 
 
