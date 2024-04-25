@@ -32,7 +32,7 @@ Currently, in order to convert a 3D mesh into a 3DGS, you need to specify all th
 ├─ **object_y/**<br>
 │  ├─ object_y.glb<br>
 │  ├─ object_x.png<br>
-
+- For the output, as I am working with Halcyon, I directly output the 3DGS model into ```/halcyon/Content/GaussianSplatting/```, in order to easily reload them from the selection menu.
 
 
 ## Current Limitations
