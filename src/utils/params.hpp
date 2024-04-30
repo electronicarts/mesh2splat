@@ -9,7 +9,7 @@
 #define SH_COEFF0 0.28209479177387814f
 #define DEFAULT_PURPLE glm::vec3(102, 51, 153); //RGB - 0 , ... , 255
 
-#define OBJ_NAME					"cubeGltf"
+#define OBJ_NAME					"robot"
 #define OBJ_FORMAT					".glb"
 #define OUTPUT_GAUSSIAN_FORMAT		".ply"
 #define DEFAULT_MATERIAL_NAME		"mm_default_material"

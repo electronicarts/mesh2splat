@@ -10,6 +10,18 @@
 #include "utils/gaussianShapesUtilities.hpp"
 #include "gaussianComputations.hpp"
 
+#define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+#define PBWIDTH 60
+
+//https://stackoverflow.com/a/36315819
+void printProgressBar(float percentage)
+{
+    int val = (int)(percentage * 100);
+    int lpad = (int)(percentage * PBWIDTH);
+    int rpad = PBWIDTH - lpad;
+    printf("\r%3d%% [%.*s%*s]", val, lpad, PBSTR, rpad, "");
+    fflush(stdout);
+}
 
 int main() {
     //I am investigating a memory leak
@@ -51,15 +63,43 @@ int main() {
     //TODO: I believe having an initial reference UV space would be ideal
 
     std::map<std::string, std::pair<std::vector<unsigned char>, int>> loadedImages;
+    int t = 0;
+    int totFaces = 0;
+    for (const auto& mesh : meshes) 
+    {
+        totFaces += mesh.faces.size();
+    }
 
-    for (const auto& mesh : meshes) {
+    for (auto& mesh : meshes) 
+    {
         j++;
+        //TODO: I dont really like this, but it works
+
+        unsigned char* meshTexture = NULL;
+        int bpp = 0;
+
+        if (mesh.material.baseColorTexture.path != EMPTY_TEXTURE)
+        {
+            std::pair<unsigned char*, int> textureAndBpp = loadImage(mesh.material.baseColorTexture.path, mesh.material.baseColorTexture.width, mesh.material.baseColorTexture.height);
+
+            meshTexture = std::get<0>(textureAndBpp);
+            bpp = std::get<1>(textureAndBpp);
+        }
+        else {
+            mesh.material.baseColorTexture.width = MAX_TEXTURE_WIDTH;
+            mesh.material.baseColorTexture.height = MAX_TEXTURE_WIDTH;
+        }
+        
+
         printf("%zu triangle faces for mesh number %d / %zu\n", mesh.faces.size(), j, meshes.size());
         for (const auto& triangleFace : mesh.faces) {
-
-            MaterialGltf materialGltf = triangleFace.material; //even if none it defaults to default material
+            
+            printProgressBar((float)t / (float)totFaces);
+            t++;
 
             // If texture for this face not yet loaded, do so
+            //TODO: This is toooooooo slow but supports multiple different albedo textures per mesh
+            /*
             if (loadedImages.find(materialGltf.baseColorTexture.path) == loadedImages.end())
             {
                 std::vector<unsigned char> vecToFill;
@@ -68,6 +108,7 @@ int main() {
                 int bpp = std::get<1>(successAndBpp);
                 loadedImages.emplace(materialGltf.baseColorTexture.path, std::make_pair(vecToFill, bpp));
             } 
+            */
 
             //TODO: obviously if there is no texture you need to do something otherwise wont rasterize shit and wont find correspondence in pixel
             //This will have to stay like this until I establish a common initial UV mapping; for now, as a requirement, the model needs to have a UV mapping
@@ -81,25 +122,19 @@ int main() {
             glm::vec2 maxUV = std::get<1>(minMaxUV);
 
             // Convert bounding box to pixel coordinates
-            glm::ivec2 minPixel = uvToPixel(minUV, materialGltf.baseColorTexture.width, materialGltf.baseColorTexture.height);
-            glm::ivec2 maxPixel = uvToPixel(maxUV, materialGltf.baseColorTexture.width, materialGltf.baseColorTexture.height);
+            glm::ivec2 minPixel = uvToPixel(minUV, mesh.material.baseColorTexture.width-1, mesh.material.baseColorTexture.height-1);
+            glm::ivec2 maxPixel = uvToPixel(maxUV, mesh.material.baseColorTexture.width-1, mesh.material.baseColorTexture.height-1);
 
             std::vector<std::tuple<glm::vec3, glm::vec3, glm::vec4, MaterialGltf>> positionsOnTriangleSurfaceAndRGBs;
 
-            if (minPixel.x < 0 || minPixel.y < 0 || maxPixel.x > materialGltf.baseColorTexture.width || maxPixel.y > materialGltf.baseColorTexture.height)
-            {
-                printf("Error in computing the UV bounding box, size out of bounds\n");
-                exit(1);
-            }
-            else if (minPixel.x == maxPixel.x && minPixel.y == maxPixel.y)
-            {
-                printf("Error, degenerate BB\n");
-                exit(1);
+            if (minPixel.x == maxPixel.x && minPixel.y == maxPixel.y)
+            {                
+                continue;
             }
 
             for (int y = minPixel.y; y <= maxPixel.y; ++y) {
                 for (int x = minPixel.x; x <= maxPixel.x; ++x) {
-                    glm::vec2 pixelUV = pixelToUV(glm::ivec2(x, y), materialGltf.baseColorTexture.width, materialGltf.baseColorTexture.height);
+                    glm::vec2 pixelUV = pixelToUV(glm::ivec2(x, y), mesh.material.baseColorTexture.width - 1, mesh.material.baseColorTexture.height - 1);
 
                     if (pointInTriangle(pixelUV, triangleFace.uvIndices[0], triangleFace.uvIndices[1], triangleFace.uvIndices[2])) {
                         float u, v, w;
@@ -117,24 +152,22 @@ int main() {
 
                         //glm::vec4 normalColor((interpolatedNormal + glm::vec3(1.0f, 1.0f, 1.0f)) / 2.0f, 1.0f);
 
-                        if (materialGltf.baseColorTexture.path != "defaultInfo" && materialGltf.baseColorTexture.path != "")
+                        if (meshTexture != NULL && bpp != 0) //use texture for rgba
                         {
 
                             glm::vec4 rgba_from_texture = rgbaAtPos(
-                                materialGltf.baseColorTexture.width,
-                                x, materialGltf.baseColorTexture.height - 1 - y,
-                                loadedImages.at(materialGltf.baseColorTexture.path).first,
-                                loadedImages.at(materialGltf.baseColorTexture.path).second
+                                mesh.material.baseColorTexture.width,
+                                x, y,
+                                meshTexture, bpp
                             );
 
-
                             //TODO: unify so that just pass material even when texture, the rgba is the albedo, no need for rgba slot
-                            positionsOnTriangleSurfaceAndRGBs.push_back(std::make_tuple(interpolatedNormal, interpolatedPos, rgba_from_texture, materialGltf));
+                            positionsOnTriangleSurfaceAndRGBs.push_back(std::make_tuple(interpolatedNormal, interpolatedPos, rgba_from_texture, mesh.material));
                         }
-                        else {
+                        else { //use material for rgba
 
-                            glm::vec4 rgba = materialGltf.baseColorFactor;
-                            positionsOnTriangleSurfaceAndRGBs.push_back(std::make_tuple(interpolatedNormal, interpolatedPos, rgba, materialGltf));
+                            glm::vec4 rgba = mesh.material.baseColorFactor;
+                            positionsOnTriangleSurfaceAndRGBs.push_back(std::make_tuple(interpolatedNormal, interpolatedPos, rgba, mesh.material));
 
                         }
 
@@ -146,8 +179,10 @@ int main() {
 
             // Calculate σ based on the density and desired overlap, I derive this simple formula from 
             //TODO: Should find a better way to compute sigma and do it based on the size of the current triangle to tesselate
+            //TODO: should base this on nyquist sampling rate: https://www.pbr-book.org/3ed-2018/Texture/Sampling_and_Antialiasing#FindingtheTextureSamplingRate
+
             float scale_factor_multiplier = .75f;
-            float image_area = (materialGltf.baseColorTexture.width * materialGltf.baseColorTexture.height);
+            float image_area = (mesh.material.baseColorTexture.width * mesh.material.baseColorTexture.height);
             float sigma = scale_factor_multiplier * sqrt(2.0f / image_area);
             std::pair<glm::vec4, glm::vec3> rotAndScale = getScaleRotationGaussian(sigma, triangleFace.vertexIndices, triangleFace.uvIndices);
 
@@ -208,7 +243,7 @@ int main() {
                 gaussian_3d.normal      = interpolatedNormal; 
                 gaussian_3d.rotation    = rotation;
                 gaussian_3d.scale       = scale;
-                gaussian_3d.sh0         = getColor(glm::vec3(linear_to_srgb_float(rgba.r), linear_to_srgb_float(rgba.g), linear_to_srgb_float(rgba.b)));
+                gaussian_3d.sh0         = getColor(glm::vec3(rgba.r, rgba.g, rgba.b));
                 gaussian_3d.opacity     = rgba.a;
                 gaussian_3d.material    = material; //TODO: still need to embed this info in the .ply
 
@@ -219,12 +254,12 @@ int main() {
                 
     }
     
-    printf("Started writing to file\n");
+    printf("\nStarted writing to file\n");
 
     writeBinaryPLY(GAUSSIAN_OUTPUT_MODEL_DEST_FOLDER_1, gaussians_3D_list);
     writeBinaryPLY(GAUSSIAN_OUTPUT_MODEL_DEST_FOLDER_2, gaussians_3D_list); //And save it in output folder to have them a list of all outputs for later re-use
     
-    printf("Finished writing to file\n");
+    printf("\nFinished writing to file\n");
 
     //_CrtDumpMemoryLeaks();
 

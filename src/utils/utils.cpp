@@ -62,6 +62,7 @@ glm::vec2 pixelToUV(const glm::ivec2& pixel, int textureWidth, int textureHeight
 }
 
 glm::ivec2 uvToPixel(const glm::vec2& uv, int textureWidth, int textureHeight) {
+    //TODO: consider bilinear filtering, why implement again all this when it is already supported in hardware...
     // Convert back to pixel coordinates
     int x = static_cast<int>(uv.x * textureWidth) - 0.5f;
     int y = static_cast<int>(uv.y * textureHeight) - 0.5f; //ATTENTION: remember to then swap the order of the pixels in the rgba_to_pos
@@ -71,7 +72,7 @@ glm::ivec2 uvToPixel(const glm::vec2& uv, int textureWidth, int textureHeight) {
     x = std::max(0, std::min(x, textureWidth)); //zero-based pixel indexing
     y = std::max(0, std::min(y, textureHeight));
 
-    return glm::ivec2(x, y);
+    return glm::ivec2(x, y);        
 }
 
 std::pair<glm::vec2, glm::vec2> computeUVBoundingBox(const std::vector<glm::vec2>& triangleUVs) {
@@ -127,17 +128,13 @@ float srgb_to_linear_float(float x) {
 }
 
 
-glm::vec4 rgbaAtPos(const int width, int X, int Y, std::vector<unsigned char> rgb_image, const int bpp) {
+glm::vec4 rgbaAtPos(const int width, int X, int Y, unsigned char* rgb_image, const int bpp) {
     size_t index = (Y * width + X) * bpp;
 
-
-    printf("X: %d, Y: %d\n", X, Y);
-
-
     //TODO: remember to switch back to [ ] instead of .at once finished debugging
-    float r = (static_cast<float>(rgb_image.at(index)) / 255.0f);
-    float g = (static_cast<float>(rgb_image.at(index + 1)) / 255.0f);
-    float b = (static_cast<float>(rgb_image.at(index + 2)) / 255.0f);
+    float r = (static_cast<float>(rgb_image[index]) / 255.0f);
+    float g = (static_cast<float>(rgb_image[index + 1]) / 255.0f);
+    float b = (static_cast<float>(rgb_image[index + 2]) / 255.0f);
     //float a = (bpp >= 4 && index + 3 < rgb_image.size()) ? (static_cast<float>(rgb_image[index + 3]) / 255.0f) : 1.0f;
     //TODO: what to do about opacity?
 

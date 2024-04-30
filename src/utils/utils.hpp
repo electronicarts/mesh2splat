@@ -13,7 +13,7 @@
 
 #define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 #include <experimental/filesystem>
-
+#define EMPTY_TEXTURE "empty_texture"
 #include "params.hpp"
 
 struct Material {
@@ -34,7 +34,7 @@ struct TextureInfo {
     unsigned char* texture;
     int width, height;
 
-    TextureInfo(const std::string& path = "defaultInfo", int texCoordIndex = 0, unsigned char* texture = nullptr, int width = 0, int height = 0) : path(path), texCoordIndex(texCoordIndex), texture(texture), width(width), height(height) {}
+    TextureInfo(const std::string& path = EMPTY_TEXTURE, int texCoordIndex = 0, unsigned char* texture = nullptr, int width = 0, int height = 0) : path(path), texCoordIndex(texCoordIndex), texture(texture), width(width), height(height) {}
 };
 
 struct MaterialGltf {
@@ -76,16 +76,16 @@ struct Face {
     std::vector<glm::vec3> vertexIndices;
     std::vector<glm::vec2> uvIndices;
     std::vector<glm::vec3> normalIndices;
-    MaterialGltf material;  // Added to store material for each face
 
-    Face(const std::vector<glm::vec3>& verts, const std::vector<glm::vec2>& uvs, const std::vector<glm::vec3>& norms, MaterialGltf& mat)
-        : vertexIndices(verts), uvIndices(uvs), normalIndices(norms), material(mat) {}
+    Face(const std::vector<glm::vec3>& verts, const std::vector<glm::vec2>& uvs, const std::vector<glm::vec3>& norms)
+        : vertexIndices(verts), uvIndices(uvs), normalIndices(norms) {}
 };
 
 class Mesh {
 public:
     std::string name;
     std::vector<Face> faces; // Tuple of vertex indices, uv indices and normalIndices
+    MaterialGltf material;
 
     Mesh(const std::string& name = "Unnamed") : name(name) {}
 };
@@ -115,7 +115,7 @@ float linear_to_srgb_float(float x); //Assumes 0,...,1 range
 //https://www.nayuki.io/res/srgb-transform-library/srgb-transform.c
 float srgb_to_linear_float(float x); //Assumes 0,...,1 range 
 
-glm::vec4 rgbaAtPos(const int width, int X, int Y, std::vector<unsigned char> rgb_image, const int bpp);
+glm::vec4 rgbaAtPos(const int width, int X, int Y, unsigned char* rgb_image, const int bpp);
 
 float displacementAtPos(const int width, int X, int Y, unsigned char* displacement_image);
 

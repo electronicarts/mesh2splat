@@ -16,7 +16,7 @@ std::pair<unsigned char*, int> loadImage(std::string texturePath, int& textureWi
     unsigned char* image = stbi_load(texturePath.c_str(), &textureWidth, &textureHeight, &bpp, 0);
 
     if (image == NULL) {
-        printf("Error in loading the image\n");
+        std::cout << "Error in loading the image, cannot find " << texturePath << "\n" << std::endl;
         exit(1);
     }
 
@@ -288,8 +288,10 @@ MaterialGltf parseGltfMaterial(const tinygltf::Model& model, int materialIndex) 
 
         material.baseColorTexture.path = imagePath;
         material.baseColorTexture.texCoordIndex = texIt->second.TextureTexCoord();
-        material.baseColorTexture.width = image.width;
-        material.baseColorTexture.height = image.height;
+        
+        //TODO: here I should actually load and save the images instead of just doing this, update it!
+        material.baseColorTexture.width = image.width > MAX_TEXTURE_WIDTH ? MAX_TEXTURE_WIDTH : image.width;
+        material.baseColorTexture.height = image.height > MAX_TEXTURE_WIDTH ? MAX_TEXTURE_WIDTH : image.height;
 
     }
     
@@ -354,15 +356,17 @@ std::tuple<std::vector<Mesh>, std::vector<glm::vec3>, std::vector<glm::vec2>, st
             globalUvs.insert(globalUvs.end(), uvs.begin(), uvs.end());
             globalNormals.insert(globalNormals.end(), normals.begin(), normals.end());
 
-            MaterialGltf mat = parseGltfMaterial(model, primitive.material);
+            myMesh.material = parseGltfMaterial(model, primitive.material);
 
             //TODO: indices is wrong to be used like this because it is not a global index amongst all primitives
             for (size_t i = 0; i < indices.size(); i += 3) {
                 std::vector<glm::vec3> faceVertexIndices  = { vertices[indices[i]], vertices[indices[i + 1]], vertices[indices[i + 2]] };
                 std::vector<glm::vec2> faceUvIndices      = { uvs[indices[i]], uvs[indices[i + 1]], uvs[indices[i + 2]] };
                 std::vector<glm::vec3> faceNormalIndices  = { normals[indices[i]], normals[indices[i + 1]], normals[indices[i + 2]] };
-                myMesh.faces.emplace_back(faceVertexIndices, faceUvIndices, faceNormalIndices, mat);
+                myMesh.faces.emplace_back(faceVertexIndices, faceUvIndices, faceNormalIndices);
+                
             }
+            
             meshes.push_back(myMesh);
         }
     }
