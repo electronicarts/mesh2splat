@@ -28,23 +28,12 @@ The (current) core concept behind Mesh2Splat is quite simple:
 
 ## Results
 Example of result 3DGS .ply file obtained by converting a 3D mesh. The results are rendered with a PBR shader in Halcyon. 
-3D mesh viewed in Blender. The resulting .ply (on the right) is rendered in [Halcyon](https://gitlab.ea.com/seed/ray-machine/halcyon)<br>
+3D mesh viewed in Blender. <br>
+<img src="res/referenceChair.png" alt="3D mesh viewed in Blender" width=300><br>
 
-<table>
-<tr>
-<td>
-<img src="res/referenceChair.png" alt="3D mesh viewed in Blender" width="380"/>
-</td>
-<td>
-<video width="460" controls>
-  <source src="res/results.mov" type="video/mov">
-  Your browser does not support the video tag.
-</video>
-</td>
-</tr>
-</table>
+The resulting .ply (on the right) is rendered in [Halcyon](https://gitlab.ea.com/seed/ray-machine/halcyon)
 
-
+![PBR result](res/results.mov)
 
 
 ## Usage
