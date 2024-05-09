@@ -37,7 +37,7 @@ Example of result 3DGS .ply file obtained by converting a 3D mesh. The results a
 </td>
 <td>
 <video width="460" controls>
-  <source src="res/results.mov" type="video/mp4">
+  <source src="res/results.mov" type="video/mov">
   Your browser does not support the video tag.
 </video>
 </td>
