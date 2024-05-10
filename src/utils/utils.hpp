@@ -10,13 +10,14 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
 
 #define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 #include <experimental/filesystem>
 #define EMPTY_TEXTURE "empty_texture"
 #define GLM_ENABLE_EXPERIMENTAL
 #include <gtx/string_cast.hpp>
-#include "../thirdParty/poisson_disk_wrapper/utils_sampling.hpp"
 #include "params.hpp"
 
 struct Material {
@@ -95,13 +96,19 @@ struct Face {
     glm::vec4 tangent[3];
 };
 
-class Mesh { //TODO: 
-public:
+struct Mesh { //TODO: 
     std::string name;
     std::vector<Face> faces; // Tuple of vertex indices, uv indices and normalIndices
     MaterialGltf material;
 
     Mesh(const std::string& name = "Unnamed") : name(name) {}
+};
+
+
+struct GLMesh {
+    GLuint vao;
+    GLuint vbo;
+    size_t vertexCount;
 };
 
 

@@ -6,10 +6,12 @@
 #include <set>
 #include <stdint.h>
 
+
 #include "parsers.hpp"
 #include "utils/gaussianShapesUtilities.hpp"
 #include "gaussianComputations.hpp"
 #include "poissonDiskSampling.hpp"
+#include "utils/shaderUtils.hpp"
 
 #define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
 #define PBWIDTH 60
@@ -50,6 +52,56 @@ private:
     double len_;
 };
 
+
+int main() {
+    // Initialize GLFW and create a window...
+    if (!glfwInit())
+        return -1;
+    GLFWwindow* window = glfwCreateWindow(640, 480, "Tessellation Example", NULL, NULL);
+    if (!window) {
+        glfwTerminate();
+        return -1;
+    }
+    glfwMakeContextCurrent(window);
+
+    // Initialize GLEW
+    glewExperimental = GL_TRUE;  // Enable modern OpenGL features
+    GLenum err = glewInit();
+    if (err != GLEW_OK) {
+        // GLEW failed to initialize
+        fprintf(stderr, "Error initializing GLEW: %s\n", glewGetErrorString(err));
+        glfwTerminate();
+        return -1;
+    }
+
+    // Load shaders and meshes
+    GLuint shaderProgram = createShaderProgram();
+    std::vector<Mesh> meshes = parseGltfFileToMesh(OUTPUT_FILENAME);
+    std::vector<GLMesh> glMeshes = uploadMeshesToOpenGL(meshes);
+
+    // Setup Transform Feedback (assuming each mesh could be expanded up to 10 times its original size)
+    GLuint feedbackBuffer, feedbackVAO;
+    size_t estimatedMaxVertices = 0;
+
+    for (const auto& glMesh : glMeshes) {
+        estimatedMaxVertices += glMesh.vertexCount * 10;  // Example multiplier for tessellation
+    }
+
+    setupTransformFeedback(estimatedMaxVertices * 3 * sizeof(float), feedbackBuffer, feedbackVAO);  // 3 floats per vertex
+
+    // Perform tessellation and capture the output
+    for (const auto& glMesh : glMeshes) {
+        performTessellationAndCapture(shaderProgram, glMesh.vao, glMesh.vertexCount);
+        // Download the tessellated mesh data for each mesh
+        downloadMeshFromGPU(glMesh.vertexCount * 10, feedbackBuffer);  // Assuming 10x vertices after tessellation
+    }
+
+    // Cleanup
+    glfwTerminate();
+    return 0;
+}
+
+/*
 int main() {
 
     printf("Parsing input mesh\n");
@@ -163,7 +215,7 @@ int main() {
                             gaussian_3d.normal = interpolatedNormal;
                             gaussian_3d.rotation = rotation;
                             gaussian_3d.scale = scale;
-                            gaussian_3d.sh0 = getColor(glm::vec3((rgba.r), (rgba.g), (rgba.b)));
+                            gaussian_3d.sh0 = getColor(glm::vec3(((rgba.r), (rgba.g), (rgba.b))));
                             gaussian_3d.opacity = rgba.a;
                             gaussian_3d.material = mesh.material;
                             gaussian_3d.material.metallicFactor = metallicFactor;
@@ -192,3 +244,4 @@ int main() {
     return 0;
 }
 
+*/

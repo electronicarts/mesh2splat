@@ -321,3 +321,5 @@ void computeAndLoadTextureInformation(std::map<std::string, std::pair<unsigned c
 
     //TODO: AO, and EMISSIVE missing
 }
+
+
