@@ -67,7 +67,7 @@ static glm::vec3 project(const glm::vec3& v, const glm::vec3& u) {
     return scalar * u;
 }
 
-std::pair<glm::vec4, glm::vec3> getScaleRotationAndNormalGaussian(const float sigma2d, const glm::vec3* verticesTriangle3D, const glm::vec2* verticesTriangleUVs, glm::mat3& matForTangentSpace)
+std::pair<glm::vec4, glm::vec3> getScaleRotationAndNormalGaussian(const float sigma2d, const glm::vec3* verticesTriangle3D, const glm::vec2* verticesTriangleUVs)
 {
     //Building CovMat2D
     //float rho = 0.0f; //Pearson Corr. Coeff. (PCC)
@@ -139,7 +139,6 @@ std::pair<glm::vec4, glm::vec3> getScaleRotationAndNormalGaussian(const float si
     glm::vec3 r3 = glm::normalize(orthogonal_to_r1_and_r2);
 
     glm::mat3 rotMat = { r2, r3, r1 };
-    matForTangentSpace = rotMat;
 
     glm::quat q = glm::quat_cast(rotMat);
 

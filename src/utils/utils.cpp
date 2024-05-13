@@ -262,7 +262,7 @@ glm::mat3 ConstructTBN(glm::vec3 normal) {
     return glm::mat3(tangent, bitangent, glm::normalize(normal));
 }
 
-void computeAndLoadTextureInformation(std::map<std::string, std::pair<unsigned char*, int>>& textureTypeMap, MaterialGltf& material, const int x, const int y, glm::vec4& rgba, float& metallicFactor, float& roughnessFactor, glm::vec3& normal, glm::vec4& tangent, glm::mat3& modelMat)
+void computeAndLoadTextureInformation(std::map<std::string, std::pair<unsigned char*, int>>& textureTypeMap, MaterialGltf& material, const int x, const int y, glm::vec4& rgba, float& metallicFactor, float& roughnessFactor, glm::vec3& interpolatedNormal, glm::vec3& outputNormal, glm::vec4& interpolatedTangent)
 {
     //TODO: I do not support yet the indirection to the texture component of the model, meaning I cannot take advantage of the samplers
     //TODO: "The first three components (RGB) MUST be encoded with the sRGB transfer function."
@@ -306,11 +306,17 @@ void computeAndLoadTextureInformation(std::map<std::string, std::pair<unsigned c
 
         //rgba_normal_info = glm::vec3(srgb_to_linear_float(rgba_normal_info.x), srgb_to_linear_float(rgba_normal_info.y), srgb_to_linear_float(rgba_normal_info.z));
         
-        glm::vec3 tangentXYZ(tangent);
-        glm::vec3 retrievedNormal   = glm::normalize(glm::normalize(glm::vec3(rgba_normal_info) * 2.0f - 1.0f) * glm::vec3(material.normalScale, material.normalScale, 1.0f)); //https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#_material_normaltextureinfo_scale
-        glm::vec3 bitangent         = glm::normalize(glm::cross(retrievedNormal, glm::vec3(tangent)) * tangent.w); //tangent.w is the bitangent sign
-        glm::mat3 TBN(tangentXYZ, bitangent, glm::normalize(retrievedNormal));
-        normal = modelMat * TBN * retrievedNormal; //should transform in model space
+        if (!isnan(interpolatedTangent.x) && !isnan(interpolatedTangent.y) && !isnan(interpolatedTangent.z) && !isnan(interpolatedTangent.w))
+        {
+            glm::vec3 tangentXYZ(interpolatedTangent);
+            glm::vec3 retrievedNormal = glm::normalize(glm::normalize(glm::vec3(rgba_normal_info) * 2.0f - 1.0f) * glm::vec3(material.normalScale, material.normalScale, 1.0f)); //https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#_material_normaltextureinfo_scale
+            glm::vec3 bitangent = glm::normalize(glm::cross(interpolatedNormal, tangentXYZ)) * interpolatedTangent.w; //tangent.w is the bitangent sign
+            glm::mat3 TBN(tangentXYZ, bitangent, interpolatedNormal);
+            outputNormal = TBN * retrievedNormal; //should transform in model space
+        } else {
+            outputNormal = interpolatedNormal;
+        }
+        
         
         //OK so now I have the interpolated tangent, the interpolated normal, and the TBN matrix.
         //Just a heads up for later debugging in case cant fix things: https://www.reddit.com/r/GraphicsProgramming/comments/z2khzc/comment/ixiw0se/ sRGB might break things

@@ -10,11 +10,11 @@
 #include "parsers.hpp"
 #include "utils/gaussianShapesUtilities.hpp"
 #include "gaussianComputations.hpp"
-#include "poissonDiskSampling.hpp"
 #include "utils/shaderUtils.hpp"
 
 #define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
 #define PBWIDTH 60
+#define GPU_IMPL 0
 
 //https://stackoverflow.com/a/36315819
 void printProgressBar(float percentage)
@@ -26,33 +26,7 @@ void printProgressBar(float percentage)
     fflush(stdout);
 }
 
-int roll(int min, int max)
-{
-    // x is in [0,1[
-    double x = rand() / static_cast<double>(RAND_MAX + 1);
-
-    // [0,1[ * (max - min) + min is in [min,max[
-    int that = min + static_cast<int>(x * (max - min));
-
-    return that;
-}
-
-
-
-// functor to detemine distance between points
-class UniformConverter : public PoissonDiskSampling::Converter {
-public:
-    UniformConverter(double len) {
-        len_ = len;
-    }
-    double operator()(double val) {
-        return len_;
-    };
-private:
-    double len_;
-};
-
-
+#if GPU_IMPL == 1
 int main() {
     // Initialize GLFW and create a window...
     if (!glfwInit())
@@ -82,26 +56,27 @@ int main() {
     // Setup Transform Feedback (assuming each mesh could be expanded up to 10 times its original size)
     GLuint feedbackBuffer, feedbackVAO;
     size_t estimatedMaxVertices = 0;
-
+    int tessellationLevel = 10;
     for (const auto& glMesh : glMeshes) {
-        estimatedMaxVertices += glMesh.vertexCount * 10;  // Example multiplier for tessellation
+        size_t verticesPerPatch = (tessellationLevel + 1) * (tessellationLevel + 2) / 2;
+        estimatedMaxVertices += glMesh.vertexCount * verticesPerPatch;
     }
 
     setupTransformFeedback(estimatedMaxVertices * 3 * sizeof(float), feedbackBuffer, feedbackVAO);  // 3 floats per vertex
 
     // Perform tessellation and capture the output
     for (const auto& glMesh : glMeshes) {
-        performTessellationAndCapture(shaderProgram, glMesh.vao, glMesh.vertexCount);
+        GLuint numberOfTessellatedTriangles;
+        performTessellationAndCapture(shaderProgram, glMesh.vao, glMesh.vertexCount, tessellationLevel, numberOfTessellatedTriangles);
         // Download the tessellated mesh data for each mesh
-        downloadMeshFromGPU(glMesh.vertexCount * 10, feedbackBuffer);  // Assuming 10x vertices after tessellation
+        downloadMeshFromGPU(feedbackBuffer, numberOfTessellatedTriangles);  // Assuming 10x vertices after tessellation
     }
 
     // Cleanup
     glfwTerminate();
     return 0;
 }
-
-/*
+#else
 int main() {
 
     printf("Parsing input mesh\n");
@@ -147,8 +122,7 @@ int main() {
             float image_area = (mesh.material.baseColorTexture.width * mesh.material.baseColorTexture.height);
             float sigma = scale_factor_multiplier * sqrtf(2.0f / image_area);
             glm::vec3 computedNormal;
-            glm::mat3 matForTangentSpace;
-            std::pair<glm::vec4, glm::vec3> rotAndScale = getScaleRotationAndNormalGaussian(sigma, triangleFace.pos, triangleFace.uv, matForTangentSpace);
+            std::pair<glm::vec4, glm::vec3> rotAndScale = getScaleRotationAndNormalGaussian(sigma, triangleFace.pos, triangleFace.uv);
 
             glm::vec4 rotation = std::get<0>(rotAndScale);
             glm::vec3 scale = std::get<1>(rotAndScale);
@@ -201,22 +175,28 @@ int main() {
                                 triangleFace.tangent[2] * w
                             );
 
+                        glm::vec3 surfaceNormal = glm::normalize(glm::cross(triangleFace.pos[1] - triangleFace.pos[0], triangleFace.pos[2] - triangleFace.pos[0]));
                         glm::vec4 rgba(0.0f, 0.0f, 0.0f, 0.0f);
                         float metallicFactor;
                         float roughnessFactor;
-
+                        glm::vec3 outputNormal;
                         //Building TBN matrix, because if I use the one per splat (which is currently basically per triangle), the normals will not be nicely interpolated
-                        
-                        computeAndLoadTextureInformation(textureTypeMap, mesh.material, x, y, rgba, metallicFactor, roughnessFactor, interpolatedNormal, interpolatedTangent, matForTangentSpace);
+                        computeAndLoadTextureInformation(
+                            textureTypeMap,
+                            mesh.material,
+                            x, y, rgba,
+                            metallicFactor, roughnessFactor,
+                            interpolatedNormal, outputNormal, interpolatedTangent
+                        );
 
                         {
                             Gaussian3D gaussian_3d;
                             gaussian_3d.position = interpolatedPos;
-                            gaussian_3d.normal = interpolatedNormal;
+                            gaussian_3d.normal = outputNormal;
                             gaussian_3d.rotation = rotation;
                             gaussian_3d.scale = scale;
-                            gaussian_3d.sh0 = getColor(glm::vec3(((rgba.r), (rgba.g), (rgba.b))));
-                            gaussian_3d.opacity = rgba.a;
+                            gaussian_3d.sh0 = getColor(glm::vec3((rgba.r), (rgba.g), (rgba.b)));
+                            gaussian_3d.opacity = (rgba.a);
                             gaussian_3d.material = mesh.material;
                             gaussian_3d.material.metallicFactor = metallicFactor;
                             gaussian_3d.material.roughnessFactor = roughnessFactor;
@@ -243,5 +223,4 @@ int main() {
 
     return 0;
 }
-
-*/
+#endif

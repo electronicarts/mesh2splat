@@ -1,10 +1,9 @@
 #pragma once
 #define EIGEN_BASED_GAUSSIANS_ROTATION 0
 #define DEBUG 1
-#define _DEBUG
 #define _USE_MATH_DEFINES
 #define EPSILON 1e-8
-#define MAX_TEXTURE_SIZE 1024
+#define MAX_TEXTURE_SIZE 2048
 #define SH_COEFF0 0.28209479177387814f
 #define DEFAULT_PURPLE glm::vec3(102, 51, 153) //RGB - 0 , ... , 255
 
@@ -15,7 +14,7 @@
 #define EMISSIVE_TEXTURE "emissiveTexture"
 
 
-#define OBJ_NAME					"cubeGltf"
+#define OBJ_NAME					"robot"
 #define OBJ_FORMAT					".glb"
 #define OUTPUT_GAUSSIAN_FORMAT		".ply"
 #define DEFAULT_MATERIAL_NAME		"mm_default_material"

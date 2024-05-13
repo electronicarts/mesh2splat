@@ -17,55 +17,34 @@ GLuint compileShader(const char* source, GLenum type) {
     return shaderID;
 }
 
+std::string readShaderFile(const char* filePath) {
+    std::ifstream shaderFile;
+    std::stringstream shaderStream;
+
+    // Ensure ifstream objects can throw exceptions:
+    shaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
+    try {
+        shaderFile.open(filePath);
+        shaderStream << shaderFile.rdbuf();
+        shaderFile.close();
+        return shaderStream.str();
+    }
+    catch (std::ifstream::failure& e) {
+        std::cerr << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ: " << e.what() << std::endl;
+        exit(1);
+    }
+}
+
 GLuint createShaderProgram() {
-    const char* vertexShaderSource = R"glsl(
-        #version 430 core
-        layout(location = 0) in vec3 position;
-        out vec4 vs_outPosition;  // Pass position as vec4
 
-        void main() {
-            vs_outPosition = vec4(position, 1.0);  // Ensure it's a vec4
-        }
-    )glsl";
+    std::string vertexShaderSource          = readShaderFile(VERTEX_SHADER_LOCATION);
+    std::string tessControlShaderSource     = readShaderFile(TESS_CONTROL_SHADER_LOCATION);
+    std::string tessEvaluationShaderSource  = readShaderFile(TESS_EVAL_SHADER_LOCATION);
 
-    const char* tessControlShaderSource = R"glsl(
-        #version 430 core
-        layout(vertices = 3) out;
-
-        in vec4 vs_outPosition[];
-        out vec4 tcs_outPosition[];
-
-        void main() {
-            if (gl_InvocationID == 0) {
-                gl_TessLevelInner[0] = 3.0;
-                gl_TessLevelOuter[0] = 3.0;
-                gl_TessLevelOuter[1] = 3.0;
-                gl_TessLevelOuter[2] = 3.0;
-            }
-            tcs_outPosition[gl_InvocationID] = vs_outPosition[gl_InvocationID];  // Keep it as vec4
-            gl_out[gl_InvocationID].gl_Position = vs_outPosition[gl_InvocationID];
-        }
-    )glsl";
-
-    const char* tessEvaluationShaderSource = R"glsl(
-        #version 430 core
-        layout(triangles, equal_spacing, cw) in;
-
-        in vec4 tcs_outPosition[];
-        out vec3 outPosition;  // Assuming you want a vec3 for output
-
-        void main() {
-            vec3 p0 = gl_TessCoord.x * tcs_outPosition[0].xyz;
-            vec3 p1 = gl_TessCoord.y * tcs_outPosition[1].xyz;
-            vec3 p2 = gl_TessCoord.z * tcs_outPosition[2].xyz;
-            outPosition = p0 + p1 + p2;  // Correctly using vec3
-            gl_Position = vec4(outPosition, 1.0);
-        }
-    )glsl";
-
-    GLuint vertexShader = compileShader(vertexShaderSource, GL_VERTEX_SHADER);
-    GLuint tessControlShader = compileShader(tessControlShaderSource, GL_TESS_CONTROL_SHADER);
-    GLuint tessEvaluationShader = compileShader(tessEvaluationShaderSource, GL_TESS_EVALUATION_SHADER);
+    GLuint vertexShader         = compileShader(vertexShaderSource.c_str(), GL_VERTEX_SHADER);
+    GLuint tessControlShader    = compileShader(tessControlShaderSource.c_str(), GL_TESS_CONTROL_SHADER);
+    GLuint tessEvaluationShader = compileShader(tessEvaluationShaderSource.c_str(), GL_TESS_EVALUATION_SHADER);
 
     GLuint program = glCreateProgram();
     glAttachShader(program, vertexShader);
@@ -76,11 +55,12 @@ GLuint createShaderProgram() {
     glTransformFeedbackVaryings(program, 1, feedbackVaryings, GL_INTERLEAVED_ATTRIBS);
 
     GLint success;
-    GLchar infoLog[512];
+    const int maxMsgLength = 512;
+    GLchar infoLog[maxMsgLength];
     glLinkProgram(program);
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
-        glGetProgramInfoLog(program, 512, NULL, infoLog);
+        glGetProgramInfoLog(program, maxMsgLength, NULL, infoLog);
         std::cerr << "ERROR::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
     }
 
@@ -149,17 +129,39 @@ void setupTransformFeedback(size_t bufferSize, GLuint& feedbackBuffer, GLuint& f
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, feedbackBuffer);
 }
 
-void performTessellationAndCapture(GLuint shaderProgram, GLuint vao, size_t vertexCount) {
+void performTessellationAndCapture(GLuint shaderProgram, GLuint vao, size_t vertexCount, const int targetTriangleEdgeLength, GLuint& numTessellatedTriangles) {
     // Use shader program and perform tessellation
     glUseProgram(shaderProgram);
+
+    GLint tessellationLevelLocation = glGetUniformLocation(shaderProgram, "targetEdgeLength");
+    if (tessellationLevelLocation == -1) {
+        std::cerr << "Could not find uniform tessellationLevel." << std::endl;
+    }
+
+    glUniform1i(tessellationLevelLocation, targetTriangleEdgeLength);
+
+    // Prepare to capture the number of tessellated triangles
+    GLuint query;
+    glGenQueries(1, &query);
+
     glBindVertexArray(vao);
+    glBeginQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, query);
+
     glEnable(GL_RASTERIZER_DISCARD);
     glBeginTransformFeedback(GL_TRIANGLES);
     glDrawArrays(GL_PATCHES, 0, vertexCount);
     glEndTransformFeedback();
     glDisable(GL_RASTERIZER_DISCARD);
 
+    // End the query to capture the number of tessellated triangles
+    glEndQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+
+    glGetQueryObjectuiv(query, GL_QUERY_RESULT, &numTessellatedTriangles);
+
+    glDeleteQueries(1, &query);
+
     // Insert a fence sync object after tessellation
+    /*
     GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     glFlush(); 
         
@@ -168,29 +170,54 @@ void performTessellationAndCapture(GLuint shaderProgram, GLuint vao, size_t vert
         std::cerr << "Sync timeout expired." << std::endl;
     }
     glDeleteSync(sync); // Clean up the sync object
+    */
 }
 
-void downloadMeshFromGPU(size_t vertexCount, GLuint& feedbackBuffer) {
-    glFinish();
-    glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, feedbackBuffer);
-    float* feedbackData = (float*)glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0,
-        vertexCount * 3 * sizeof(float), GL_MAP_READ_BIT);
+void saveToObjFile(const float* feedbackData, GLuint numberOfTesselatedTriangles, const std::string& filename) {
+    std::ofstream objFile(filename);
+    if (!objFile.is_open()) {
+        std::cerr << "Failed to open the file for writing: " << filename << std::endl;
+        return;
+    }
 
-    // Check if mapping was successful
+    unsigned int numberOfTotalVertices = numberOfTesselatedTriangles * 3;
+
+    objFile << "# OBJ file generated by application\n";
+    objFile << "# Vertex count: " << numberOfTotalVertices << "\n";
+    objFile << "# Triangle count: " << numberOfTesselatedTriangles << "\n";
+
+    // Write each vertex position
+    for (size_t i = 0; i < numberOfTotalVertices; ++i) {
+        float x = feedbackData[3 * i];     // X coordinate
+        float y = feedbackData[3 * i + 1]; // Y coordinate
+        float z = feedbackData[3 * i + 2]; // Z coordinate
+        objFile << "v " << x << " " << y << " " << z << "\n";
+    }
+
+    // Write face (triangle) definitions using 1-based indexing
+    for (unsigned int i = 1; i <= numberOfTotalVertices; i += 3) {
+        objFile << "f " << i << " " << i + 1 << " " << i + 2 << "\n";
+    }
+
+    objFile.close();
+    std::cout << "Data successfully written to " << filename << std::endl;
+}
+
+void downloadMeshFromGPU(GLuint& feedbackBuffer, GLuint numTessellatedTriangles) {
+    glFinish();  // Ensure all OpenGL commands are finished
+    glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, feedbackBuffer);
+
+    // Assuming each triangle gives 3 vertices and each vertex has 3 floats (x, y, z)
+    float* feedbackData = (float*)glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0,
+        numTessellatedTriangles * 3 * 3 * sizeof(float), GL_MAP_READ_BIT);
+
     if (feedbackData) {
-        std::cout << "Vertex Positions:" << std::endl;
-        for (size_t i = 0; i < vertexCount; ++i) {
-            // Each vertex has three float values (x, y, z)
-            float x = feedbackData[3 * i];     // X coordinate
-            float y = feedbackData[3 * i + 1]; // Y coordinate
-            float z = feedbackData[3 * i + 2]; // Z coordinate
-            std::cout << "Vertex " << i + 1 << ": (" << x << ", " << y << ", " << z << ")" << std::endl;
-        }
+        saveToObjFile(feedbackData, numTessellatedTriangles, "tessellated_mesh.obj");
     }
     else {
         std::cerr << "Failed to map feedback buffer." << std::endl;
     }
 
-    // Unmap the buffer after done reading
     glUnmapBuffer(GL_TRANSFORM_FEEDBACK_BUFFER);
 }
+

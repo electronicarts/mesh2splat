@@ -146,4 +146,10 @@ void convert_xyz_to_cube_uv(float x, float y, float z, int* index, float* u, flo
 
 void convert_cube_uv_to_xyz(int index, float u, float v, float* x, float* y, float* z);
 
-void computeAndLoadTextureInformation(std::map<std::string, std::pair<unsigned char*, int>>& textureTypeMap, MaterialGltf& material, const int x, const int y, glm::vec4& rgba, float& metallicFactor, float& roughnessFactor, glm::vec3& normal, glm::vec4& tangent, glm::mat3& rotation);
+void computeAndLoadTextureInformation(
+    std::map<std::string, std::pair<unsigned char*, int>>& textureTypeMap,
+    MaterialGltf& material, const int x, const int y,
+    glm::vec4& rgba,
+    float& metallicFactor, float& roughnessFactor,
+    glm::vec3& interpolatedNormal, glm::vec3& outputNormal, glm::vec4& interpolatedTangent
+);
