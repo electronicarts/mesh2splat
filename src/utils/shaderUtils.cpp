@@ -67,14 +67,27 @@ GLuint createShaderProgram() {
     return program;
 }
 
-std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes) {
+float calcTriangleArea(glm::vec3 p1, glm::vec3 p2, glm::vec3 p3)
+{
+    float a = glm::length(p1 - p2);
+    float b = glm::length(p1 - p3);
+    float c = glm::length(p2 - p3);
+
+    float p = (a + b + c) / 2.0;
+
+    return sqrt(p * (p - a) * (p - b) * (p - c));
+}
+
+std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes, float& minTriangleArea, float& maxTriangleArea, float& medianArea) {
     std::vector<GLMesh> glMeshes;
     glMeshes.reserve(meshes.size());
-
+    minTriangleArea = std::numeric_limits<float>::max();
+    maxTriangleArea = std::numeric_limits<float>::min();
+    std::vector<float> areas;
     for (auto& mesh : meshes) {
         GLMesh glMesh;
         std::vector<float> vertices;  // Buffer to hold all vertex data
-
+        
         // Convert mesh data to a flat array of floats (position only for this example)
         for (const auto& face : mesh.faces) {
             for (int i = 0; i < 3; ++i) { // Assuming each face is a triangle
@@ -82,6 +95,10 @@ std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes) {
                 vertices.push_back(face.pos[i].y);
                 vertices.push_back(face.pos[i].z);
             }
+            float area = calcTriangleArea(face.pos[0], face.pos[1], face.pos[2]);
+            areas.push_back(area);
+            if (area > maxTriangleArea) maxTriangleArea = area;
+            else if (area < minTriangleArea) minTriangleArea = area;
         }
 
         glMesh.vertexCount = vertices.size() / 3; // Number of vertices
@@ -95,7 +112,7 @@ std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes) {
         glBindBuffer(GL_ARRAY_BUFFER, glMesh.vbo);
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
 
-        // Setup vertex attribute pointers
+        //Vertex position attr
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
 
@@ -106,11 +123,21 @@ std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes) {
         glMeshes.push_back(glMesh);
     }
 
+    std::sort(areas.begin(), areas.end());
+
+    size_t size = areas.size();
+    if (size % 2 == 0) {
+        medianArea = (areas[size / 2 - 1] + areas[size / 2]) / 2;
+    }
+    else {
+        medianArea = areas[size / 2];
+    }
+
     return glMeshes;
 }
 
 
-void setupTransformFeedback(size_t bufferSize, GLuint& feedbackBuffer, GLuint& feedbackVAO) {
+void setupTransformFeedbackAndAtomicCounter(size_t bufferSize, GLuint& feedbackBuffer, GLuint& feedbackVAO, GLuint& acBuffer) {
 
     // Create a buffer for storing feedback
     glGenBuffers(1, &feedbackBuffer);
@@ -127,18 +154,52 @@ void setupTransformFeedback(size_t bufferSize, GLuint& feedbackBuffer, GLuint& f
 
     // Bind the buffer to the transform feedback binding point
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, feedbackBuffer);
+
+    //Generate atomic counter
+    /*
+    glGenBuffers(1, &acBuffer);
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, acBuffer);
+    glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
+
+    GLuint initialValue = 0;
+    glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &initialValue);
+
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
+    */
 }
 
-void performTessellationAndCapture(GLuint shaderProgram, GLuint vao, size_t vertexCount, const int targetTriangleEdgeLength, GLuint& numTessellatedTriangles) {
+void performTessellationAndCapture(GLuint shaderProgram, GLuint vao, size_t vertexCount, GLuint& numTessellatedTriangles, GLuint& acBuffer, float minTriangleArea, float maxTriangleArea, float medianTriangleArea) {
     // Use shader program and perform tessellation
     glUseProgram(shaderProgram);
 
-    GLint tessellationLevelLocation = glGetUniformLocation(shaderProgram, "targetEdgeLength");
-    if (tessellationLevelLocation == -1) {
-        std::cerr << "Could not find uniform tessellationLevel." << std::endl;
+    //-------------------------------SET UNIFORMS-------------------------------
+    //MIN
+    GLint minTriangleAreaLocation = glGetUniformLocation(shaderProgram, "minTriangleArea");
+
+    if (minTriangleAreaLocation == -1) {
+        std::cerr << "Could not find uniform 'minTriangleArea'." << std::endl;
     }
 
-    glUniform1i(tessellationLevelLocation, targetTriangleEdgeLength);
+    glUniform1f(minTriangleAreaLocation, minTriangleArea);
+    
+    //MAX
+    GLint maxTriangleAreaLocation = glGetUniformLocation(shaderProgram, "maxTriangleArea");
+
+    if (maxTriangleAreaLocation == -1) {
+        std::cerr << "Could not find uniform 'maxTriangleArea'." << std::endl;
+    }
+
+    glUniform1f(maxTriangleAreaLocation, maxTriangleArea);
+    
+    //MEDIAN
+    GLint medianTriangleAreaLocation = glGetUniformLocation(shaderProgram, "medianTriangleArea");
+
+    if (medianTriangleAreaLocation == -1) {
+        std::cerr << "Could not find uniform 'medianTriangleArea'." << std::endl;
+    }
+
+    glUniform1f(medianTriangleAreaLocation, medianTriangleArea);
+    //--------------------------------------------------------------------------
 
     // Prepare to capture the number of tessellated triangles
     GLuint query;
@@ -160,8 +221,15 @@ void performTessellationAndCapture(GLuint shaderProgram, GLuint vao, size_t vert
 
     glDeleteQueries(1, &query);
 
-    // Insert a fence sync object after tessellation
     /*
+    GLuint totalCount;
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, acBuffer);
+    glGetBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &totalCount);
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
+
+    printf("Total generated faces: %u\n", totalCount);
+    // Insert a fence sync object after tessellation
+    
     GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     glFlush(); 
         
@@ -208,10 +276,16 @@ void downloadMeshFromGPU(GLuint& feedbackBuffer, GLuint numTessellatedTriangles)
     glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, feedbackBuffer);
 
     // Assuming each triangle gives 3 vertices and each vertex has 3 floats (x, y, z)
+    
     float* feedbackData = (float*)glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0,
         numTessellatedTriangles * 3 * 3 * sizeof(float), GL_MAP_READ_BIT);
+    
+    //float* feedbackData = (float*)glMapBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, GL_READ_ONLY);
 
-    if (feedbackData) {
+    printf("Num tesselated triangles: %d\n", numTessellatedTriangles);
+
+    printf("Saving to obj\n");
+    if (feedbackData) { 
         saveToObjFile(feedbackData, numTessellatedTriangles, "tessellated_mesh.obj");
     }
     else {

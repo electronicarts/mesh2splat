@@ -8,11 +8,11 @@ GLuint compileShader(const char* source, GLenum type);
 
 GLuint createShaderProgram();
 
-std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes);
+std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes, float& minTriangleArea, float& maxTriangleArea, float& medianArea);
 
-void setupTransformFeedback(size_t bufferSize, GLuint& feedbackBuffer, GLuint& feedbackVAO);
+void setupTransformFeedbackAndAtomicCounter(size_t bufferSize, GLuint& feedbackBuffer, GLuint& feedbackVAO, GLuint& acBuffer);
 
-void performTessellationAndCapture(GLuint shaderProgram, GLuint vao, size_t vertexCount, const int targetTriangleEndgeLEngth, GLuint& numTessellatedTriangles);
+void performTessellationAndCapture(GLuint shaderProgram, GLuint vao, size_t vertexCount, GLuint& targetTriangleEndgeLEngth, GLuint& acBuffer, float minTriangleArea, float maxTriangleArea, float medianTriangleArea);
 
 void downloadMeshFromGPU(GLuint& feedbackBuffer, GLuint numberOfTesselatedTriangles);
 

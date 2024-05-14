@@ -51,23 +51,26 @@ int main() {
     // Load shaders and meshes
     GLuint shaderProgram = createShaderProgram();
     std::vector<Mesh> meshes = parseGltfFileToMesh(OUTPUT_FILENAME);
-    std::vector<GLMesh> glMeshes = uploadMeshesToOpenGL(meshes);
+    float minTriangleArea, maxTriangleArea, medianArea;
+    std::vector<GLMesh> glMeshes = uploadMeshesToOpenGL(meshes, minTriangleArea, maxTriangleArea, medianArea);
 
     // Setup Transform Feedback (assuming each mesh could be expanded up to 10 times its original size)
-    GLuint feedbackBuffer, feedbackVAO;
+    GLuint feedbackBuffer, feedbackVAO, acBuffer;
+    GLuint tesselationLevel = 3;
+
     size_t estimatedMaxVertices = 0;
-    int tessellationLevel = 10;
     for (const auto& glMesh : glMeshes) {
-        size_t verticesPerPatch = (tessellationLevel + 1) * (tessellationLevel + 2) / 2;
+        size_t verticesPerPatch = 150;
         estimatedMaxVertices += glMesh.vertexCount * verticesPerPatch;
     }
 
-    setupTransformFeedback(estimatedMaxVertices * 3 * sizeof(float), feedbackBuffer, feedbackVAO);  // 3 floats per vertex
+    setupTransformFeedbackAndAtomicCounter(estimatedMaxVertices * 3 * sizeof(float), feedbackBuffer, feedbackVAO, acBuffer);  // 3 floats per vertex
 
     // Perform tessellation and capture the output
     for (const auto& glMesh : glMeshes) {
-        GLuint numberOfTessellatedTriangles;
-        performTessellationAndCapture(shaderProgram, glMesh.vao, glMesh.vertexCount, tessellationLevel, numberOfTessellatedTriangles);
+        GLuint numberOfTessellatedTriangles = 0;
+        printf("MinTri: %f    MaxTri: %f\n", minTriangleArea, maxTriangleArea);
+        performTessellationAndCapture(shaderProgram, glMesh.vao, glMesh.vertexCount, numberOfTessellatedTriangles, acBuffer, minTriangleArea, maxTriangleArea, medianArea);
         // Download the tessellated mesh data for each mesh
         downloadMeshFromGPU(feedbackBuffer, numberOfTessellatedTriangles);  // Assuming 10x vertices after tessellation
     }
@@ -85,7 +88,7 @@ int main() {
     printf("Parsed input meshes, total number meshes: %d \n", (unsigned int)meshes.size());
  
     std::vector<Gaussian3D> gaussians_3D_list; //TODO: Think if can allocate space instead of having the vector dynamic size
-    
+    gaussians_3D_list.reserve(MAX_TEXTURE_SIZE * MAX_TEXTURE_SIZE);
     //TODO: I believe having an initial reference UV space would be ideal
 
     //std::map<std::string, std::pair<std::vector<unsigned char>, int>> loadedImages;
@@ -121,7 +124,6 @@ int main() {
             float scale_factor_multiplier = .75f;
             float image_area = (mesh.material.baseColorTexture.width * mesh.material.baseColorTexture.height);
             float sigma = scale_factor_multiplier * sqrtf(2.0f / image_area);
-            glm::vec3 computedNormal;
             std::pair<glm::vec4, glm::vec3> rotAndScale = getScaleRotationAndNormalGaussian(sigma, triangleFace.pos, triangleFace.uv);
 
             glm::vec4 rotation = std::get<0>(rotAndScale);

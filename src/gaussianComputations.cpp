@@ -103,7 +103,7 @@ std::pair<glm::vec4, glm::vec3> getScaleRotationAndNormalGaussian(const float si
     float SD_x = sqrtf(eigenPairs[2].second); //sqrt of eigenvalues..., jacobian by normal dot should yield 0 (to check)
     float SD_y = sqrtf(eigenPairs[1].second);
     float SD_z = (std::min(SD_x, SD_y) / 5.0f); //TODO: magic hyperparameter
-    glm::vec3 scale(log(SD_x), log(SD_x), log(SD_z));
+    glm::vec3 scale(log(SD_x), log(SD_y), log(SD_z));
 
 #if EIGEN_BASED_GAUSSIANS_ROTATION
     glm::vec3 x = glm::normalize(eigenPairs[2].first);

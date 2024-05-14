@@ -264,6 +264,7 @@ glm::mat3 ConstructTBN(glm::vec3 normal) {
 
 void computeAndLoadTextureInformation(std::map<std::string, std::pair<unsigned char*, int>>& textureTypeMap, MaterialGltf& material, const int x, const int y, glm::vec4& rgba, float& metallicFactor, float& roughnessFactor, glm::vec3& interpolatedNormal, glm::vec3& outputNormal, glm::vec4& interpolatedTangent)
 {
+    float aoFactor = 1.0f;
     //TODO: I do not support yet the indirection to the texture component of the model, meaning I cannot take advantage of the samplers
     //TODO: "The first three components (RGB) MUST be encoded with the sRGB transfer function."
     if (textureTypeMap.find(BASE_COLOR_TEXTURE) != textureTypeMap.end()) //use texture for rgba
@@ -288,7 +289,8 @@ void computeAndLoadTextureInformation(std::map<std::string, std::pair<unsigned c
         metallicFactor = material.metallicFactor * metallicRoughness.b;
         roughnessFactor = material.roughnessFactor * metallicRoughness.g;
         if (metallicRoughness.r != 1.0f) {
-            //TODO: Handle AO in this case as if it is different from 1 it means that something else was embedded here and it should be AO
+            aoFactor = metallicRoughness.r;
+            aoFactor = std::min(std::max(aoFactor, 0.0f), 1.0f);
         }
     }
     else {
@@ -299,7 +301,7 @@ void computeAndLoadTextureInformation(std::map<std::string, std::pair<unsigned c
     if (textureTypeMap.find(NORMAL_TEXTURE) != textureTypeMap.end())
     {
         glm::vec3 rgba_normal_info(rgbaAtPos(
-            material.baseColorTexture.width,
+            material.normalTexture.width,
             x, y,
             textureTypeMap[NORMAL_TEXTURE].first, textureTypeMap[NORMAL_TEXTURE].second
         ));
@@ -316,8 +318,6 @@ void computeAndLoadTextureInformation(std::map<std::string, std::pair<unsigned c
         } else {
             outputNormal = interpolatedNormal;
         }
-        
-        
         //OK so now I have the interpolated tangent, the interpolated normal, and the TBN matrix.
         //Just a heads up for later debugging in case cant fix things: https://www.reddit.com/r/GraphicsProgramming/comments/z2khzc/comment/ixiw0se/ sRGB might break things
     }
@@ -325,7 +325,42 @@ void computeAndLoadTextureInformation(std::map<std::string, std::pair<unsigned c
         rgba = material.baseColorFactor;
     }
 
-    //TODO: AO, and EMISSIVE missing
+    if (textureTypeMap.find(EMISSIVE_TEXTURE) != textureTypeMap.end())
+    {
+        glm::vec3 rgba_emissive(rgbaAtPos(
+            material.emissiveTexture.width,
+            x, y,
+            textureTypeMap[EMISSIVE_TEXTURE].first, textureTypeMap[EMISSIVE_TEXTURE].second
+        ));
+
+        rgba += glm::vec4(rgba_emissive * material.emissiveFactor, 0.0f);
+
+    }
+
+    if (textureTypeMap.find(OCCLUSION_TEXTURE) != textureTypeMap.end())
+    {
+        glm::vec3 aoVecFactor(rgbaAtPos(
+            material.occlusionTexture.width,
+            x, y,
+            textureTypeMap[OCCLUSION_TEXTURE].first, textureTypeMap[OCCLUSION_TEXTURE].second
+        ));
+
+        if (aoVecFactor.r == 1.0f && aoVecFactor.g == 1.0f && aoVecFactor.b == 1.0f)
+        {
+            aoFactor = material.occlusionStrength;
+        } else {
+            if (aoVecFactor.r != 1.0f) {
+                aoFactor = aoVecFactor.r * material.occlusionStrength;
+            } else if (aoVecFactor.g != 1.0f) {
+                aoFactor = aoVecFactor.g * material.occlusionStrength;
+            } else if (aoVecFactor.b != 1.0f) {
+                aoFactor = aoVecFactor.b * material.occlusionStrength;
+            }
+        }
+    }
+
+    rgba *= aoFactor;
+
 }
 
 

@@ -14,7 +14,7 @@
 #define EMISSIVE_TEXTURE "emissiveTexture"
 
 
-#define OBJ_NAME					"robot"
+#define OBJ_NAME					"drone"
 #define OBJ_FORMAT					".glb"
 #define OUTPUT_GAUSSIAN_FORMAT		".ply"
 #define DEFAULT_MATERIAL_NAME		"mm_default_material"

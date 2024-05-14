@@ -8,8 +8,10 @@
 #include <glm.hpp>
 #include <map>
 #include <iostream>
+#include <algorithm>
 #include <fstream>
 #include <sstream>
+#include <limits>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -58,13 +60,13 @@ struct MaterialGltf {
     MaterialGltf() : name("Default"), baseColorFactor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)),
         baseColorTexture(TextureInfo()), normalTexture(TextureInfo()), metallicRoughnessTexture(TextureInfo()),
         occlusionTexture(TextureInfo()), emissiveTexture(TextureInfo()),
-        metallicFactor(1.0f), roughnessFactor(1.0f), occlusionStrength(1.0f), normalScale(1.0f), emissiveFactor(glm::vec3(0.0f, 0.0f, 0.0f)) {}
+        metallicFactor(1.0f), roughnessFactor(1.0f), occlusionStrength(1.0f), normalScale(1.0f), emissiveFactor(glm::vec3(1.0f, 1.0f, 1.0f)) {}
 
     MaterialGltf(const std::string& name, const glm::vec4& baseColorFactor) :
         name(name), baseColorFactor(baseColorFactor),
         baseColorTexture(TextureInfo()), normalTexture(TextureInfo()), metallicRoughnessTexture(TextureInfo()),
         occlusionTexture(TextureInfo()), emissiveTexture(TextureInfo()),
-        metallicFactor(1.0f), roughnessFactor(1.0f), occlusionStrength(1.0f), normalScale(1.0f), emissiveFactor(glm::vec3(0.0f, 0.0f, 0.0f)) {}
+        metallicFactor(1.0f), roughnessFactor(1.0f), occlusionStrength(1.0f), normalScale(1.0f), emissiveFactor(glm::vec3(1.0f, 1.0f, 1.0f)) {}
 
     MaterialGltf(const std::string& name, const glm::vec4& baseColorFactor, const TextureInfo& baseColorTexture,
         const TextureInfo& normalTexture, const TextureInfo& metallicRoughnessTexture, const TextureInfo& occlusionTexture,
