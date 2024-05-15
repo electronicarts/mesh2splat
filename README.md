@@ -33,7 +33,14 @@ Example of result 3DGS .ply file obtained by converting a 3D mesh. The results a
 
 The resulting .ply (on the right) is rendered in [Halcyon](https://gitlab.ea.com/seed/ray-machine/halcyon)
 
-![PBR result](res/results.mov)
+![PBR result](res/results.mov)<br>
+Here You can see on the LEFT the true normals extracted from the rotation matrix of the 3D Gaussians, in the center the normal computed by interpolating the tangent vector per vertex and retrieving the normal in tangent space from the normal map. On the right the final 3DGS model lit in real-time with PBR (diffuse + GGX).
+
+<div style="display:flex;"> 
+    <img src="res/normalFromRotMatrix.png" alt="Image Description 1" style="width: 33%;">
+    <img src="res/embeddedNormal.png" alt="Image Description 2" style="width: 33%;"> 
+    <img src="res/scifiMaskPreview.png" alt="Image Description 2" style="width: 33%;"> 
+</div>
 
 
 ## Usage
