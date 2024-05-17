@@ -66,12 +66,13 @@ int main() {
 
     setupTransformFeedbackAndAtomicCounter(estimatedMaxVertices * 3 * sizeof(float), feedbackBuffer, feedbackVAO, acBuffer);  // 3 floats per vertex
 
+
     // Perform tessellation and capture the output
     for (const auto& glMesh : glMeshes) {
         GLuint numberOfTessellatedTriangles = 0;
         printf("MinTri: %f    MaxTri: %f\n", minTriangleArea, maxTriangleArea);
         auto started = std::chrono::high_resolution_clock::now();
-        performTessellationAndCapture(shaderProgram, glMesh.vao, glMesh.vertexCount, numberOfTessellatedTriangles, acBuffer, minTriangleArea, maxTriangleArea, medianArea, medianEdgeLength, medianPerimeter);
+        performTessellationAndCapture(shaderProgram, glMesh.vao, glMesh.vertexCount, numberOfTessellatedTriangles, acBuffer, minTriangleArea, maxTriangleArea, medianArea, medianEdgeLength, medianPerimeter, MAX_TEXTURE_SIZE);
         auto done = std::chrono::high_resolution_clock::now();
         std::cout << "Tesselation execution time: " << std::chrono::duration_cast<std::chrono::milliseconds>(done - started).count() << "ms\n" << std::endl;
         // Download the tessellated mesh data for each mesh

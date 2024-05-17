@@ -1,8 +1,12 @@
 #include "utils.hpp"
+#include "../parsers.hpp"
 
-#define VERTEX_SHADER_LOCATION "./src/shaders/vertex_shader.vert" //"..\\shaders\\vertex_shader.vert"
-#define TESS_CONTROL_SHADER_LOCATION "./src/shaders/tess_control.tesc" //"..\\shaders\\tess_control.tesc"
-#define TESS_EVAL_SHADER_LOCATION "./src/shaders/tess_evaluation.tese" //"..\\shaders\\tess_evaluation.tese"
+#define VERTEX_SHADER_LOCATION "./src/shaders/vertex_shader.glsl" 
+#define TESS_CONTROL_SHADER_LOCATION "./src/shaders/tess_control.glsl" 
+#define TESS_EVAL_SHADER_LOCATION "./src/shaders/tess_evaluation.glsl" 
+#define GEOM_SHADER_LOCATION "./src/shaders/geom_shader.glsl" 
+#define EIGENDECOMPOSITION_SHADER_LOCATION "./src/shaders/eigendecomposition.glsl"
+
 
 GLuint compileShader(const char* source, GLenum type);
 
@@ -12,7 +16,8 @@ std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes, float&
 
 void setupTransformFeedbackAndAtomicCounter(size_t bufferSize, GLuint& feedbackBuffer, GLuint& feedbackVAO, GLuint& acBuffer);
 
-void performTessellationAndCapture(GLuint shaderProgram, GLuint vao, size_t vertexCount, GLuint& targetTriangleEndgeLEngth, GLuint& acBuffer, float minTriangleArea, float maxTriangleArea, float medianTriangleArea, float medianEdgeLength, float medianPerimeter);
+//Make arguments into a struct its too many parameters to pass and not readable...
+void performTessellationAndCapture(GLuint shaderProgram, GLuint vao, size_t vertexCount, GLuint& targetTriangleEndgeLEngth, GLuint& acBuffer, float minTriangleArea, float maxTriangleArea, float medianTriangleArea, float medianEdgeLength, float medianPerimeter, unsigned int textureSize);
 
 void downloadMeshFromGPU(GLuint& feedbackBuffer, GLuint numberOfTesselatedTriangles);
 

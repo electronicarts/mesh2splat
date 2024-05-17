@@ -1,0 +1,22 @@
+#version 460 core
+
+// Input attributes
+layout(location = 0) in vec3 position;
+layout(location = 1) in vec3 normal;      
+layout(location = 2) in vec4 tangent;     
+layout(location = 3) in vec2 uv;          
+
+// Output struct definition
+out VS_OUT {
+    vec3 position;
+    vec3 normal;     
+    vec4 tangent;    
+    vec2 uv;         
+} vs_out;
+
+void main() {
+    vs_out.position = position;
+    vs_out.normal = normal;        
+    vs_out.tangent = tangent;      
+    vs_out.uv = uv;                
+}

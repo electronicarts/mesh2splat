@@ -41,18 +41,22 @@ GLuint createShaderProgram() {
     std::string vertexShaderSource          = readShaderFile(VERTEX_SHADER_LOCATION);
     std::string tessControlShaderSource     = readShaderFile(TESS_CONTROL_SHADER_LOCATION);
     std::string tessEvaluationShaderSource  = readShaderFile(TESS_EVAL_SHADER_LOCATION);
+    std::string geomShaderSource            = readShaderFile(GEOM_SHADER_LOCATION);
 
     GLuint vertexShader         = compileShader(vertexShaderSource.c_str(), GL_VERTEX_SHADER);
     GLuint tessControlShader    = compileShader(tessControlShaderSource.c_str(), GL_TESS_CONTROL_SHADER);
     GLuint tessEvaluationShader = compileShader(tessEvaluationShaderSource.c_str(), GL_TESS_EVALUATION_SHADER);
+    GLuint geomShader           = compileShader(geomShaderSource.c_str(), GL_GEOMETRY_SHADER);
+
 
     GLuint program = glCreateProgram();
     glAttachShader(program, vertexShader);
     glAttachShader(program, tessControlShader);
     glAttachShader(program, tessEvaluationShader);
+    glAttachShader(program, geomShader);
 
-    const GLchar* feedbackVaryings[] = { "outPosition" };  // the name of the varying to capture
-    glTransformFeedbackVaryings(program, 1, feedbackVaryings, GL_INTERLEAVED_ATTRIBS);
+    const GLchar* feedbackVaryings[] = { "GaussianPosition", "Scale", "Normal", "Quaternion" };  // the name of the varying to capture
+    glTransformFeedbackVaryings(program, 4, feedbackVaryings, GL_INTERLEAVED_ATTRIBS);
 
     GLint success;
     const int maxMsgLength = 512;
@@ -105,10 +109,26 @@ std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes, float&
         
         // Convert mesh data to a flat array of floats (position only for this example)
         for (const auto& face : mesh.faces) {
-            for (int i = 0; i < 3; ++i) { // Assuming each face is a triangle
+            for (int i = 0; i < 3; ++i) { // Assuming each face is a triangle (and it must be as we are only reading .gltf/.glb files)
+                // Position
                 vertices.push_back(face.pos[i].x);
                 vertices.push_back(face.pos[i].y);
                 vertices.push_back(face.pos[i].z);
+
+                // Normal
+                vertices.push_back(face.normal[i].x);
+                vertices.push_back(face.normal[i].y);
+                vertices.push_back(face.normal[i].z);
+
+                // Tangent
+                vertices.push_back(face.tangent[i].x);
+                vertices.push_back(face.tangent[i].y);
+                vertices.push_back(face.tangent[i].z);
+                vertices.push_back(face.tangent[i].w);
+
+                // UV
+                vertices.push_back(face.uv[i].x);
+                vertices.push_back(face.uv[i].y);
             }
             float area = calcTriangleArea(face.pos[0], face.pos[1], face.pos[2]);
             areas.push_back(area);
@@ -116,6 +136,7 @@ std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes, float&
             float edge1_length = glm::length(face.pos[1] - face.pos[0]);
             float edge2_length = glm::length(face.pos[2] - face.pos[0]);
             float edge3_length = glm::length(face.pos[2] - face.pos[1]);
+            
             edgeLengths.push_back(edge1_length);
             edgeLengths.push_back(edge2_length);
             edgeLengths.push_back(edge3_length);
@@ -127,6 +148,9 @@ std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes, float&
 
         glMesh.vertexCount = vertices.size() / 3; // Number of vertices
 
+        // 3 position, 3 normal, 4 tangent, 2 UV = 12
+        size_t vertexStride = 12 * sizeof(float);
+
         // Generate and bind VAO
         glGenVertexArrays(1, &glMesh.vao);
         glBindVertexArray(glMesh.vao);
@@ -136,9 +160,19 @@ std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes, float&
         glBindBuffer(GL_ARRAY_BUFFER, glMesh.vbo);
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
 
-        //Vertex position attr
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        // Vertex attribute pointers
+        // Position attribute
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertexStride, (void*)0);
         glEnableVertexAttribArray(0);
+        // Normal attribute
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertexStride, (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
+        // Tangent attribute
+        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, vertexStride, (void*)(6 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+        // UV attribute
+        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, vertexStride, (void*)(10 * sizeof(float)));
+        glEnableVertexAttribArray(3);
 
         // Unbind VAO
         glBindVertexArray(0);
@@ -165,28 +199,32 @@ void setupTransformFeedbackAndAtomicCounter(size_t bufferSize, GLuint& feedbackB
     // Create a VAO for transform feedback
     glGenVertexArrays(1, &feedbackVAO);
     glBindVertexArray(feedbackVAO);
+
+    //gaussianPos(vec3) + scale(vec3) + normal(vec3) + tangent(vec4) + uv(vec2)
+    GLsizei totalStride = 3 + 3 + 3 + 4;
+
     glBindBuffer(GL_ARRAY_BUFFER, feedbackBuffer);
-    glEnableVertexAttribArray(0);  // Assuming output is vec3 positions
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    //Gaussian mean (position) attribute
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, totalStride, (void*)0);
+    // Scale attribute
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, totalStride, (void*)(3 * sizeof(float))); 
+    // Normal attribute
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, totalStride, (void*)(6 * sizeof(float)));
+    // Quaternion attribute
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, totalStride, (void*)(9 * sizeof(float)));
+
     glBindVertexArray(0);
 
     // Bind the buffer to the transform feedback binding point
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, feedbackBuffer);
-
-    //Generate atomic counter
-    /*
-    glGenBuffers(1, &acBuffer);
-    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, acBuffer);
-    glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
-
-    GLuint initialValue = 0;
-    glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &initialValue);
-
-    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
-    */
 }
 
-void setUniform1f(GLuint shaderProgram, std::string uniformName, float uniformValue)
+//TODO: declare in .hpp both these funcs
+static void setUniform1f(GLuint shaderProgram, std::string uniformName, float uniformValue)
 {
     GLint uniformLocation = glGetUniformLocation(shaderProgram, uniformName.c_str());
 
@@ -196,8 +234,19 @@ void setUniform1f(GLuint shaderProgram, std::string uniformName, float uniformVa
 
     glUniform1f(uniformLocation, uniformValue);
 }
+//Also you...
+static void setUniform1i(GLuint shaderProgram, std::string uniformName, unsigned int uniformValue)
+{
+    GLint uniformLocation = glGetUniformLocation(shaderProgram, uniformName.c_str());
 
-void performTessellationAndCapture(GLuint shaderProgram, GLuint vao, size_t vertexCount, GLuint& numTessellatedTriangles, GLuint& acBuffer, float minTriangleArea, float maxTriangleArea, float medianTriangleArea, float medianEdgeLength, float medianPerimeter) {
+    if (uniformLocation == -1) {
+        std::cerr << "Could not find uniform: '" + uniformName + "'." << std::endl;
+    }
+
+    glUniform1i(uniformLocation, uniformValue);
+}
+
+void performTessellationAndCapture(GLuint shaderProgram, GLuint vao, size_t vertexCount, GLuint& numGaussiansGenerated, GLuint& acBuffer, float minTriangleArea, float maxTriangleArea, float medianTriangleArea, float medianEdgeLength, float medianPerimeter, unsigned int textureSize) {
     // Use shader program and perform tessellation
     glUseProgram(shaderProgram);
 
@@ -207,6 +256,7 @@ void performTessellationAndCapture(GLuint shaderProgram, GLuint vao, size_t vert
     setUniform1f(shaderProgram, "medianTriangleArea", medianTriangleArea);
     setUniform1f(shaderProgram, "medianEdgeLength", medianEdgeLength);
     setUniform1f(shaderProgram, "medianPerimeter", medianPerimeter);
+    setUniform1i(shaderProgram, "textureSize", textureSize);
     //--------------------------------------------------------------------------
 
     // Prepare to capture the number of tessellated triangles
@@ -217,7 +267,7 @@ void performTessellationAndCapture(GLuint shaderProgram, GLuint vao, size_t vert
     glBeginQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, query);
 
     glEnable(GL_RASTERIZER_DISCARD);
-    glBeginTransformFeedback(GL_TRIANGLES);
+    glBeginTransformFeedback(GL_POINTS);
     glDrawArrays(GL_PATCHES, 0, vertexCount);
     glEndTransformFeedback();
     glDisable(GL_RASTERIZER_DISCARD);
@@ -225,76 +275,93 @@ void performTessellationAndCapture(GLuint shaderProgram, GLuint vao, size_t vert
     // End the query to capture the number of tessellated triangles
     glEndQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
 
-    glGetQueryObjectuiv(query, GL_QUERY_RESULT, &numTessellatedTriangles);
+    glGetQueryObjectuiv(query, GL_QUERY_RESULT, &numGaussiansGenerated);
 
     glDeleteQueries(1, &query);
-
-    /*
-    GLuint totalCount;
-    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, acBuffer);
-    glGetBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &totalCount);
-    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
-
-    printf("Total generated faces: %u\n", totalCount);
-    // Insert a fence sync object after tessellation
-    
-    GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-    glFlush(); 
-        
-    GLenum wait = glClientWaitSync(sync, GL_SYNC_FLUSH_COMMANDS_BIT, 1e8); // Wait up to 0.1 second
-    if (wait == GL_TIMEOUT_EXPIRED) {
-        std::cerr << "Sync timeout expired." << std::endl;
-    }
-    glDeleteSync(sync); // Clean up the sync object
-    */
 }
 
-void saveToObjFile(const float* feedbackData, GLuint numberOfTesselatedTriangles, const std::string& filename) {
+void readAndSaveToPly(const float* feedbackData, GLuint numberOfGeneratedGaussians, const std::string& filename, unsigned int stride) {
     std::ofstream objFile(filename);
     if (!objFile.is_open()) {
         std::cerr << "Failed to open the file for writing: " << filename << std::endl;
         return;
     }
-
-    unsigned int numberOfTotalVertices = numberOfTesselatedTriangles * 3;
-
-    objFile << "# OBJ file generated by application\n";
-    objFile << "# Vertex count: " << numberOfTotalVertices << "\n";
-    objFile << "# Triangle count: " << numberOfTesselatedTriangles << "\n";
+    std::vector<Gaussian3D> gaussians_3D_list; //TODO: Think if can allocate space instead of having the vector dynamic size
+    gaussians_3D_list.reserve(MAX_TEXTURE_SIZE * MAX_TEXTURE_SIZE);
 
     // Write each vertex position
-    for (size_t i = 0; i < numberOfTotalVertices; ++i) {
-        float x = feedbackData[3 * i];     // X coordinate
-        float y = feedbackData[3 * i + 1]; // Y coordinate
-        float z = feedbackData[3 * i + 2]; // Z coordinate
-        objFile << "v " << x << " " << y << " " << z << "\n";
+    for (size_t i = 0; i < numberOfGeneratedGaussians; ++i) {
+        float pos_x = feedbackData[stride * i];         
+        float pos_y = feedbackData[stride * i + 1];     
+        float pos_z = feedbackData[stride * i + 2];     
+
+        float scale_x = feedbackData[stride * i + 3];   
+        float scale_y = feedbackData[stride * i + 4];   
+        float scale_z = feedbackData[stride * i + 5];
+
+        float normal_x = feedbackData[stride * i + 6];
+        float normal_y = feedbackData[stride * i + 7];
+        float normal_z = feedbackData[stride * i + 8];
+
+        float quaternion_x = 1.0f;//feedbackData[stride * i + 9];
+        float quaternion_y = 1.0f; //feedbackData[stride * i + 10];
+        float quaternion_z = 1.0f; //feedbackData[stride * i + 11];
+        float quaternion_w = 1.0f; //feedbackData[stride * i + 12];
+
+        /*
+        std::cout << "Gaussian number " << i << "\n" << std::endl;
+        std::cout << "pos_x: " << pos_x << "\n" << std::endl;
+        std::cout << "pos_y: " << pos_y << "\n" << std::endl;
+        std::cout << "pos_z: " << pos_z << "\n" << std::endl;
+
+        std::cout << "scale_x: " << scale_x << "\n" << std::endl;
+        std::cout << "scale_y: " << scale_y << "\n" << std::endl;
+        std::cout << "scale_z: " << scale_z << "\n" << std::endl;
+
+        std::cout << "normal_x: " << normal_x << "\n" << std::endl;
+        std::cout << "normal_y: " << normal_y << "\n" << std::endl;
+        std::cout << "normal_z: " << normal_z << "\n" << std::endl;
+
+        std::cout << "quaternion_x: " << quaternion_x << "\n" << std::endl;
+        std::cout << "quaternion_y: " << quaternion_y << "\n" << std::endl;
+        std::cout << "quaternion_z: " << quaternion_z << "\n" << std::endl;
+        std::cout << "quaternion_w: " << quaternion_w << "\n" << std::endl;
+        */
+
+        Gaussian3D gauss;
+        gauss.material = MaterialGltf();
+        gauss.normal = glm::vec3(normal_x, normal_y, normal_z);
+        gauss.opacity = 1.0f;
+        gauss.position = glm::vec3(pos_x, pos_y, pos_z);
+        gauss.rotation = glm::vec4(quaternion_x, quaternion_y, quaternion_z, quaternion_w); //Try swizzling these around, its always a mess....
+        gauss.scale = glm::vec3(scale_x, scale_y, scale_z);
+        gauss.sh0 = DEFAULT_PURPLE;
+        gaussians_3D_list.push_back(gauss);
     }
 
-    // Write face (triangle) definitions using 1-based indexing
-    for (unsigned int i = 1; i <= numberOfTotalVertices; i += 3) {
-        objFile << "f " << i << " " << i + 1 << " " << i + 2 << "\n";
-    }
+    std::cout << "Writing ply to" << filename << std::endl;
 
-    objFile.close();
+    writeBinaryPLY(filename, gaussians_3D_list);
+
     std::cout << "Data successfully written to " << filename << std::endl;
 }
 
-void downloadMeshFromGPU(GLuint& feedbackBuffer, GLuint numTessellatedTriangles) {
+void downloadMeshFromGPU(GLuint& feedbackBuffer, GLuint numGeneratedGaussians) {
     glFinish();  // Ensure all OpenGL commands are finished
     glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, feedbackBuffer);
 
-    // Assuming each triangle gives 3 vertices and each vertex has 3 floats (x, y, z)
-    
+    unsigned int stride = 3 + 3 + 3 + 4;
+
     float* feedbackData = (float*)glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0,
-        numTessellatedTriangles * 3 * 3 * sizeof(float), GL_MAP_READ_BIT);
+        numGeneratedGaussians * stride * sizeof(float), GL_MAP_READ_BIT);
     
     //float* feedbackData = (float*)glMapBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, GL_READ_ONLY);
 
-    printf("Num tesselated triangles: %d\n", numTessellatedTriangles);
+    printf("Num generated gaussians: %d\n", numGeneratedGaussians);
 
-    printf("Saving to obj\n");
+    printf("Saving to ply\n");
     if (feedbackData) { 
-        saveToObjFile(feedbackData, numTessellatedTriangles, "tessellated_mesh.obj");
+        readAndSaveToPly(feedbackData, numGeneratedGaussians, GAUSSIAN_OUTPUT_MODEL_DEST_FOLDER_1, stride);
     }
     else {
         std::cerr << "Failed to map feedback buffer." << std::endl;

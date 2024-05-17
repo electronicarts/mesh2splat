@@ -1,4 +1,4 @@
-#version 430 core
+#version 460 core
 layout(vertices = 3) out;
 
 uniform float minTriangleArea;
@@ -9,10 +9,16 @@ uniform float medianPerimeter;
 
 in VS_OUT {
     vec3 position;
+    vec3 normal;
+    vec4 tangent;
+    vec2 uv;
 } tcs_in[];
 
 out TCS_OUT {
     vec3 position;
+    vec3 normal;
+    vec4 tangent;
+    vec2 uv;
 } tcs_out[];
 
 void main() { 
@@ -39,4 +45,7 @@ void main() {
     gl_TessLevelInner[0] = (tessFactor1 + tessFactor2 + tessFactor3) / 3;
 
     tcs_out[gl_InvocationID].position = tcs_in[gl_InvocationID].position;
+    tcs_out[gl_InvocationID].normal = tcs_in[gl_InvocationID].normal;
+    tcs_out[gl_InvocationID].tangent = tcs_in[gl_InvocationID].tangent;
+    tcs_out[gl_InvocationID].uv = tcs_in[gl_InvocationID].uv;
 }
