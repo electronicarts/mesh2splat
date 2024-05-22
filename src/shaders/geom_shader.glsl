@@ -1,9 +1,9 @@
 #version 460 core
 
 layout(triangles) in;
-layout(points, max_vertices = 3) out;
+layout(points, max_vertices = 1) out;
 
-uniform int textureSize;
+uniform vec3 inScale;
 
 in TES_OUT {
     vec3 position;
@@ -35,9 +35,8 @@ void convertFloat33ToMat3(in float arr_data[3][3], out mat3 mat_data)
     }
 }
 
-//Copied from GLM and translated to GLSL, its in WXYZ form
-vec4 quat_cast(mat3 m)
-{
+//Copied from GLM
+vec4 quat_cast(mat3 m) {
     float fourXSquaredMinus1 = m[0][0] - m[1][1] - m[2][2];
     float fourYSquaredMinus1 = m[1][1] - m[0][0] - m[2][2];
     float fourZSquaredMinus1 = m[2][2] - m[0][0] - m[1][1];
@@ -45,39 +44,50 @@ vec4 quat_cast(mat3 m)
 
     int biggestIndex = 0;
     float fourBiggestSquaredMinus1 = fourWSquaredMinus1;
-    if (fourXSquaredMinus1 > fourBiggestSquaredMinus1)
-    {
+    if (fourXSquaredMinus1 > fourBiggestSquaredMinus1) {
         fourBiggestSquaredMinus1 = fourXSquaredMinus1;
         biggestIndex = 1;
     }
-    if (fourYSquaredMinus1 > fourBiggestSquaredMinus1)
-    {
+    if (fourYSquaredMinus1 > fourBiggestSquaredMinus1) {
         fourBiggestSquaredMinus1 = fourYSquaredMinus1;
         biggestIndex = 2;
     }
-    if (fourZSquaredMinus1 > fourBiggestSquaredMinus1)
-    {
+    if (fourZSquaredMinus1 > fourBiggestSquaredMinus1) {
         fourBiggestSquaredMinus1 = fourZSquaredMinus1;
         biggestIndex = 3;
     }
 
-    float biggestVal = sqrt(fourBiggestSquaredMinus1 + 1.0) * 0.5;
-    float mult = 0.25 / biggestVal;
+    float biggestVal = sqrt(fourBiggestSquaredMinus1 + 1.0f) * 0.5f;
+    float mult = 0.25f / biggestVal;
 
-    switch (biggestIndex)
-    {
-    case 0:
-        return vec4(biggestVal, (m[1][2] - m[2][1]) * mult, (m[2][0] - m[0][2]) * mult, (m[0][1] - m[1][0]) * mult);
-    case 1:
-        return vec4((m[1][2] - m[2][1]) * mult, biggestVal, (m[0][1] + m[1][0]) * mult, (m[2][0] + m[0][2]) * mult);
-    case 2:
-        return vec4((m[2][0] - m[0][2]) * mult, (m[0][1] + m[1][0]) * mult, biggestVal, (m[1][2] + m[2][1]) * mult);
-    case 3:
-        return vec4((m[0][1] - m[1][0]) * mult, (m[2][0] + m[0][2]) * mult, (m[1][2] + m[2][1]) * mult, biggestVal);
-    default:
-        // This should never happen in practice
-        return vec4(1.0, 0.0, 0.0, 0.0);
+    vec4 q;
+
+    if (biggestIndex == 0) {
+        q.w = biggestVal;
+        q.x = (m[1][2] - m[2][1]) * mult;
+        q.y = (m[2][0] - m[0][2]) * mult;
+        q.z = (m[0][1] - m[1][0]) * mult;
     }
+    else if (biggestIndex == 1) {
+        q.w = (m[1][2] - m[2][1]) * mult;
+        q.x = biggestVal;
+        q.y = (m[0][1] + m[1][0]) * mult;
+        q.z = (m[2][0] + m[0][2]) * mult;
+    }
+    else if (biggestIndex == 2) {
+        q.w = (m[2][0] - m[0][2]) * mult;
+        q.x = (m[0][1] + m[1][0]) * mult;
+        q.y = biggestVal;
+        q.z = (m[1][2] + m[2][1]) * mult;
+    }
+    else {
+        q.w = (m[0][1] - m[1][0]) * mult;
+        q.x = (m[2][0] + m[0][2]) * mult;
+        q.y = (m[1][2] + m[2][1]) * mult;
+        q.z = biggestVal;
+    }
+
+    return q;
 }
 
 
@@ -413,7 +423,8 @@ mat3x2 multiply3x2With2x2(mat3x2 VMatrix, mat2 UVMatrix) {
 
 
 // Placeholder function for Jacobian computation
-mat3x2 computeUv3DJacobian(mat3 vertices, mat3x2 uvs) {
+/*
+mat2x3 computeUv3DJacobian(mat3 vertices, mat3x2 uvs) {
     // Compute edge vectors in UV space
     vec2 edgeUV1 = uvs[1] - uvs[0];
     vec2 edgeUV2 = uvs[2] - uvs[0];
@@ -431,9 +442,9 @@ mat3x2 computeUv3DJacobian(mat3 vertices, mat3x2 uvs) {
                             edge3D1.y, edge3D2.y,
                             edge3D1.z, edge3D2.z);
 
-    return multiply3x2With2x2(VMatrix, inverse(UVMatrix));
+    return VMatrix * inverse(UVMatrix);
 
-}
+}*/
 
 // Placeholder function for eigen decomposition
 vec2 getTwoLargestEigenvalues(mat3 covMat) {
@@ -447,70 +458,148 @@ vec2 getTwoLargestEigenvalues(mat3 covMat) {
     return vec2(eigenvalues[2], eigenvalues[1]); 
 }
 
+float triangleArea(float A, float B, float C)
+{
+    float s = (A + B + C) / 2;
+    return sqrt( s * (s - A) * (s - B) * (s - C));
+}
+
+vec3 project(vec3 v, vec3 u)
+{
+    float scalar = dot(v, u) / dot(u, u);
+    return scalar * u;
+}
+
+float rand(vec2 co) {
+    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+vec2[2] computeUVBoundingBox(vec2 triangleUVs[3]) {
+    float minU = triangleUVs[0].x, maxU = triangleUVs[0].x;
+    float minV = triangleUVs[0].y, maxV = triangleUVs[0].y;
+
+    for (int i = 0; i < 3; i++) {
+        vec2 uv = triangleUVs[i];
+        minU = min(minU, uv.x);
+        maxU = max(maxU, uv.x);
+
+        minV = min(minV, uv.y);
+        maxV = max(maxV, uv.y);
+    }
+
+    // Clamp values to [0, 1]
+    minU = max(minU, 0.0);
+    maxU = min(maxU, 1.0);
+    minV = max(minV, 0.0);
+    maxV = min(maxV, 1.0);
+
+    return vec2[2](vec2(minU, minV), vec2(maxU, maxV));
+}
+
+ivec2 uvToPixel(vec2 uv, int textureWidth, int textureHeight) {
+    // Convert back to pixel coordinates
+    int x = int(uv.x * float(textureWidth) - 0.5);
+    int y = int(uv.y * float(textureHeight) - 0.5); // Remember to swap the order of the pixels in the rgba_to_pos
+
+    // Clamp the coordinates to ensure they're within the texture bounds
+    // This accounts for potential rounding errors that might place the pixel outside the texture
+    x = clamp(x, 0, textureWidth - 1);
+    y = clamp(y, 0, textureHeight - 1);
+
+    return ivec2(x, y);
+}
+
+vec2 pixelToUV(ivec2 pixel, int textureWidth, int textureHeight) {
+    // Convert pixel coordinates to normalized UV coordinates by dividing
+    // by the texture dimensions. Cast to float to ensure floating-point division.
+    float u = float(pixel.x) / float(textureWidth);
+    float v = float(pixel.y) / float(textureHeight);
+
+    return vec2(u, v);
+}
+
+float sign(vec2 p1, vec2 p2, vec2 p3) {
+    return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+}
+
+bool pointInTriangle(vec2 pt, vec2 v1, vec2 v2, vec2 v3) {
+    float d1 = sign(pt, v1, v2);
+    float d2 = sign(pt, v2, v3);
+    float d3 = sign(pt, v3, v1);
+
+    bool hasNeg = (d1 < 0.0) || (d2 < 0.0) || (d3 < 0.0);
+    bool hasPos = (d1 > 0.0) || (d2 > 0.0) || (d3 > 0.0);
+
+    return !(hasNeg && hasPos);
+}
+
+bool computeBarycentricCoords(vec2 p, vec2 a, vec2 b, vec2 c, out float u, out float v, out float w) {
+    vec2 v0 = b - a;
+    vec2 v1 = c - a;
+    vec2 v2 = p - a;
+    float d00 = dot(v0, v0);
+    float d01 = dot(v0, v1);
+    float d11 = dot(v1, v1);
+    float d20 = dot(v2, v0);
+    float d21 = dot(v2, v1);
+    float denom = d00 * d11 - d01 * d01;
+    if (denom == 0.0) return false; // Collinear or singular triangle
+    float invDenom = 1.0f / denom;
+    v = (d11 * d20 - d01 * d21) * invDenom;
+    w = (d00 * d21 - d01 * d20) * invDenom;
+    u = 1.0 - v - w;
+    return true; // Successfull computation
+}
+
+
 void main() {
-    //TODO: Compute a large set of these and pass them as uniforms (up to 100)
-    vec3 bc[3] = vec3[3](
-        vec3((3.0 - sqrt(3.0)) / 6.0, (3.0 - sqrt(3.0)) / 6.0, sqrt(3.0) / 3.0),
-        vec3((3.0 - sqrt(3.0)) / 6.0, sqrt(3.0) / 3.0, (3.0 - sqrt(3.0)) / 6.0),
-        vec3(sqrt(3.0) / 3.0, (3.0 - sqrt(3.0)) / 6.0, (3.0 - sqrt(3.0)) / 6.0)
-        );
-
-
-    float scale_factor_multiplier = 0.75;
-    float image_area = textureSize * textureSize;
-    float sigma2d = scale_factor_multiplier * sqrt(2.0f / image_area);
-
-    // Compute covariance matrix
-    float sigma2 = sigma2d * sigma2d;
-    float covariance = 0.0; // Assuming zero covariance for simplicity
-
-    mat3x2 J = computeUv3DJacobian( mat3(gs_in[0].position, gs_in[1].position, gs_in[2].position), mat3x2(gs_in[0].uv, gs_in[1].uv, gs_in[2].uv));
-    mat2 covMat2d = mat2(
-        sigma2, covariance,
-        covariance, sigma2
-    );
-
-    mat3 covMat3d = transpose(J) * covMat2d * J; // Simplified, as J must be adjusted to correct size
-
-    vec2 eigenValues = getTwoLargestEigenvalues(covMat3d);
-    float SD_x = sqrt(eigenValues[0]);
-    float SD_y = sqrt(eigenValues[1]);
-    float SD_z = min(SD_x, SD_y) / 5.0f; // the 5 in the denominator was choosen arbitrarily and by looking at the output .ply
-
-    vec3 scale = vec3(log(SD_x), log(SD_y), log(SD_z)); // Assuming eigenvalues give variances
-
-    //Gram Schidt orthonormalization
-    vec3 r1 = normalize(cross(gs_in[0].position - gs_in[0].position, gs_in[2].position - gs_in[0].position));
+    //Gram Schmidt orthonormalization
+    vec3 r1 = normalize(cross(gs_in[1].position - gs_in[0].position, gs_in[2].position - gs_in[0].position));
     vec3 m = (gs_in[0].position + gs_in[1].position + gs_in[2].position) / 3.0;
     vec3 r2 = normalize(gs_in[0].position - m);
 
     // To obtain r3, first get it as triangleVertices[1] - m
-    vec3 initial_r3 = gs_in[1].position - m; // DO NOT NORMALIZE THIS
+    vec3 initial_r3 = gs_in[1].position - m; 
 
     // Gram-Schmidt Orthonormalization to find r3
     // Project initial_r3 onto r1
     // Project initial_r3 onto r1 and subtract it
-    vec3 proj_r3_onto_r1 = initial_r3 - dot(initial_r3, r1) * r1;
-    vec3 orthogonal_to_r1 = proj_r3_onto_r1;
+    vec3 proj_r3_onto_r1 = project(initial_r3, r1);
+    vec3 orthogonal_to_r1 = initial_r3 - proj_r3_onto_r1;
 
     // Project the result onto r2 and subtract it
-    vec3 proj_r3_onto_r2 = orthogonal_to_r1 - dot(orthogonal_to_r1, r2) * r2;
-    vec3 orthogonal_to_r1_and_r2 = proj_r3_onto_r2;
+    vec3 proj_r3_onto_r2 = project(orthogonal_to_r1, r2);
+    vec3 orthogonal_to_r1_and_r2 = orthogonal_to_r1 - proj_r3_onto_r2;
 
     // Normalize the final result
     vec3 r3 = normalize(orthogonal_to_r1_and_r2);
 
-    mat3 rotMat = mat3(r2, r3, r1);
+    mat3 rotMat = mat3( r2, r3, r1 );
+    vec4 q = quat_cast(rotMat);
+    vec4 quaternion = vec4(q.w, q.x, q.y, q.z);
 
-    vec4 quaternion = quat_cast(rotMat);
+    /*
+    float Sd_xy = min(length(gs_in[0].uv - gs_in[1].uv), min(length(gs_in[0].uv - gs_in[2].uv), length(gs_in[2].uv - gs_in[1].uv)));
+    float Sd_z  = Sd_xy / 10.0f;
 
-    // Loop through each Gaussian position
-    for (int i = 0; i < 3; i++) {
-        GaussianPosition     = interpolateWithBaryCoord(bc[i], gs_in[0].position, gs_in[1].position, gs_in[2].position);
-        Normal               = interpolateWithBaryCoord(bc[i], gs_in[0].normal, gs_in[1].normal, gs_in[2].normal); 
-        Quaternion           = quaternion;
-        Scale                = scale;
-        EmitVertex();
-        EndPrimitive();
-    }
+    float s_xy  = log(sqrt(Sd_xy));
+    float s_z   = log(Sd_z);
+
+    vec3 scaling = 0.5 * vec3(s_xy, s_xy, s_z);
+    */
+
+    vec3 bc[3] = {
+        vec3((3 - sqrt(3)) / 6, (3 - sqrt(3)) / 6, sqrt(3) / 3),
+        vec3((3 - sqrt(3)) / 6, sqrt(3) / 3, (3 - sqrt(3) / 6)),
+        vec3(sqrt(3) / 3, (3 - sqrt(3)) / 6, (3 - sqrt(3)) / 6),
+    };
+    //NB: As soon as get this fixed --> varying variable, just need to compute at the vertices and pass to rasterizer
+
+    GaussianPosition    = gs_in[0].position;// * u + gs_in[1].position * v + gs_in[2].position * w;
+    Normal              = gs_in[0].normal;//   * u + gs_in[1].normal   * v + gs_in[2].normal   * w; //pass tangent and here recover normal from normal map
+    Quaternion          = quaternion;
+    Scale               = inScale;
+
+    EmitVertex();
+    EndPrimitive();
 }

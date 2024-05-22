@@ -12,12 +12,19 @@ GLuint compileShader(const char* source, GLenum type);
 
 GLuint createShaderProgram();
 
-std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes, float& minTriangleArea, float& maxTriangleArea, float& medianArea, float& medianEdgeLength, float& medianPerimeter);
+std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes, float& medianArea, float& medianEdgeLength, float& medianPerimeter, float& meshSurfaceArea);
 
 void setupTransformFeedbackAndAtomicCounter(size_t bufferSize, GLuint& feedbackBuffer, GLuint& feedbackVAO, GLuint& acBuffer);
 
 //Make arguments into a struct its too many parameters to pass and not readable...
-void performTessellationAndCapture(GLuint shaderProgram, GLuint vao, size_t vertexCount, GLuint& targetTriangleEndgeLEngth, GLuint& acBuffer, float minTriangleArea, float maxTriangleArea, float medianTriangleArea, float medianEdgeLength, float medianPerimeter, unsigned int textureSize);
+void performTessellationAndCapture(
+	GLuint shaderProgram,		GLuint vao, 
+	size_t vertexCount,			GLuint& targetTriangleEndgeLEngth, GLuint& acBuffer, 
+	float medianTriangleArea,	float medianEdgeLength, 
+	float medianPerimeter,		unsigned int textureSize, 
+	float meshSurfaceArea,		glm::vec3 scale,
+	int normalizedUVSpaceWidth, int normalizedUVSpaceHeight
+);
 
 void downloadMeshFromGPU(GLuint& feedbackBuffer, GLuint numberOfTesselatedTriangles);
 

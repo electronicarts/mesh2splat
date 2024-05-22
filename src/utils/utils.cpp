@@ -359,7 +359,7 @@ void computeAndLoadTextureInformation(std::map<std::string, std::pair<unsigned c
         }
     }
 
-    rgba *= aoFactor;
+    //rgba *= aoFactor;
 
 }
 

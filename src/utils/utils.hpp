@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <fstream>
 #include <sstream>
+#include "../thirdParty/stb_image_write.h"
 #include <limits>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -94,8 +95,11 @@ struct Gaussian3D {
 struct Face {
     glm::vec3 pos[3];
     glm::vec2 uv[3];
+    glm::vec2 normalizedUvs[3]; //Resulting from xatlas
     glm::vec3 normal[3];
     glm::vec4 tangent[3];
+    glm::vec3 scale;
+    glm::vec4 rotation;
 };
 
 struct Mesh { //TODO: 

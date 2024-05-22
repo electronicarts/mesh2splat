@@ -5,7 +5,7 @@
 #define EPSILON 1e-8
 #define MAX_TEXTURE_SIZE 2048
 #define SH_COEFF0 0.28209479177387814f
-#define DEFAULT_PURPLE glm::vec3(102, 51, 153) //RGB - 0 , ... , 255
+#define DEFAULT_PURPLE glm::vec3(102.0f/255.0f, 51.0f/255.0f, 153.0f/255.0f) //RGB - 0 , ... , 255
 
 #define METALLIC_ROUGHNESS_TEXTURE "metallicRoughnessTexture"
 #define BASE_COLOR_TEXTURE "baseColorTexture"

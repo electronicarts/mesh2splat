@@ -11,10 +11,11 @@
 #include "utils/gaussianShapesUtilities.hpp"
 #include "gaussianComputations.hpp"
 #include "utils/shaderUtils.hpp"
+#include "utils/normalizedUvUnwrapping.hpp"
 
 #define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
 #define PBWIDTH 60
-#define GPU_IMPL 1
+#define GPU_IMPL 0
 
 //https://stackoverflow.com/a/36315819
 void printProgressBar(float percentage)
@@ -26,7 +27,7 @@ void printProgressBar(float percentage)
     fflush(stdout);
 }
 
-#if GPU_IMPL == 1
+#if GPU_IMPL == 0
 int main() {
     // Initialize GLFW and create a window...
     if (!glfwInit())
@@ -51,8 +52,27 @@ int main() {
     // Load shaders and meshes
     GLuint shaderProgram = createShaderProgram();
     std::vector<Mesh> meshes = parseGltfFileToMesh(OUTPUT_FILENAME);
-    float minTriangleArea, maxTriangleArea, medianArea, medianEdgeLength, medianPerimeter;
-    std::vector<GLMesh> glMeshes = uploadMeshesToOpenGL(meshes, minTriangleArea, maxTriangleArea, medianArea, medianEdgeLength, medianPerimeter);
+    int uvSpaceWidth, uvSpaceHeight;
+    generateNormalizedUvCoordinatesPerFace(uvSpaceWidth, uvSpaceHeight, meshes);
+    float scale_factor_multiplier = 0.75f;
+    int image_area = uvSpaceWidth * uvSpaceHeight;
+    float Sd_x = .5f / (float)uvSpaceWidth;
+    float Sd_y = .5f / (float)uvSpaceHeight;
+
+    for (auto& mesh : meshes)
+    {
+        for (auto& face : mesh.faces)
+        {
+            get3DGaussianQuaternionRotation(face.pos, face.rotation);
+            get3DGaussianScale(Sd_x, Sd_y, face.pos, face.normalizedUvs, face.scale);
+        }
+    }
+
+
+    //std::cout << glm::to_string(meshes[0].faces[0].uv[1]) << "\n" << std::endl;
+
+    float medianArea, medianEdgeLength, medianPerimeter, meshSurfaceArea;
+    std::vector<GLMesh> glMeshes = uploadMeshesToOpenGL(meshes, medianArea, medianEdgeLength, medianPerimeter, meshSurfaceArea);
 
     // Setup Transform Feedback (assuming each mesh could be expanded up to 10 times its original size)
     GLuint feedbackBuffer, feedbackVAO, acBuffer;
@@ -70,9 +90,10 @@ int main() {
     // Perform tessellation and capture the output
     for (const auto& glMesh : glMeshes) {
         GLuint numberOfTessellatedTriangles = 0;
-        printf("MinTri: %f    MaxTri: %f\n", minTriangleArea, maxTriangleArea);
         auto started = std::chrono::high_resolution_clock::now();
-        performTessellationAndCapture(shaderProgram, glMesh.vao, glMesh.vertexCount, numberOfTessellatedTriangles, acBuffer, minTriangleArea, maxTriangleArea, medianArea, medianEdgeLength, medianPerimeter, MAX_TEXTURE_SIZE);
+        performTessellationAndCapture(
+            shaderProgram, glMesh.vao, glMesh.vertexCount, 
+            numberOfTessellatedTriangles, acBuffer, medianArea, medianEdgeLength, medianPerimeter, uvSpaceWidth, meshSurfaceArea, meshes[0].faces[0].scale, uvSpaceWidth, uvSpaceHeight);
         auto done = std::chrono::high_resolution_clock::now();
         std::cout << "Tesselation execution time: " << std::chrono::duration_cast<std::chrono::milliseconds>(done - started).count() << "ms\n" << std::endl;
         // Download the tessellated mesh data for each mesh
@@ -89,6 +110,7 @@ int main() {
     printf("Parsing input mesh\n");
     std::vector<Mesh> meshes = parseGltfFileToMesh(OUTPUT_FILENAME); //TODO: Struct is more readable and leaves no space for doubt
 
+    //generateNormalizedUvCoordinatesPerFace(uvSpaceWidth, uvSpaceHeight, meshes);
     printf("Parsed input meshes, total number meshes: %d \n", (unsigned int)meshes.size());
  
     std::vector<Gaussian3D> gaussians_3D_list; //TODO: Think if can allocate space instead of having the vector dynamic size
@@ -104,6 +126,11 @@ int main() {
     }
 
     int meshNumber = 0;
+
+    int uvSpaceWidth, uvSpaceHeight;
+
+    generateNormalizedUvCoordinatesPerFace(uvSpaceWidth, uvSpaceHeight, meshes);
+
     for (auto& mesh : meshes) 
     {
         meshNumber++;
@@ -113,27 +140,34 @@ int main() {
 
         loadAllTexturesIntoMap(mesh.material, textureTypeMap);
 
+
+        // Calculate σ based on the density and desired overlap, I derived this simple formula
+        //TODO: Should find a better way to compute sigma and do it based on the size of the current triangle to tesselate
+        //TODO: should base this on nyquist sampling rate: https://www.pbr-book.org/3ed-2018/Texture/Sampling_and_Antialiasing#FindingtheTextureSamplingRate
+        //TODO: do outside
+
         printf("\n%zu triangle faces for mesh number %d / %zu\n", mesh.faces.size(), meshNumber, meshes.size());
         //std::vector<std::tuple<glm::vec3, glm::vec3, glm::vec4, MaterialGltf>> positionsOnTriangleSurfaceAndRGBs;
+
 
         for (const auto& triangleFace : mesh.faces) {
 
             printProgressBar((float)t / (float)totFaces);
             t++;
 
-            // Calculate σ based on the density and desired overlap, I derived this simple formula
-            //TODO: Should find a better way to compute sigma and do it based on the size of the current triangle to tesselate
-            //TODO: should base this on nyquist sampling rate: https://www.pbr-book.org/3ed-2018/Texture/Sampling_and_Antialiasing#FindingtheTextureSamplingRate
-            //TODO: do outside
-            float scale_factor_multiplier = .75f;
-            float image_area = (mesh.material.baseColorTexture.width * mesh.material.baseColorTexture.height);
-            float sigma = scale_factor_multiplier * sqrtf(2.0f / image_area);
-            std::pair<glm::vec4, glm::vec3> rotAndScale = getScaleRotationAndNormalGaussian(sigma, triangleFace.pos, triangleFace.uv);
 
-            glm::vec4 rotation = std::get<0>(rotAndScale);
-            glm::vec3 scale = std::get<1>(rotAndScale);
+            glm::vec4 rotation3D;
 
-            //TODO: obviously if there is no texture you need to do something otherwise wont rasterize shit and wont find correspondence in pixel
+            get3DGaussianQuaternionRotation(triangleFace.pos, rotation3D);
+
+            glm::vec3 scale3D;
+            float Sd_x = .5f / (float)uvSpaceWidth; //setting it to 1 results in the best quality and least transparency issues
+            float Sd_y = .5f / (float)uvSpaceHeight;
+            get3DGaussianScale(Sd_x, Sd_y, triangleFace.pos, triangleFace.normalizedUvs, scale3D);
+
+            //std::cout << "Scale: " << glm::to_string(scale3D) << std::endl;
+
+            //TODO: obviously if there is no texture you need to do something otherwise wont rasterize anything and wont find correspondence in pixel
             //This will have to stay like this until I establish a common initial UV mapping; for now, as a requirement, the model needs to have a UV mapping
             
             //TODO: split load and rasterization
@@ -199,8 +233,8 @@ int main() {
                             Gaussian3D gaussian_3d;
                             gaussian_3d.position = interpolatedPos;
                             gaussian_3d.normal = outputNormal;
-                            gaussian_3d.rotation = rotation;
-                            gaussian_3d.scale = scale;
+                            gaussian_3d.rotation = rotation3D;
+                            gaussian_3d.scale = scale3D;
                             gaussian_3d.sh0 = getColor(glm::vec3((rgba.r), (rgba.g), (rgba.b)));
                             gaussian_3d.opacity = (rgba.a);
                             gaussian_3d.material = mesh.material;

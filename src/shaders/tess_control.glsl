@@ -1,8 +1,6 @@
 #version 460 core
 layout(vertices = 3) out;
 
-uniform float minTriangleArea;
-uniform float maxTriangleArea;
 uniform float medianTriangleArea;
 uniform float medianEdgeLength;
 uniform float medianPerimeter;
@@ -26,22 +24,20 @@ void main() {
     float edge1 = length(tcs_in[0].position - tcs_in[1].position);
     float edge2 = length(tcs_in[1].position - tcs_in[2].position);
     float edge3 = length(tcs_in[2].position - tcs_in[0].position);
-    float perimeter = edge1 + edge2 + edge3;
+    //loat perimeter = edge1 + edge2 + edge3; //No need
 
-    float sizeFactor = clamp(perimeter / medianPerimeter, 0.5, 2.0);
+    //float sizeFactor = clamp(perimeter / medianPerimeter, 0.5, 2.0);
 
-    int tessFactor1 = max(1, int(ceil(edge1 / medianEdgeLength)));
-    int tessFactor2 = max(1, int(ceil(edge2 / medianEdgeLength)));
-    int tessFactor3 = max(1, int(ceil(edge3 / medianEdgeLength)));
+    float factor = 100.0f;
 
-    tessFactor1 = max(1, int(float(tessFactor1) * sizeFactor));
-    tessFactor2 = max(1, int(float(tessFactor2) * sizeFactor));
-    tessFactor3 = max(1, int(float(tessFactor3) * sizeFactor));
+    int tessFactor1 = int(max(1.0, edge1 * factor));
+    int tessFactor2 = int(max(1.0, edge2 * factor));
+    int tessFactor3 = int(max(1.0, edge3 * factor));
 
     gl_TessLevelOuter[0] = tessFactor1;
     gl_TessLevelOuter[1] = tessFactor2;
     gl_TessLevelOuter[2] = tessFactor3;
-
+                           
     gl_TessLevelInner[0] = (tessFactor1 + tessFactor2 + tessFactor3) / 3;
 
     tcs_out[gl_InvocationID].position = tcs_in[gl_InvocationID].position;

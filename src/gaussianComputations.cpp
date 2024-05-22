@@ -67,17 +67,47 @@ static glm::vec3 project(const glm::vec3& v, const glm::vec3& u) {
     return scalar * u;
 }
 
-std::pair<glm::vec4, glm::vec3> getScaleRotationAndNormalGaussian(const float sigma2d, const glm::vec3* verticesTriangle3D, const glm::vec2* verticesTriangleUVs)
+void get3DGaussianQuaternionRotation(const glm::vec3* verticesTriangle3D, glm::vec4& outputQuaternion)
+{
+    //https://arxiv.org/pdf/2402.01459.pdf
+    glm::vec3 r1 = glm::normalize(glm::cross((verticesTriangle3D[1] - verticesTriangle3D[0]), (verticesTriangle3D[2] - verticesTriangle3D[0])));
+    glm::vec3 m = (verticesTriangle3D[0] + verticesTriangle3D[1] + verticesTriangle3D[2]) / 3.0f;
+    glm::vec3 r2 = glm::normalize(verticesTriangle3D[0] - m);
+    //To obtain r3 we first get it as triangleVertices[1] - m and then orthonormalize it with respect to r1 and r2
+    glm::vec3 initial_r3 = verticesTriangle3D[1] - m; //DO NOT NORMALIZE THIS
+    // Gram-Schmidt Orthonormalization to find r3
+    // Project initial_r3 onto r1
+    // Project initial_r3 onto r1 and subtract it
+    glm::vec3 proj_r3_onto_r1 = project(initial_r3, r1);
+    glm::vec3 orthogonal_to_r1 = initial_r3 - proj_r3_onto_r1;
+
+    // Project the result onto r2 and subtract it
+    glm::vec3 proj_r3_onto_r2 = project(orthogonal_to_r1, r2);
+    glm::vec3 orthogonal_to_r1_and_r2 = orthogonal_to_r1 - proj_r3_onto_r2;
+
+    // Normalize the final result
+    glm::vec3 r3 = glm::normalize(orthogonal_to_r1_and_r2);
+
+    glm::mat3 rotMat = { r2, r3, r1 };
+
+    glm::quat q = glm::quat_cast(rotMat);
+
+    outputQuaternion = glm::vec4(q.w, q.x, q.y, q.z);
+}
+
+void get3DGaussianScale(const float Sd_x, const float Sd_y, const glm::vec3* verticesTriangle3D, const glm::vec2* verticesTriangleUVs, glm::vec3& outputScale)
 {
     //Building CovMat2D
     //float rho = 0.0f; //Pearson Corr. Coeff. (PCC)
     //float covariance = rho * abs(sigma2d) * abs(sigma2d);
     float covariance = 0.0f;
     Eigen::Matrix2d covMat2d;
-    float sigma2 = sigma2d * sigma2d;
+    float sigmaX = Sd_x * Sd_x;
+    float sigmaY = Sd_y * Sd_y;
+
     covMat2d <<
-        sigma2, covariance,     //Row 1
-        covariance, sigma2;         //Row 2
+        sigmaX, covariance,         //Row 1
+        covariance, sigmaY;         //Row 2
 
     //---------------Computing 3d Cov Matrix--------------------
 
@@ -102,48 +132,7 @@ std::pair<glm::vec4, glm::vec3> getScaleRotationAndNormalGaussian(const float si
     //Computing and setting scale values from the eigenvalues
     float SD_x = sqrtf(eigenPairs[2].second); //sqrt of eigenvalues..., jacobian by normal dot should yield 0 (to check)
     float SD_y = sqrtf(eigenPairs[1].second);
-    float SD_z = (std::min(SD_x, SD_y) / 5.0f); //TODO: magic hyperparameter
-    glm::vec3 scale(log(SD_x), log(SD_y), log(SD_z));
+    float SD_z = (std::min(SD_x, SD_y) / 5.0f); //TODO: magic hyperparameter needs to be understood better
 
-#if EIGEN_BASED_GAUSSIANS_ROTATION
-    glm::vec3 x = glm::normalize(eigenPairs[2].first);
-    glm::vec3 y = glm::normalize(eigenPairs[1].first);
-    glm::vec3 z = glm::normalize(glm::cross(x, y));
-
-    //TODO: for now I do this. I know it would make sense to directly use the computed normal. 
-    // but I dont know if they are exactly identical and do not want to risk having a non-orthonormal basis + orthonormalizing it may add overhead.
-
-    glm::mat3 rotMat = { x, y, z };
-
-    glm::quat q = glm::quat_cast(rotMat);
-
-    return std::make_pair(glm::vec4(q.w, q.x, q.y, q.z), scale);
-#else
-    //https://arxiv.org/pdf/2402.01459.pdf
-    glm::vec3 r1 = glm::normalize(glm::cross((verticesTriangle3D[1] - verticesTriangle3D[0]), (verticesTriangle3D[2] - verticesTriangle3D[0])));
-    glm::vec3 m = (verticesTriangle3D[0] + verticesTriangle3D[1] + verticesTriangle3D[2]) / 3.0f;
-    glm::vec3 r2 = glm::normalize(verticesTriangle3D[0] - m);
-    //To obtain r3 we first get it as triangleVertices[1] - m and then orthonormalize it with respect to r1 and r2
-    glm::vec3 initial_r3 = verticesTriangle3D[1] - m; //DO NOT NORMALIZE THIS
-    // Gram-Schmidt Orthonormalization to find r3
-    // Project initial_r3 onto r1
-    // Project initial_r3 onto r1 and subtract it
-    glm::vec3 proj_r3_onto_r1 = project(initial_r3, r1);
-    glm::vec3 orthogonal_to_r1 = initial_r3 - proj_r3_onto_r1;
-
-    // Project the result onto r2 and subtract it
-    glm::vec3 proj_r3_onto_r2 = project(orthogonal_to_r1, r2);
-    glm::vec3 orthogonal_to_r1_and_r2 = orthogonal_to_r1 - proj_r3_onto_r2;
-
-    // Normalize the final result
-    glm::vec3 r3 = glm::normalize(orthogonal_to_r1_and_r2);
-
-    glm::mat3 rotMat = { r2, r3, r1 };
-
-    glm::quat q = glm::quat_cast(rotMat);
-
-    glm::vec4 rotation(q.w, q.x, q.y, q.z);
-
-    return std::make_pair(rotation, scale);
-#endif
+    outputScale = glm::vec3(log(SD_x), log(SD_y), log(SD_z));
 }

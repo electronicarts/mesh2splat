@@ -12,4 +12,7 @@ static Eigen::Matrix<double, 3, 2>  computeUv3DJacobian(const std::array<glm::ve
 
 std::vector<std::pair<glm::vec3, float>> getSortedEigenvectorEigenvalues(Eigen::Matrix3d covMat3d);
 
-std::pair<glm::vec4, glm::vec3> getScaleRotationAndNormalGaussian(const float sigma2d, const glm::vec3* verticesTriangle3D, const glm::vec2* verticesTriangleUVs);
+void get3DGaussianQuaternionRotation(const glm::vec3* verticesTriangle3D, glm::vec4& outputQuaternion);
+
+
+void get3DGaussianScale(const float Sd_x, const float Sd_y, const glm::vec3* verticesTriangle3D, const glm::vec2* verticesTriangleUVs, glm::vec3& outputScale);
