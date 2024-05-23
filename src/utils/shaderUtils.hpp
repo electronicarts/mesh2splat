@@ -10,13 +10,13 @@
 
 GLuint compileShader(const char* source, GLenum type);
 
-GLuint createShaderProgram();
+GLuint createShaderProgram(unsigned int& transformFeedbackVertexStride);
 
 void uploadTextures(const std::map<std::string, std::pair<unsigned char*, int>>& textureTypeMap, MaterialGltf material);
 
 std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes, float& medianArea, float& medianEdgeLength, float& medianPerimeter, float& meshSurfaceArea);
 
-void setupTransformFeedbackAndAtomicCounter(size_t bufferSize, GLuint& feedbackBuffer, GLuint& feedbackVAO, GLuint& acBuffer);
+void setupTransformFeedback(size_t bufferSize, GLuint& feedbackBuffer, GLuint& feedbackVAO, GLuint& acBuffer, unsigned int totalStride);
 
 //Make arguments into a struct its too many parameters to pass and not readable...
 void performTessellationAndCapture(
@@ -25,9 +25,10 @@ void performTessellationAndCapture(
 	float medianTriangleArea,	float medianEdgeLength, 
 	float medianPerimeter,		unsigned int textureSize, 
 	float meshSurfaceArea,		glm::vec3 scale,
-	int normalizedUVSpaceWidth, int normalizedUVSpaceHeight
+	int normalizedUVSpaceWidth, int normalizedUVSpaceHeight,
+	glm::vec2 metalllicRoughnessFactors
 );
 
-void downloadMeshFromGPU(GLuint& feedbackBuffer, GLuint numberOfTesselatedTriangles);
+void downloadMeshFromGPU(GLuint& feedbackBuffer, GLuint numberOfTesselatedTriangles, unsigned int elementStride);
 
 std::string readShaderFile(const char* filePath);

@@ -4,6 +4,7 @@ layout(vertices = 3) out;
 uniform float medianTriangleArea;
 uniform float medianEdgeLength;
 uniform float medianPerimeter;
+uniform int tesselationFactorMultiplier;
 
 in VS_OUT {
     vec3 position;
@@ -28,11 +29,9 @@ void main() {
 
     //float sizeFactor = clamp(perimeter / medianPerimeter, 0.5, 2.0);
 
-    float factor = 100.0f;
-
-    int tessFactor1 = int(max(1.0, edge1 * factor));
-    int tessFactor2 = int(max(1.0, edge2 * factor));
-    int tessFactor3 = int(max(1.0, edge3 * factor));
+    int tessFactor1 = int(max(1.0, edge1 * tesselationFactorMultiplier));
+    int tessFactor2 = int(max(1.0, edge2 * tesselationFactorMultiplier));
+    int tessFactor3 = int(max(1.0, edge3 * tesselationFactorMultiplier));
 
     gl_TessLevelOuter[0] = tessFactor1;
     gl_TessLevelOuter[1] = tessFactor2;

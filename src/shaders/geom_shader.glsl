@@ -4,6 +4,12 @@ layout(triangles) in;
 layout(points, max_vertices = 1) out;
 
 uniform sampler2D albedoTexture;
+uniform sampler2D normalTexture;
+uniform sampler2D metallicRoughnessTexture;
+uniform sampler2D occlusionTexture;
+uniform sampler2D emissiveTexture;
+
+uniform vec2 metallicRoughnessFactors;
 uniform vec3 inScale;
 
 in TES_OUT {
@@ -18,6 +24,7 @@ out vec3 Scale;
 out vec3 Normal;
 out vec4 Quaternion;
 out vec4 Rgba;
+out vec2 MetallicRoughness;
 
 void convertMat3ToFloat33(in mat3 mat_data, out float arr_data[3][3])
 {
@@ -603,11 +610,36 @@ void main() {
         float w = bc[i].z;
 
         GaussianPosition = gs_in[0].position * u + gs_in[1].position * v + gs_in[2].position * w;
-        Normal = gs_in[0].normal * u + gs_in[1].normal   * v + gs_in[2].normal   * w; //pass tangent and here recover normal from normal map
+        vec3 interpolatedNormal = gs_in[0].normal * u + gs_in[1].normal   * v + gs_in[2].normal   * w; //pass tangent and here recover normal from normal map
         vec2 interpolatedUV = gs_in[0].uv * u + gs_in[1].uv * v + gs_in[2].uv * w;
+        vec4 interpolatedTangent = gs_in[0].tangent * u + gs_in[1].tangent * v + gs_in[2].tangent * w;
+
+        // Normalize the interpolated tangent
+        interpolatedTangent = normalize(interpolatedTangent);
+
+        // Calculate the handedness (w-component)
+        float handedness =
+            u * gs_in[0].tangent.w +
+            v * gs_in[1].tangent.w +
+            w * gs_in[2].tangent.w;
+
+        // Ensure the handedness is properly applied
+        interpolatedTangent *= handedness;
+        
         Quaternion = quaternion;
         Scale = inScale;
         Rgba = texture(albedoTexture, interpolatedUV);
+        vec3 normalMap_normal = texture(normalTexture, interpolatedUV).xyz;
+
+        vec3 retrievedNormal = normalize(normalMap_normal.xyz * 2.0f - 1.0f); //TODO: * vec3(material.normalScale, material.normalScale, 1.0f)); https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#_material_normaltextureinfo_scale
+        
+        vec3 bitangent = normalize(cross(interpolatedNormal, interpolatedTangent.xyz)) * interpolatedTangent.w; //tangent.w is the bitangent sign
+        mat3 TBN = mat3(interpolatedTangent.xyz, bitangent, interpolatedNormal);
+
+        Normal = TBN * retrievedNormal; //should transform in model space
+
+        vec2 metalRough = texture(metallicRoughnessTexture, interpolatedUV).bg; //Blue contains metallic and Green roughness
+        MetallicRoughness = vec2(metalRough.x, metalRough.y);
 
         EmitVertex();
         EndPrimitive();

@@ -15,7 +15,7 @@
 
 #define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
 #define PBWIDTH 60
-#define GPU_IMPL 0
+
 
 //https://stackoverflow.com/a/36315819
 void printProgressBar(float percentage)
@@ -27,7 +27,7 @@ void printProgressBar(float percentage)
     fflush(stdout);
 }
 
-#if GPU_IMPL == 0
+#if GPU_IMPL
 int main() {
     // Initialize GLFW and create a window...
     if (!glfwInit())
@@ -50,26 +50,22 @@ int main() {
     }
 
     // Load shaders and meshes
-    GLuint shaderProgram = createShaderProgram();
+    unsigned int transformFeedbackVertexStride;
+    GLuint shaderProgram = createShaderProgram(transformFeedbackVertexStride);
     std::vector<Mesh> meshes = parseGltfFileToMesh(OUTPUT_FILENAME);
     int uvSpaceWidth, uvSpaceHeight;
     generateNormalizedUvCoordinatesPerFace(uvSpaceWidth, uvSpaceHeight, meshes);
-    float scale_factor_multiplier = 0.75f;
-    int image_area = uvSpaceWidth * uvSpaceHeight;
-    float Sd_x = .5f / (float)uvSpaceWidth;
-    float Sd_y = .5f / (float)uvSpaceHeight;
 
+    float Sd_x = PIXEL_SIZE_GAUSSIAN_RADIUS / (float)uvSpaceWidth;
+    float Sd_y = PIXEL_SIZE_GAUSSIAN_RADIUS / (float)uvSpaceHeight;
 
     for (auto& mesh : meshes)
     {
         for (auto& face : mesh.faces)
         {
-            get3DGaussianScale(Sd_x, Sd_y, face.pos, face.normalizedUvs, face.scale);
+            get3DGaussianScale(Sd_x, Sd_y, face.pos, face.normalizedUvs, face.scale); //TODO: Could compute this on the fly in the Shader, but will do this once everything is working
         }
     }
-
-
-    //std::cout << glm::to_string(meshes[0].faces[0].uv[1]) << "\n" << std::endl;
 
     float medianArea, medianEdgeLength, medianPerimeter, meshSurfaceArea;
     std::vector<GLMesh> glMeshes = uploadMeshesToOpenGL(meshes, medianArea, medianEdgeLength, medianPerimeter, meshSurfaceArea);
@@ -77,36 +73,57 @@ int main() {
     //I will need to do more than one draw call
     std::map<std::string, std::pair<unsigned char*, int>> textureTypeMap;
 
+    //TODO: just doing it for the first mesh for now and for only ALBEDO
     loadAllTexturesIntoMap(meshes[0].material, textureTypeMap);
     uploadTextures(textureTypeMap, meshes[0].material);
     // Setup Transform Feedback (assuming each mesh could be expanded up to 10 times its original size)
     GLuint feedbackBuffer, feedbackVAO, acBuffer;
-    GLuint tesselationLevel = 3;
 
     size_t estimatedMaxVertices = 0;
-    for (const auto& glMesh : glMeshes) {
-        size_t verticesPerPatch = 150;
-        estimatedMaxVertices += glMesh.vertexCount * verticesPerPatch;
+
+    for (const auto& glMesh : glMeshes)
+    {
+        estimatedMaxVertices += glMesh.vertexCount * 100;
     }
 
-    setupTransformFeedbackAndAtomicCounter(estimatedMaxVertices * 3 * sizeof(float), feedbackBuffer, feedbackVAO, acBuffer);  // 3 floats per vertex
-
+    size_t bufferSize = estimatedMaxVertices * 5 * sizeof(float);
+    setupTransformFeedback(bufferSize, feedbackBuffer, feedbackVAO, acBuffer, transformFeedbackVertexStride);  // 3 floats per vertex
 
     // Perform tessellation and capture the output
     for (const auto& glMesh : glMeshes) {
         GLuint numberOfTessellatedTriangles = 0;
         auto started = std::chrono::high_resolution_clock::now();
+        
         performTessellationAndCapture(
-            shaderProgram, glMesh.vao, glMesh.vertexCount, 
-            numberOfTessellatedTriangles, acBuffer, medianArea, medianEdgeLength, medianPerimeter, uvSpaceWidth, meshSurfaceArea, meshes[0].faces[0].scale, uvSpaceWidth, uvSpaceHeight);
+            shaderProgram, 
+            glMesh.vao, 
+            glMesh.vertexCount, 
+            numberOfTessellatedTriangles, 
+            acBuffer, 
+            medianArea, 
+            medianEdgeLength, 
+            medianPerimeter,
+            uvSpaceWidth,
+            meshSurfaceArea,
+            meshes[0].faces[0].scale, //TODO: will get better results if I do not use a global scale but set it for each face in a buffer
+            uvSpaceWidth, 
+            uvSpaceHeight,
+            glm::vec2(meshes[0].material.metallicFactor, meshes[0].material.roughnessFactor)
+        );
+
         auto done = std::chrono::high_resolution_clock::now();
         std::cout << "Tesselation execution time: " << std::chrono::duration_cast<std::chrono::milliseconds>(done - started).count() << "ms\n" << std::endl;
         // Download the tessellated mesh data for each mesh
-        downloadMeshFromGPU(feedbackBuffer, numberOfTessellatedTriangles);  // Assuming 10x vertices after tessellation
+        downloadMeshFromGPU(feedbackBuffer, numberOfTessellatedTriangles, transformFeedbackVertexStride);  // Assuming 10x vertices after tessellation
     }
 
     // Cleanup
     glfwTerminate();
+
+    //Free map
+    std::map<std::string, std::pair<unsigned char*, int>>::iterator it;
+    for (it = textureTypeMap.begin(); it != textureTypeMap.end(); it++) free(it->second.first);
+
     return 0;
 }
 #else

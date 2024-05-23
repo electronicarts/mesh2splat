@@ -13,11 +13,16 @@
 #define OCCLUSION_TEXTURE "occlusionTexture"
 #define EMISSIVE_TEXTURE "emissiveTexture"
 
+#define GPU_IMPL 1
 
 #define OBJ_NAME					"scifiHelmet"
 #define OBJ_FORMAT					".glb"
 #define OUTPUT_GAUSSIAN_FORMAT		".ply"
 #define DEFAULT_MATERIAL_NAME		"mm_default_material"
+
+#define EXPECTED_MAX_VERTICES_PER_PATCH 500
+#define PIXEL_SIZE_GAUSSIAN_RADIUS .25f
+#define TESSELATION_LEVEL_FACTOR_MULTIPLIER 250
 
 #define BASE_DATASET_FOLDER						"C:/Users/sscolari/Desktop/dataset/"  OBJ_NAME  "/"					
 
