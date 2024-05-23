@@ -48,15 +48,14 @@ GLuint createShaderProgram() {
     GLuint tessEvaluationShader = compileShader(tessEvaluationShaderSource.c_str(), GL_TESS_EVALUATION_SHADER);
     GLuint geomShader           = compileShader(geomShaderSource.c_str(), GL_GEOMETRY_SHADER);
 
-
     GLuint program = glCreateProgram();
     glAttachShader(program, vertexShader);
     glAttachShader(program, tessControlShader);
     glAttachShader(program, tessEvaluationShader);
     glAttachShader(program, geomShader);
 
-    const GLchar* feedbackVaryings[] = { "GaussianPosition", "Scale", "Normal", "Quaternion" };  // the name of the varying to capture
-    glTransformFeedbackVaryings(program, 4, feedbackVaryings, GL_INTERLEAVED_ATTRIBS);
+    const GLchar* feedbackVaryings[] = { "GaussianPosition", "Scale", "Normal", "Quaternion", "Rgba"};  // the name of the varying to capture
+    glTransformFeedbackVaryings(program, 5, feedbackVaryings, GL_INTERLEAVED_ATTRIBS);
 
     GLint success;
     const int maxMsgLength = 512;
@@ -95,7 +94,39 @@ void findMedianFromFloatVector(std::vector<float>& vec, float& result)
     }
 }
 
+void uploadTextures(const std::map<std::string, std::pair<unsigned char*, int>>& textureTypeMap, MaterialGltf material)
+{
+    //TODO: Just works for albedo and texture unit 0, need to change how this thing is handled as soon as albedo working
+    GLuint texture;
+
+    glActiveTexture(GL_TEXTURE0);
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    auto albedoImg = textureTypeMap.find(BASE_COLOR_TEXTURE);
+
+    if (albedoImg != textureTypeMap.end())
+    {
+        glTexImage2D(
+            GL_TEXTURE_2D, 
+            0, GL_RGBA,
+            material.baseColorTexture.width, material.baseColorTexture.width,
+            0, GL_RGBA, 
+            GL_UNSIGNED_BYTE, 
+            textureTypeMap.at(BASE_COLOR_TEXTURE).first
+        );
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+}
+
 std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes, float& medianArea, float& medianEdgeLength, float& medianPerimeter, float& meshSurfaceArea) {
+    
     std::vector<GLMesh> glMeshes;
     glMeshes.reserve(meshes.size());
     std::vector<float> areas;
@@ -125,8 +156,8 @@ std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes, float&
                 vertices.push_back(face.tangent[i].w);
 
                 // UV
-                vertices.push_back(face.normalizedUvs[i].x);
-                vertices.push_back(face.normalizedUvs[i].y);
+                vertices.push_back(face.uv[i].x);
+                vertices.push_back(face.uv[i].y);
 
             }
             float area = calcTriangleArea(face.normalizedUvs[0], face.normalizedUvs[1], face.normalizedUvs[2]);
@@ -204,7 +235,7 @@ void setupTransformFeedbackAndAtomicCounter(size_t bufferSize, GLuint& feedbackB
     glBindVertexArray(feedbackVAO);
 
     //gaussianPos(vec3) + scale(vec3) + normal(vec3) + tangent(vec4) + uv(vec2)
-    GLsizei totalStride = 3 + 3 + 3 + 4;
+    GLsizei totalStride = 3 + 3 + 3 + 4 + 4;
 
     glBindBuffer(GL_ARRAY_BUFFER, feedbackBuffer);
     //Gaussian mean (position) attribute
@@ -219,6 +250,9 @@ void setupTransformFeedbackAndAtomicCounter(size_t bufferSize, GLuint& feedbackB
     // Quaternion attribute
     glEnableVertexAttribArray(3);
     glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, totalStride, (void*)(9 * sizeof(float)));
+    // Quaternion attribute
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, totalStride, (void*)(13 * sizeof(float)));
 
     glBindVertexArray(0);
 
@@ -260,6 +294,17 @@ static void setUniform3f(GLuint shaderProgram, std::string uniformName, glm::vec
     glUniform3f(uniformLocation, uniformValue[0], uniformValue[1], uniformValue[2]);
 }
 
+static void setTexture(GLuint shaderProgram, std::string textureUniformName, unsigned int textureUnitNumber)
+{
+    GLint uniformLocation = glGetUniformLocation(shaderProgram, textureUniformName.c_str());
+
+    if (uniformLocation == -1) {
+        std::cerr << "Could not find uniform: '" + textureUniformName + "'." << std::endl;
+    }
+
+    glUniform1i(uniformLocation, textureUnitNumber);
+}
+
 void performTessellationAndCapture(GLuint shaderProgram, GLuint vao, size_t vertexCount, GLuint& numGaussiansGenerated, GLuint& acBuffer, float medianTriangleArea, float medianEdgeLength, float medianPerimeter, unsigned int textureSize, float uvSpaceTotalTrianglesArea, glm::vec3 scale, int normalizedUVSpaceWidth, int normalizedUVSpaceHeight) {
     // Use shader program and perform tessellation
     glUseProgram(shaderProgram);
@@ -269,8 +314,10 @@ void performTessellationAndCapture(GLuint shaderProgram, GLuint vao, size_t vert
     setUniform1f(shaderProgram, "medianEdgeLength", medianEdgeLength);
     setUniform1f(shaderProgram, "medianPerimeter", medianPerimeter);
     setUniform3f(shaderProgram, "inScale", scale);
-
+    setTexture(shaderProgram,   "albedoTexture", 0);
     //--------------------------------------------------------------------------
+
+
 
     // Prepare to capture the number of tessellated triangles
     GLuint query;
@@ -321,16 +368,19 @@ void readAndSaveToPly(const float* feedbackData, GLuint numberOfGeneratedGaussia
         float quaternion_z = feedbackData[stride * i + 11];
         float quaternion_w = feedbackData[stride * i + 12];
 
-        //std::cout << scale_x << " " << scale_y << " " << scale_z << "\n" << std::endl;
+        float rgba_r = feedbackData[stride * i + 13];
+        float rgba_g = feedbackData[stride * i + 14];
+        float rgba_b = feedbackData[stride * i + 15];
+        float rgba_a = feedbackData[stride * i + 16];
 
         Gaussian3D gauss;
         gauss.material = MaterialGltf();
         gauss.normal = glm::vec3(normal_x, normal_y, normal_z);
-        gauss.opacity = 1.0f;
+        gauss.opacity = rgba_a;
         gauss.position = glm::vec3(pos_x, pos_y, pos_z);
         gauss.rotation = glm::vec4(quaternion_x, quaternion_y, quaternion_z, quaternion_w); //Try swizzling these around, its always a mess....
         gauss.scale = glm::vec3(scale_x, scale_y, scale_z);
-        gauss.sh0 = getColor(DEFAULT_PURPLE);
+        gauss.sh0 = getColor(glm::vec3((rgba_r), (rgba_g), (rgba_b)));
         gaussians_3D_list.push_back(gauss);
     }
 
@@ -345,7 +395,7 @@ void downloadMeshFromGPU(GLuint& feedbackBuffer, GLuint numGeneratedGaussians) {
     glFinish();  // Ensure all OpenGL commands are finished
     glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, feedbackBuffer);
 
-    unsigned int stride = 3 + 3 + 3 + 4;
+    unsigned int stride = 3 + 3 + 3 + 4 + 4;
 
     //float* feedbackData = (float*)glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0,
     //    numGeneratedGaussians * stride * sizeof(float), GL_MAP_READ_BIT);

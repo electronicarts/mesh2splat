@@ -12,6 +12,8 @@ GLuint compileShader(const char* source, GLenum type);
 
 GLuint createShaderProgram();
 
+void uploadTextures(const std::map<std::string, std::pair<unsigned char*, int>>& textureTypeMap, MaterialGltf material);
+
 std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes, float& medianArea, float& medianEdgeLength, float& medianPerimeter, float& meshSurfaceArea);
 
 void setupTransformFeedbackAndAtomicCounter(size_t bufferSize, GLuint& feedbackBuffer, GLuint& feedbackVAO, GLuint& acBuffer);

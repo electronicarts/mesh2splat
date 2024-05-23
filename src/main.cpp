@@ -59,11 +59,11 @@ int main() {
     float Sd_x = .5f / (float)uvSpaceWidth;
     float Sd_y = .5f / (float)uvSpaceHeight;
 
+
     for (auto& mesh : meshes)
     {
         for (auto& face : mesh.faces)
         {
-            get3DGaussianQuaternionRotation(face.pos, face.rotation);
             get3DGaussianScale(Sd_x, Sd_y, face.pos, face.normalizedUvs, face.scale);
         }
     }
@@ -74,6 +74,11 @@ int main() {
     float medianArea, medianEdgeLength, medianPerimeter, meshSurfaceArea;
     std::vector<GLMesh> glMeshes = uploadMeshesToOpenGL(meshes, medianArea, medianEdgeLength, medianPerimeter, meshSurfaceArea);
 
+    //I will need to do more than one draw call
+    std::map<std::string, std::pair<unsigned char*, int>> textureTypeMap;
+
+    loadAllTexturesIntoMap(meshes[0].material, textureTypeMap);
+    uploadTextures(textureTypeMap, meshes[0].material);
     // Setup Transform Feedback (assuming each mesh could be expanded up to 10 times its original size)
     GLuint feedbackBuffer, feedbackVAO, acBuffer;
     GLuint tesselationLevel = 3;

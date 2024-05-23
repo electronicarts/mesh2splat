@@ -3,6 +3,7 @@
 layout(triangles) in;
 layout(points, max_vertices = 1) out;
 
+uniform sampler2D albedoTexture;
 uniform vec3 inScale;
 
 in TES_OUT {
@@ -16,6 +17,7 @@ out vec3 GaussianPosition;
 out vec3 Scale;
 out vec3 Normal;
 out vec4 Quaternion;
+out vec4 Rgba;
 
 void convertMat3ToFloat33(in mat3 mat_data, out float arr_data[3][3])
 {
@@ -593,13 +595,23 @@ void main() {
         vec3((3 - sqrt(3)) / 6, sqrt(3) / 3, (3 - sqrt(3) / 6)),
         vec3(sqrt(3) / 3, (3 - sqrt(3)) / 6, (3 - sqrt(3)) / 6),
     };
-    //NB: As soon as get this fixed --> varying variable, just need to compute at the vertices and pass to rasterizer
 
-    GaussianPosition    = gs_in[0].position;// * u + gs_in[1].position * v + gs_in[2].position * w;
-    Normal              = gs_in[0].normal;//   * u + gs_in[1].normal   * v + gs_in[2].normal   * w; //pass tangent and here recover normal from normal map
-    Quaternion          = quaternion;
-    Scale               = inScale;
+    for (int i = 0; i < 3; i++)
+    {
+        float u = bc[i].x;
+        float v = bc[i].y;
+        float w = bc[i].z;
 
-    EmitVertex();
-    EndPrimitive();
+        GaussianPosition = gs_in[0].position * u + gs_in[1].position * v + gs_in[2].position * w;
+        Normal = gs_in[0].normal * u + gs_in[1].normal   * v + gs_in[2].normal   * w; //pass tangent and here recover normal from normal map
+        vec2 interpolatedUV = gs_in[0].uv * u + gs_in[1].uv * v + gs_in[2].uv * w;
+        Quaternion = quaternion;
+        Scale = inScale;
+        Rgba = texture(albedoTexture, interpolatedUV);
+
+        EmitVertex();
+        EndPrimitive();
+    }
+
+
 }
