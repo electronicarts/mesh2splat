@@ -11,6 +11,7 @@ in VS_OUT {
     vec3 normal;
     vec4 tangent;
     vec2 uv;
+    vec3 scale;
 } tcs_in[];
 
 out TCS_OUT {
@@ -18,6 +19,7 @@ out TCS_OUT {
     vec3 normal;
     vec4 tangent;
     vec2 uv;
+    vec3 scale;
 } tcs_out[];
 
 void main() { 
@@ -43,4 +45,5 @@ void main() {
     tcs_out[gl_InvocationID].normal = tcs_in[gl_InvocationID].normal;
     tcs_out[gl_InvocationID].tangent = tcs_in[gl_InvocationID].tangent;
     tcs_out[gl_InvocationID].uv = tcs_in[gl_InvocationID].uv;
+    tcs_out[gl_InvocationID].scale = tcs_in[gl_InvocationID].scale;
 }

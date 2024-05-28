@@ -51,14 +51,21 @@ int main() {
 
     // Load shaders and meshes
     unsigned int transformFeedbackVertexStride;
+    printf("Creating shader program\n");
     GLuint shaderProgram = createShaderProgram(transformFeedbackVertexStride);
+    printf("Parsing gltf mesh file\n");
+
     std::vector<Mesh> meshes = parseGltfFileToMesh(OUTPUT_FILENAME);
+    printf("Parsed gltf mesh file\n");
+
     int uvSpaceWidth, uvSpaceHeight;
+    printf("Generating normalized UV coordinates (XATLAS)\n");
     generateNormalizedUvCoordinatesPerFace(uvSpaceWidth, uvSpaceHeight, meshes);
 
     float Sd_x = PIXEL_SIZE_GAUSSIAN_RADIUS / (float)uvSpaceWidth;
     float Sd_y = PIXEL_SIZE_GAUSSIAN_RADIUS / (float)uvSpaceHeight;
 
+    printf("Computing 3DGS scale per triangle face\n");
     for (auto& mesh : meshes)
     {
         for (auto& face : mesh.faces)
@@ -68,13 +75,16 @@ int main() {
     }
 
     float medianArea, medianEdgeLength, medianPerimeter, meshSurfaceArea;
+    printf("Loading mesh into OPENGL buffers\n");
     std::vector<GLMesh> glMeshes = uploadMeshesToOpenGL(meshes, medianArea, medianEdgeLength, medianPerimeter, meshSurfaceArea);
 
     //I will need to do more than one draw call
     std::map<std::string, std::pair<unsigned char*, int>> textureTypeMap;
 
+    printf("Loading textures into utility std::map\n");
     //TODO: just doing it for the first mesh for now and for only ALBEDO
     loadAllTexturesIntoMap(meshes[0].material, textureTypeMap);
+    printf("Loading textures into OPENGL texture buffers\n");
     uploadTextures(textureTypeMap, meshes[0].material);
     // Setup Transform Feedback (assuming each mesh could be expanded up to 10 times its original size)
     GLuint feedbackBuffer, feedbackVAO, acBuffer;
@@ -83,7 +93,7 @@ int main() {
 
     for (const auto& glMesh : glMeshes)
     {
-        estimatedMaxVertices += glMesh.vertexCount * 100;
+        estimatedMaxVertices += glMesh.vertexCount * EXPECTED_MAX_VERTICES_PER_PATCH;
     }
 
     size_t bufferSize = estimatedMaxVertices * 5 * sizeof(float);

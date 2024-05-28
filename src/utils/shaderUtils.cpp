@@ -155,9 +155,9 @@ void uploadTextures(const std::map<std::string, std::pair<unsigned char*, int>>&
 
             glTexImage2D(
                 GL_TEXTURE_2D,
-                0, GL_RGBA,
+                0, textureType.second.second,
                 width, height,
-                0, GL_RGBA,
+                0, textureType.second.second,
                 GL_UNSIGNED_BYTE,
                 textureData
             );
@@ -206,6 +206,11 @@ std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes, float&
                 vertices.push_back(face.uv[i].x);
                 vertices.push_back(face.uv[i].y);
 
+                // Scale
+                vertices.push_back(face.scale.x);
+                vertices.push_back(face.scale.y);
+                vertices.push_back(face.scale.z);
+
             }
             float area = calcTriangleArea(face.normalizedUvs[0], face.normalizedUvs[1], face.normalizedUvs[2]);
             areas.push_back(area);
@@ -222,8 +227,8 @@ std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes, float&
 
         glMesh.vertexCount = vertices.size() / 3; // Number of vertices
 
-        // 3 position, 3 normal, 4 tangent, 2 UV = 12
-        size_t vertexStride = 12 * sizeof(float);
+        // 3 position, 3 normal, 4 tangent, 2 UV, 3 scale = 15
+        size_t vertexStride = 15 * sizeof(float);
 
         // Generate and bind VAO
         glGenVertexArrays(1, &glMesh.vao);
@@ -247,6 +252,9 @@ std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes, float&
         // UV attribute
         glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, vertexStride, (void*)(10 * sizeof(float)));
         glEnableVertexAttribArray(3);
+        // Scale attribute
+        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, vertexStride, (void*)(12 * sizeof(float)));
+        glEnableVertexAttribArray(4);
 
         //Should use array indices for per face data such as rotation and scale or directly compute it in the shader, should actually do it in a compute shader and be done
 

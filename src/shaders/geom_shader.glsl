@@ -17,6 +17,7 @@ in TES_OUT {
     vec3 normal;
     vec4 tangent;
     vec2 uv;
+    vec3 scale;
 } gs_in[];
 
 out vec3 GaussianPosition;
@@ -603,6 +604,8 @@ void main() {
         vec3(sqrt(3) / 3, (3 - sqrt(3)) / 6, (3 - sqrt(3)) / 6),
     };
 
+    Scale = gs_in[0].scale;
+
     for (int i = 0; i < 3; i++)
     {
         float u = bc[i].x;
@@ -624,22 +627,22 @@ void main() {
             w * gs_in[2].tangent.w;
 
         // Ensure the handedness is properly applied
-        interpolatedTangent *= handedness;
+        interpolatedTangent     *= handedness;
         
-        Quaternion = quaternion;
-        Scale = inScale;
-        Rgba = texture(albedoTexture, interpolatedUV);
-        vec3 normalMap_normal = texture(normalTexture, interpolatedUV).xyz;
+        Quaternion              = quaternion;
 
-        vec3 retrievedNormal = normalize(normalMap_normal.xyz * 2.0f - 1.0f); //TODO: * vec3(material.normalScale, material.normalScale, 1.0f)); https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#_material_normaltextureinfo_scale
+        Rgba                    = texture(albedoTexture, interpolatedUV);
+        vec3 normalMap_normal   = texture(normalTexture, interpolatedUV).xyz;
+
+        vec3 retrievedNormal    = normalize(normalMap_normal.xyz * 2.0f - 1.0f); //TODO: * vec3(material.normalScale, material.normalScale, 1.0f)); https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#_material_normaltextureinfo_scale
         
-        vec3 bitangent = normalize(cross(interpolatedNormal, interpolatedTangent.xyz)) * interpolatedTangent.w; //tangent.w is the bitangent sign
-        mat3 TBN = mat3(interpolatedTangent.xyz, bitangent, interpolatedNormal);
+        vec3 bitangent          = normalize(cross(interpolatedNormal, interpolatedTangent.xyz)) * interpolatedTangent.w; //tangent.w is the bitangent sign
+        mat3 TBN                = mat3(interpolatedTangent.xyz, bitangent, interpolatedNormal);
 
-        Normal = TBN * retrievedNormal; //should transform in model space
+        Normal                  = TBN * retrievedNormal; 
 
-        vec2 metalRough = texture(metallicRoughnessTexture, interpolatedUV).bg; //Blue contains metallic and Green roughness
-        MetallicRoughness = vec2(metalRough.x, metalRough.y);
+        vec2 metalRough         = texture(metallicRoughnessTexture, interpolatedUV).bg; //Blue contains metallic and Green roughness
+        MetallicRoughness       = vec2(metalRough.x, metalRough.y);
 
         EmitVertex();
         EndPrimitive();

@@ -54,7 +54,6 @@ std::pair<unsigned char*, int> loadImageAndBpp(std::string texturePath, int& tex
 
 void loadAllTexturesIntoMap(MaterialGltf& material, std::map<std::string, std::pair<unsigned char*, int>>& textureTypeMap)
 {
-    
     //TODO: THIS IS NOT NICE CODE, IT CAN BE GENERALIZED TO AVOID REPEATING BY SIMPLY PASSING the TextureInfo
     
     //BASECOLOR ALBEDO TEXTURE LOAD

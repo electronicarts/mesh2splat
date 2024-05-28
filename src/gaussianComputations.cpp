@@ -130,9 +130,9 @@ void get3DGaussianScale(const float Sd_x, const float Sd_y, const glm::vec3* ver
     std::vector<std::pair<glm::vec3, float>> eigenPairs = getSortedEigenvectorEigenvalues(covMat3d);
 
     //Computing and setting scale values from the eigenvalues
-    float SD_x = sqrtf(eigenPairs[2].second); //sqrt of eigenvalues..., jacobian by normal dot should yield 0 (to check)
-    float SD_y = sqrtf(eigenPairs[1].second);
-    float SD_z = (std::min(SD_x, SD_y) / 5.0f); //TODO: magic hyperparameter needs to be understood better
+    float SD_xy = 3 * sqrtf(eigenPairs[1].second); //3 sigma, need to divide by 3 in the renderer
+    //float SD_y = Sd_x;//0.3333f * sqrtf(eigenPairs[1].second);
+    float SD_z = SD_xy / 5.0f;//(std::min(SD_x, SD_y) / 5.0f); //TODO: magic hyperparameter needs to be understood better
 
-    outputScale = glm::vec3(log(SD_x), log(SD_y), log(SD_z));
+    outputScale = glm::vec3(log(SD_xy), log(SD_xy), log(SD_z));
 }

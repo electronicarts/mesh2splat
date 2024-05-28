@@ -7,6 +7,7 @@ in TCS_OUT {
     vec3 normal;
     vec4 tangent;
     vec2 uv;
+    vec3 scale;
 } tes_in[];
 
 // Updated output to include all vertex attributes, with tangent as vec4
@@ -15,6 +16,7 @@ out TES_OUT {
     vec3 normal;
     vec4 tangent;
     vec2 uv;
+    vec3 scale;
 } tes_out;
 
 void main() {
@@ -40,6 +42,8 @@ void main() {
 
     // Interpolate UV
     tes_out.uv = u * tes_in[0].uv + v * tes_in[1].uv + w * tes_in[2].uv;
+
+    tes_out.scale = tes_in[0].scale;
 
     // Set gl_Position for the vertex
     gl_Position = vec4(tes_out.position, 1.0);
