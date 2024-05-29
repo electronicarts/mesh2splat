@@ -59,9 +59,6 @@ int main() {
     printf("Parsing gltf mesh file\n");
 
     std::vector<Mesh> meshes = parseGltfFileToMesh(OUTPUT_FILENAME);
-    glm::vec3 minBB, maxBB;
-    computeBoundingBox(meshes, minBB, maxBB);
-    glm::mat4 orthoMatrix = createOrthographicMatrix(minBB, maxBB);
 
     printf("Parsed gltf mesh file\n");
 
