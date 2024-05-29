@@ -15,4 +15,4 @@ std::vector<std::pair<glm::vec3, float>> getSortedEigenvectorEigenvalues(Eigen::
 void get3DGaussianQuaternionRotation(const glm::vec3* verticesTriangle3D, glm::vec4& outputQuaternion);
 
 
-void get3DGaussianScale(const float Sd_x, const float Sd_y, const glm::vec3* verticesTriangle3D, const glm::vec2* verticesTriangleUVs, glm::vec3& outputScale);
+void set3DGaussianScale(const float Sd_x, const float Sd_y, const glm::vec3* verticesTriangle3D, const glm::vec2* verticesTriangleUVs, glm::vec3& outputScale);

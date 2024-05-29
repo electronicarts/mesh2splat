@@ -95,7 +95,7 @@ void get3DGaussianQuaternionRotation(const glm::vec3* verticesTriangle3D, glm::v
     outputQuaternion = glm::vec4(q.w, q.x, q.y, q.z);
 }
 
-void get3DGaussianScale(const float Sd_x, const float Sd_y, const glm::vec3* verticesTriangle3D, const glm::vec2* verticesTriangleUVs, glm::vec3& outputScale)
+void set3DGaussianScale(const float Sd_x, const float Sd_y, const glm::vec3* verticesTriangle3D, const glm::vec2* verticesTriangleUVs, glm::vec3& outputScale)
 {
     //Building CovMat2D
     //float rho = 0.0f; //Pearson Corr. Coeff. (PCC)

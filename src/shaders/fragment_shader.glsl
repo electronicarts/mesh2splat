@@ -22,7 +22,11 @@ in vec3 Normal;
 in vec4 Quaternion;
 
 void main() {
-
+    //Do ablation with this:
+    //vec3 u = dFdx(GaussianPosition);
+    //vec3 v = dFdy(GaussianPosition);
+    //vec3 n = normalize(cross(u, v));
+    
     //NORMAL MAP
     //Should compute this in geometry shader
     vec3 normalMap_normal = texture(normalTexture, UV).xyz;
