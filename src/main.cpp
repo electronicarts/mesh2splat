@@ -27,39 +27,6 @@ void printProgressBar(float percentage)
     fflush(stdout);
 }
 
-glm::vec3 minVec3(const glm::vec3& a, const glm::vec3& b) {
-    return glm::vec3(std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z));
-}
-
-glm::vec3 maxVec3(const glm::vec3& a, const glm::vec3& b) {
-    return glm::vec3(std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z));
-}
-
-void computeBoundingBox(const std::vector<Mesh>& meshes, glm::vec3& outMin, glm::vec3& outMax) {
-    // Initialize min and max with extreme values
-    glm::vec3 minPoint(std::numeric_limits<float>::max());
-    glm::vec3 maxPoint(std::numeric_limits<float>::lowest());
-
-    // Iterate through each mesh
-    for (const auto& mesh : meshes) {
-        // Iterate through each face in the mesh
-        for (const auto& face : mesh.faces) {
-            // Iterate through each vertex in the face
-            for (int i = 0; i < 3; ++i) {
-                minPoint = minVec3(minPoint, face.pos[i]);
-                maxPoint = maxVec3(maxPoint, face.pos[i]);
-            }
-        }
-    }
-
-    // Output the computed bounding box
-    outMin = minPoint;
-    outMax = maxPoint;
-}
-
-glm::mat4 createOrthographicMatrix(const glm::vec3& min, const glm::vec3& max) {
-    return glm::ortho(min.x, max.x, min.y, max.y, min.z, max.z);
-}
 
 #if GPU_IMPL
 int main() {
@@ -122,31 +89,42 @@ int main() {
 
     printf("Loading textures into utility std::map\n");
     //TODO: just doing it for the first mesh for now and for only ALBEDO
-    loadAllTexturesIntoMap(meshes[0].material, textureTypeMap);
-    printf("Loading textures into OPENGL texture buffers\n");
+    std::vector<Gaussian3D> gaussians_3D_list;
+    gaussians_3D_list.reserve(MAX_TEXTURE_SIZE * MAX_TEXTURE_SIZE);
+    for (auto& mesh : meshes)
+    {
+        loadAllTexturesIntoMap(mesh.material, textureTypeMap);
+        printf("Loading textures into OPENGL texture buffers\n");
 
-    uploadTextures(textureTypeMap, meshes[0].material);
-    // Setup Transform Feedback (assuming each mesh could be expanded up to 10 times its original size)
-    GLuint acBuffer;
+        uploadTextures(textureTypeMap, mesh.material);
+        // Setup Transform Feedback (assuming each mesh could be expanded up to 10 times its original size)
+        GLuint acBuffer;
 
-    printf("Setting up framebuffer and textures\n");
-    GLuint framebuffer;
-    setupFrameBuffer(framebuffer, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE);
+        printf("Setting up framebuffer and textures\n");
+        GLuint framebuffer;
+        setupFrameBuffer(framebuffer, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE);
 
-    // Perform tessellation and capture the output
-    for (const auto& glMesh : glMeshes) {
-        GLuint numberOfTessellatedTriangles = 0;
-        
-        performTessellationAndCapture(
-            shaderProgram, glMesh.vao, 
-            framebuffer, glMesh.vertexCount, 
-            numberOfTessellatedTriangles, acBuffer, 
-            uvSpaceWidth, uvSpaceHeight, textureTypeMap, orthoMatrix
-        );
+        for (const auto& glMesh : glMeshes) {
+            GLuint numberOfTessellatedTriangles = 0;
 
-        // Download the tessellated mesh data for each mesh
-        downloadMeshFromGPU(framebuffer, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE);  // Assuming 10x vertices after tessellation
+            performGpuConversion(
+                shaderProgram, glMesh.vao,
+                framebuffer, glMesh.vertexCount,
+                numberOfTessellatedTriangles, acBuffer,
+                uvSpaceWidth, uvSpaceHeight, textureTypeMap
+            );
+
+            // Download the tessellated mesh data for each mesh
+            retrieveMeshFromFrameBuffer(gaussians_3D_list, framebuffer, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE); 
+        }
     }
+
+    //Write to file
+    std::cout << "Writing ply to ->  " << GAUSSIAN_OUTPUT_MODEL_DEST_FOLDER_1 << std::endl;
+
+    writeBinaryPLY(GAUSSIAN_OUTPUT_MODEL_DEST_FOLDER_1, gaussians_3D_list);
+
+    std::cout << "Data successfully written to ->  " << GAUSSIAN_OUTPUT_MODEL_DEST_FOLDER_1 << std::endl;
 
     // Cleanup
     glfwTerminate();
@@ -157,6 +135,7 @@ int main() {
 
     return 0;
 }
+
 #else
 int main() {
 

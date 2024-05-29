@@ -5,7 +5,6 @@ layout(triangle_strip, max_vertices = 3) out;
 
 uniform vec2 metallicRoughnessFactors;
 uniform vec3 inScale;
-uniform mat4 orthoMatrix;
 
 in TES_OUT {
     vec3 position;

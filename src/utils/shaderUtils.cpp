@@ -432,14 +432,13 @@ void performTessellationAndCapture(
     GLuint framebuffer, size_t vertexCount,
     GLuint& numGaussiansGenerated, GLuint& acBuffer,
     int normalizedUVSpaceWidth, int normalizedUVSpaceHeight,
-    const std::map<std::string, std::pair<unsigned char*, int>>& textureTypeMap, glm::mat4 ortho
+    const std::map<std::string, std::pair<unsigned char*, int>>& textureTypeMap
 ) {
     // Use shader program and perform tessellation
     glUseProgram(shaderProgram);
 
     //-------------------------------SET UNIFORMS-------------------------------   
     setUniform1i(shaderProgram, "tesselationFactorMultiplier", TESSELATION_LEVEL_FACTOR_MULTIPLIER);
-    setUniformMat4(shaderProgram, "orthoMatrix", ortho);
 
     //Textures
     if (textureTypeMap.find(BASE_COLOR_TEXTURE) != textureTypeMap.end())
@@ -552,7 +551,7 @@ void readAndSaveToPly(const float* feedbackData, GLuint numberOfGeneratedGaussia
     std::cout << "Data successfully written to " << filename << std::endl;
 }
 
-void downloadMeshFromGPU(GLuint& framebuffer, unsigned int width, unsigned int height) {
+void downloadMeshFromGPU(std::vector<Gaussian3D>& gaussians_3D_list, GLuint& framebuffer, unsigned int width, unsigned int height) {
     glFinish();  // Ensure all OpenGL commands are finished
     unsigned int frameBufferStride = 4;
 
@@ -581,10 +580,6 @@ void downloadMeshFromGPU(GLuint& framebuffer, unsigned int width, unsigned int h
     glReadPixels(0, 0, width, height, GL_RGBA, GL_FLOAT, pixels4.data());
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
-    std::vector<Gaussian3D> gaussians_3D_list; //TODO: Think if can allocate space instead of having the vector dynamic size
-    gaussians_3D_list.reserve(width * height);
 
     for (int i = 0; i < width * height; ++i) {
         // Extract data from the first texture
@@ -635,12 +630,6 @@ void downloadMeshFromGPU(GLuint& framebuffer, unsigned int width, unsigned int h
         gauss.sh0 = getColor(glm::vec3(Rgba_r, Rgba_g, Rgba_b));
         gaussians_3D_list.push_back(gauss);
     }
-
-    std::cout << "Writing ply to ->  " << GAUSSIAN_OUTPUT_MODEL_DEST_FOLDER_1 << std::endl;
-
-    writeBinaryPLY(GAUSSIAN_OUTPUT_MODEL_DEST_FOLDER_1, gaussians_3D_list);
-
-    std::cout << "Data successfully written to ->  " << GAUSSIAN_OUTPUT_MODEL_DEST_FOLDER_1 << std::endl;
 
 }
 

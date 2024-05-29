@@ -30,9 +30,9 @@ void performTessellationAndCapture(
     GLuint framebuffer, size_t vertexCount,
     GLuint& numGaussiansGenerated, GLuint& acBuffer,
     int normalizedUVSpaceWidth, int normalizedUVSpaceHeight,
-    const std::map<std::string, std::pair<unsigned char*, int>>& textureTypeMap, glm::mat4 ortho
+    const std::map<std::string, std::pair<unsigned char*, int>>& textureTypeMap
 );
 
-void downloadMeshFromGPU(GLuint& framebuffer, unsigned int width, unsigned int height);
+void downloadMeshFromGPU(std::vector<Gaussian3D>& gaussians_3D_list, GLuint& framebuffer, unsigned int width, unsigned int height);
 
 std::string readShaderFile(const char* filePath);
