@@ -36,7 +36,7 @@ std::string readShaderFile(const char* filePath) {
     }
 }
 
-GLuint createShaderProgram(unsigned int& transformFeedbackVertexStride) {
+GLuint createConverterShaderProgram() {
 
     std::string vertexShaderSource          = readShaderFile(VERTEX_SHADER_LOCATION);
     std::string tessControlShaderSource     = readShaderFile(TESS_CONTROL_SHADER_LOCATION);
@@ -58,11 +58,6 @@ GLuint createShaderProgram(unsigned int& transformFeedbackVertexStride) {
     glAttachShader(program, tessEvaluationShader);
     glAttachShader(program, geomShader);
     glAttachShader(program, fragmentShader);
-
-    //const GLchar* feedbackVaryings[] = { "GaussianPosition", "Scale", "Normal", "Quaternion", "Rgba"};  // the name of the varying to capture
-    //glTransformFeedbackVaryings(program, 5, feedbackVaryings, GL_INTERLEAVED_ATTRIBS);
-    //              GaussianPosition (3), Scale (3), Normal(3), Quaternion(4), Rgba(4)
-    //transformFeedbackVertexStride = 3 + 3 + 3 + 4 + 4;
 
     GLint success;
     const int maxMsgLength = 512;

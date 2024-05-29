@@ -13,7 +13,7 @@
 
 GLuint compileShader(const char* source, GLenum type);
 
-GLuint createShaderProgram(unsigned int& transformFeedbackVertexStride);
+GLuint createConverterShaderProgram();
 
 void uploadTextures(std::map<std::string, std::pair<unsigned char*, int>>& textureTypeMap, MaterialGltf material);
 

@@ -38,9 +38,8 @@ int main() {
     glViewport(0, 0, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE);
 
     // Load shaders and meshes
-    unsigned int transformFeedbackVertexStride;
     printf("Creating shader program\n");
-    GLuint shaderProgram = createShaderProgram(transformFeedbackVertexStride);
+    GLuint shaderProgram = createConverterShaderProgram();
     printf("Parsing gltf mesh file\n");
 
     std::vector<Mesh> meshes = parseGltfFileToMesh(OUTPUT_FILENAME);
@@ -59,7 +58,7 @@ int main() {
     {
         for (auto& face : mesh.faces)
         {
-            get3DGaussianScale(Sd_x, Sd_y, face.pos, face.normalizedUvs, face.scale); //TODO: Could compute this on the fly in the Shader, but will do this once everything is working
+            set3DGaussianScale(Sd_x, Sd_y, face.pos, face.normalizedUvs, face.scale); //TODO: Could compute this on the fly in the Shader, but will do this once everything is working
         }
     }
 
@@ -92,6 +91,8 @@ int main() {
                 framebuffer, glMesh.vertexCount,
                 uvSpaceWidth, uvSpaceHeight, textureTypeMap
             );
+
+            //Would need here to perform the second pass probably and save this data to another framebuffer
 
             retrieveMeshFromFrameBuffer(gaussians_3D_list, framebuffer, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE); 
         }
