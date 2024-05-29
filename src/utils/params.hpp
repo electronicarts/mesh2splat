@@ -1,5 +1,4 @@
 #pragma once
-#define EIGEN_BASED_GAUSSIANS_ROTATION 0
 #define DEBUG 1
 #define _USE_MATH_DEFINES
 #define EPSILON 1e-8
@@ -7,23 +6,24 @@
 #define SH_COEFF0 0.28209479177387814f
 #define DEFAULT_PURPLE glm::vec3(102.0f/255.0f, 51.0f/255.0f, 153.0f/255.0f) //RGB - 0 , ... , 255
 
-#define METALLIC_ROUGHNESS_TEXTURE "metallicRoughnessTexture"
-#define BASE_COLOR_TEXTURE "baseColorTexture"
-#define NORMAL_TEXTURE "normalTexture"
-#define OCCLUSION_TEXTURE "occlusionTexture"
-#define EMISSIVE_TEXTURE "emissiveTexture"
+#define METALLIC_ROUGHNESS_TEXTURE				"metallicRoughnessTexture"
+#define BASE_COLOR_TEXTURE						"baseColorTexture"
+#define NORMAL_TEXTURE							"normalTexture"
+#define OCCLUSION_TEXTURE						"occlusionTexture"
+#define EMISSIVE_TEXTURE						"emissiveTexture"
 
-#define GPU_IMPL 1
-#define DRAW_UV_MAPPING 0
+#define GPU_IMPL								1		//Set to 0 to try the CPU implementation
+#define DRAW_UV_MAPPING							0		//Set to 1 to produce a .tga with the normalized UV mapping produced by XATLAS
 
-#define OBJ_NAME					"chair"
-#define OBJ_FORMAT					".glb"
-#define OUTPUT_GAUSSIAN_FORMAT		".ply"
-#define DEFAULT_MATERIAL_NAME		"mm_default_material"
+#define OBJ_NAME								"scifiHelmet"
+#define OBJ_FORMAT								".glb"
+#define OUTPUT_GAUSSIAN_FORMAT					".ply"
+#define DEFAULT_MATERIAL_NAME					"mm_default_material"
 
-#define EXPECTED_MAX_VERTICES_PER_PATCH 500
-#define PIXEL_SIZE_GAUSSIAN_RADIUS .3f
-#define TESSELATION_LEVEL_FACTOR_MULTIPLIER 10
+#define PIXEL_SIZE_GAUSSIAN_RADIUS				.2f // 0.20,...,0.25 seems to be the sweet round
+													//maybe for some meshes with particular shapes and UV mappings .5f or .75f can give better results 
+
+#define TESSELATION_LEVEL_FACTOR_MULTIPLIER		10
 
 #define BASE_DATASET_FOLDER						"C:/Users/sscolari/Desktop/dataset/"  OBJ_NAME  "/"					
 

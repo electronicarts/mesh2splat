@@ -490,65 +490,6 @@ void performGpuConversion(
 
 }
 
-void readAndSaveToPly(const float* feedbackData, GLuint numberOfGeneratedGaussians, const std::string& filename, unsigned int stride) {
-    std::ofstream objFile(filename);
-    if (!objFile.is_open()) {
-        std::cerr << "Failed to open the file for writing: " << filename << std::endl;
-        return;
-    }
-    std::vector<Gaussian3D> gaussians_3D_list; //TODO: Think if can allocate space instead of having the vector dynamic size
-    gaussians_3D_list.reserve(MAX_TEXTURE_SIZE * MAX_TEXTURE_SIZE);
-
-    // Write each vertex position
-    for (size_t i = 0; i < numberOfGeneratedGaussians; ++i) {
-        float pos_x = feedbackData[stride * i + 0];         
-        float pos_y = feedbackData[stride * i + 1];     
-        float pos_z = feedbackData[stride * i + 2];     
-
-        float scale_x = feedbackData[stride * i + 3];   
-        float scale_y = feedbackData[stride * i + 4];
-        float scale_z = feedbackData[stride * i + 5];
-
-        float normal_x = feedbackData[stride * i + 6];
-        float normal_y = feedbackData[stride * i + 7];
-        float normal_z = feedbackData[stride * i + 8];
-
-        float quaternion_x = feedbackData[stride * i + 9];
-        float quaternion_y = feedbackData[stride * i + 10];
-        float quaternion_z = feedbackData[stride * i + 11];
-        float quaternion_w = feedbackData[stride * i + 12];
-
-        float rgba_r = feedbackData[stride * i + 13];
-        float rgba_g = feedbackData[stride * i + 14];
-        float rgba_b = feedbackData[stride * i + 15];
-        float rgba_a = feedbackData[stride * i + 16];
-
-        float metallic = feedbackData[stride * i + 17];
-        float roughness = feedbackData[stride * i + 18];
-
-        Gaussian3D gauss;
-        MaterialGltf material;
-
-        material.metallicFactor = metallic;
-        material.roughnessFactor = roughness;
-        
-        gauss.material      = material;
-        gauss.normal        = glm::vec3(normal_x, normal_y, normal_z);
-        gauss.opacity       = 1.0f;// rgba_a;
-        gauss.position      = glm::vec3(pos_x, pos_y, pos_z);
-        gauss.rotation      = glm::vec4(quaternion_x, quaternion_y, quaternion_z, quaternion_w); //Try swizzling these around, its always a mess....
-        gauss.scale         = glm::vec3(scale_x, scale_y, scale_z);
-        gauss.sh0           = getColor(glm::vec3((rgba_r), (rgba_g), (rgba_b)));
-
-        gaussians_3D_list.push_back(gauss);
-    }
-
-    std::cout << "Writing ply to" << filename << std::endl;
-
-    writeBinaryPLY(filename, gaussians_3D_list);
-
-    std::cout << "Data successfully written to " << filename << std::endl;
-}
 
 void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLuint& framebuffer, unsigned int width, unsigned int height) {
     glFinish();  // Ensure all OpenGL commands are finished
@@ -586,26 +527,59 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         float GaussianPosition_y    = pixels0[frameBufferStride * i + 1];
         float GaussianPosition_z    = pixels0[frameBufferStride * i + 2];
         float Scale_xy              = pixels0[frameBufferStride * i + 3];
+        if (isnan(GaussianPosition_x) || isnan(GaussianPosition_y) || isnan(GaussianPosition_z)) 
+        {
+            printf("! Warning !  Pos has nan values\n EXITING...");
+            exit(1);
+        }
+
 
         // Extract data from the second texture
         float Scale_z   = pixels1[frameBufferStride * i + 0];
+        if (isnan(Scale_xy) || isnan(Scale_z))
+        {
+            printf("! Warning !  Scale has nan values\n EXITING...");
+            exit(1);
+        }
+
         float Normal_x  = pixels1[frameBufferStride * i + 1];
         float Normal_y  = pixels1[frameBufferStride * i + 2];
         float Normal_z  = pixels1[frameBufferStride * i + 3];
-
+        if (isnan(Normal_x) || isnan(Normal_y) || isnan(Normal_z))
+        {
+            printf("! Warning !  Normal has nan values\nMake sure the 3D mesh was exported including also the tangent of each vertex normal\nEXITING...");
+            exit(1);
+        }
         // Extract data from the third texture
         float Quaternion_x  = pixels2[frameBufferStride * i + 0];
         float Quaternion_y  = pixels2[frameBufferStride * i + 1];
         float Quaternion_z  = pixels2[frameBufferStride * i + 2];
         float Quaternion_w  = pixels2[frameBufferStride * i + 3];
+        if (isnan(Quaternion_x) || isnan(Quaternion_y) || isnan(Quaternion_z) || isnan(Quaternion_w))
+        {
+            printf("! Warning !  Quaternion has nan values\n EXITING...");
+            exit(1);
+        }
+
 
         float Rgba_r = pixels3[frameBufferStride * i + 0];
         float Rgba_g = pixels3[frameBufferStride * i + 1];
         float Rgba_b = pixels3[frameBufferStride * i + 2];
         float Rgba_a = pixels3[frameBufferStride * i + 3];
+        if (isnan(Rgba_r) || isnan(Rgba_g) || isnan(Rgba_b) || isnan(Rgba_a))
+        {
+            printf("! Warning !  Color has nan values\n EXITING...");
+            exit(1);
+        }
 
         float metallic  = pixels4[frameBufferStride * i + 0];
         float roughness = pixels4[frameBufferStride * i + 1];
+        if (isnan(metallic) || isnan(roughness))
+        {
+            printf("! Warning !  MetallicRoughness has nan values\n EXITING...");
+            exit(1);
+        }
+
 
         if (GaussianPosition_x == 0.0f && GaussianPosition_y == 0.0f && GaussianPosition_z == 0.0f && Scale_xy == 0.0f)
         {
@@ -629,6 +603,5 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         gauss.sh0 = getColor(glm::vec3(Rgba_r, Rgba_g, Rgba_b));
         gaussians_3D_list.push_back(gauss);
     }
-
 }
 
