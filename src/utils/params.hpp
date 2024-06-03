@@ -15,12 +15,12 @@
 
 //-------------------- FLAGS --------------------------------------------------------------------------------------------------------------------
 #define GPU_IMPL								1		//Set to 0 to try the CPU implementation
-#define DRAW_UV_MAPPING							1		//Set to 1 to produce a .tga with the normalized UV mapping produced by XATLAS
+#define DRAW_UV_MAPPING							0		//Set to 1 to produce a .tga with the normalized UV mapping produced by XATLAS
 #define DEBUG									1
 
 
 //-------------------- INPUT DATA ---------------------------------------------------------------------------------------------------------------
-#define OBJ_NAME								"robot"
+#define OBJ_NAME								"scifiHelmet"
 #define OBJ_FORMAT								".glb"
 
 
@@ -34,7 +34,7 @@
 
 
 //-------------------- TESSELATION FACTOR -------------------------------------------------------------------------------------------------------
-#define TESSELATION_LEVEL_FACTOR_MULTIPLIER		10		//increase for greater tesselation
+#define TESSELATION_LEVEL_FACTOR_MULTIPLIER		200		//increase for greater tesselation
 
 
 //-------------------- DIRECTORIES --------------------------------------------------------------------------------------------------------------

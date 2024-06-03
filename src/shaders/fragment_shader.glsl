@@ -13,6 +13,10 @@ uniform sampler2D metallicRoughnessTexture;
 uniform sampler2D occlusionTexture;
 uniform sampler2D emissiveTexture;
 
+uniform int hasNormalMap;
+uniform int hasMetallicRoughnessMap;
+
+
 // Inputs from the geometry shader
 in vec3 GaussianPosition;
 in vec3 Scale;
@@ -29,18 +33,34 @@ void main() {
     
     //NORMAL MAP
     //Should compute this in geometry shader
-    vec3 normalMap_normal = texture(normalTexture, UV).xyz;
-    //https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#_material_normaltextureinfo_scale
-    vec3 retrievedNormal = normalize(normalMap_normal.xyz * 2.0f - 1.0f); //TODO: * vec3(material.normalScale, material.normalScale, 1.0f)); 
-    
-    vec3 bitangent = normalize(cross(Normal, Tangent.xyz)) * Tangent.w; //tangent.w is the bitangent sign
-    mat3 TBN = mat3(Tangent.xyz, bitangent, Normal);
+    vec3 out_Normal;
+    if (hasNormalMap == 1)
+    {
+        vec3 normalMap_normal = texture(normalTexture, UV).xyz;
+        //https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#_material_normaltextureinfo_scale
+        vec3 retrievedNormal = normalize(normalMap_normal.xyz * 2.0f - 1.0f); //TODO: * vec3(material.normalScale, material.normalScale, 1.0f)); 
 
-    vec3 out_Normal = TBN * retrievedNormal;
+        vec3 bitangent = normalize(cross(Normal, Tangent.xyz)) * Tangent.w; //tangent.w is the bitangent sign
+        mat3 TBN = mat3(Tangent.xyz, bitangent, Normal);
+
+        out_Normal = TBN * retrievedNormal;
+    }
+    else {
+        out_Normal = Normal;
+    }
+
 
     //METALLIC-ROUGHNESS MAP
-    vec2 metalRough = texture(metallicRoughnessTexture, UV).bg; //Blue contains metallic and Green roughness
-    vec2 MetallicRoughness = vec2(metalRough.x, metalRough.y);
+    vec2 MetallicRoughness;
+    if (hasMetallicRoughnessMap == 1)
+    {
+        vec2 metalRough = texture(metallicRoughnessTexture, UV).bg; //Blue contains metallic and Green roughness
+        MetallicRoughness = vec2(metalRough.x, metalRough.y);
+    }
+    else {
+        MetallicRoughness = vec2(0.2f, 0.5f); //Set these defaults from uniforms
+    }
+
 
     // Pack Gaussian parameters into the output fragments
     FragColor0 = vec4(GaussianPosition.x, GaussianPosition.y, GaussianPosition.z, Scale.x);

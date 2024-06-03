@@ -7,7 +7,7 @@
 #include "../thirdParty/stb_image_resize.h"
 
 //TODO: Careful to remember that the image is saved with its original name, if you change filename after 
-std::pair<unsigned char*, int> loadImageAndBpp(std::string texturePath, int& textureWidth, int& textureHeight) //TODO: structs structs!
+TextureDataGl loadImageAndBpp(std::string texturePath, int& textureWidth, int& textureHeight) //TODO: structs structs!
 {
     size_t pos = texturePath.rfind('.');
     std::string image_format = texturePath.substr(pos + 1);
@@ -44,14 +44,159 @@ std::pair<unsigned char*, int> loadImageAndBpp(std::string texturePath, int& tex
         stbi_image_free(image);
         std::cout << "\nImage: " << resized_texture_name_location << "  width: " << textureWidth << "  height: " << textureHeight << " BPP:" << bpp << "\n" << std::endl;
 
-        return std::make_pair(resized_data, bpp);
+        return TextureDataGl(resized_data, bpp);
        
     }
 
-    return std::make_pair(image, bpp);
+    return TextureDataGl(image, bpp);
 }
 
-void loadAllTexturesIntoMap(MaterialGltf& material, std::map<std::string, std::pair<unsigned char*, int>>& textureTypeMap)
+//Factors taken from: https://gist.github.com/SubhiH/b34e74ffe4fd1aab046bcf62b7f12408
+void convertToGrayscale(const unsigned char* src, unsigned char* dst, int width, int height, int channels) {
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            int index = (y * width + x) * channels;
+            unsigned char r = src[index + 0];
+            unsigned char g = src[index + 1];
+            unsigned char b = src[index + 2];
+            unsigned char gray = static_cast<unsigned char>(0.11 * r + 0.59 * g + 0.3 * b);
+            dst[y * width + x] = gray;
+        }
+    }
+}
+
+unsigned char* combineMetallicRoughness(const char* path1, const char* path2, int& width, int& height, int& channels) {
+    int width1, height1, channels1;
+    int width2, height2, channels2;
+
+    // Load the first image
+    unsigned char* img1 = stbi_load(path1, &width1, &height1, &channels1, 0);
+    if (!img1) {
+        std::cerr << "Error: Could not load the first image" << std::endl;
+        return nullptr;
+    }
+
+    // Load the second image
+    unsigned char* img2 = stbi_load(path2, &width2, &height2, &channels2, 0);
+    if (!img2) {
+        std::cerr << "Error: Could not load the second image" << std::endl;
+        stbi_image_free(img1);
+        return nullptr;
+    }
+
+    // Ensure the images are the same size
+    if (width1 != width2 || height1 != height2) {
+        std::cerr << "Error: Images must be the same size" << std::endl;
+        stbi_image_free(img1);
+        stbi_image_free(img2);
+        return nullptr;
+    }
+
+    width = width1;
+    height = height1;
+    channels = 3;
+
+    unsigned char* gray1 = new unsigned char[width * height]; //should be metallic
+    unsigned char* gray2 = new unsigned char[width * height]; //should be roughness
+
+    // Convert the images to grayscale
+    convertToGrayscale(img1, gray1, width, height, channels1);
+    convertToGrayscale(img2, gray2, width, height, channels2);
+
+    // Create the result image buffer
+    unsigned char* result = new unsigned char[width * height * channels]();
+
+    // Populate the result image
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            int index = (y * width + x);
+            result[index * channels + 0] = 0;
+            result[index * channels + 1] = gray2[index]; // Green channel set from roughness
+            result[index  * channels + 2] = gray1[index]; // Blue channel set from metallic
+        }
+    }
+
+    // Free the images
+    stbi_image_free(img1);
+    stbi_image_free(img2);
+    delete[] gray1;
+    delete[] gray2;
+
+    return result;
+}
+
+// Function to split the string based on a delimiter
+std::vector<std::string> splitString(const std::string& str, char delimiter) {
+    std::vector<std::string> tokens;
+    std::stringstream ss(str);
+    std::string token;
+    while (std::getline(ss, token, delimiter)) {
+        tokens.push_back(token);
+    }
+    return tokens;
+}
+
+bool hasValidImageExtension(const std::string& filename) {
+    const std::vector<std::string> validExtensions = { ".png", ".jpg", ".jpeg", ".bmp", ".tga" };
+    for (const std::string& ext : validExtensions) {
+        if (filename.size() >= ext.size() &&
+            std::equal(ext.rbegin(), ext.rend(), filename.rbegin())) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Function to check if the image name is a combined name and extract the individual names
+bool extractImageNames(const std::string& combinedName, std::string& path, std::string& name1, std::string& name2) {
+    // Check if the combined name contains a hyphen
+    if (combinedName.find('-') == std::string::npos) {
+        return false; // Not a combined name
+    }
+
+    // Find the position of the last slash to extract the path
+    size_t lastSlashPos = combinedName.find_last_of("/\\");
+    if (lastSlashPos == std::string::npos) {
+        return false; // No valid path found
+    }
+
+    path = combinedName.substr(0, lastSlashPos + 1); // Include the slash
+    std::string filenames = combinedName.substr(lastSlashPos + 1);
+
+    // Split the combined filename at the hyphen
+    std::vector<std::string> names = splitString(filenames, '-');
+    if (names.size() != 2) {
+        return false; // Unexpected format
+    }
+
+    // Remove the double extension from the end of the second part
+    size_t lastDotPos = names[1].find_last_of('.');
+    if (lastDotPos == std::string::npos) {
+        return false; // No extension found
+    }
+
+    std::string extensionPart = names[1].substr(lastDotPos);
+    if (!hasValidImageExtension(extensionPart)) {
+        return false; // The final part does not have a valid image extension
+    }
+
+    //names[1] = names[1].substr(0, lastDotPos);
+
+    // Check if both parts have valid image extensions
+    if (!hasValidImageExtension(names[0])) {
+        names[0] += ".png";
+    }
+    if (!hasValidImageExtension(names[1])) {
+        names[1] += ".png";
+    }
+
+    name1 = path + names[0];
+    name2 = path + names[1];
+
+    return true;
+}
+
+void loadAllTexturesIntoMap(MaterialGltf& material, std::map<std::string, TextureDataGl>& textureTypeMap)
 {
     
     //BASECOLOR ALBEDO TEXTURE LOAD
@@ -67,7 +212,17 @@ void loadAllTexturesIntoMap(MaterialGltf& material, std::map<std::string, std::p
     //METALLIC-ROUGHNESS TEXTURE LOAD
     if (material.metallicRoughnessTexture.path != EMPTY_TEXTURE)
     {
-        textureTypeMap.emplace(METALLIC_ROUGHNESS_TEXTURE, loadImageAndBpp(material.metallicRoughnessTexture.path, material.metallicRoughnessTexture.width, material.metallicRoughnessTexture.height));
+        std::string metallicPath, roughnessPath, folderPath;
+        //In case Metallic and Roughness are separate we need to combine them in the appropriate RGB channels
+        if (extractImageNames(material.metallicRoughnessTexture.path, folderPath, metallicPath, roughnessPath))
+        {
+            int channels;
+            unsigned char* metallicRoughnessTextureData = combineMetallicRoughness(metallicPath.c_str(), roughnessPath.c_str(), material.metallicRoughnessTexture.width, material.metallicRoughnessTexture.height, channels); 
+            textureTypeMap.emplace(METALLIC_ROUGHNESS_TEXTURE, TextureDataGl(metallicRoughnessTextureData, channels));
+        }
+        else {
+            textureTypeMap.emplace(METALLIC_ROUGHNESS_TEXTURE, loadImageAndBpp(material.metallicRoughnessTexture.path, material.metallicRoughnessTexture.width, material.metallicRoughnessTexture.height));
+        }
     }
     else {
         material.metallicRoughnessTexture.width = MAX_TEXTURE_SIZE;
@@ -126,67 +281,6 @@ std::vector<glm::vec2> projectMeshVertices(const std::vector<glm::vec3>& vertice
     return projectedVertices;
 }
 
-//TODO: unused
-std::map<std::string, Material> parseMtlFile(const std::string& filename) {
-    std::map<std::string, Material> materials;
-    std::ifstream file(filename);
-    std::string line;
-    std::string currentMaterialName;
-
-    //Add default material [1]
-
-    if (!file.is_open()) {
-        throw std::runtime_error("Could not open file: " + filename);
-    }
-
-    while (std::getline(file, line)) {
-        std::istringstream iss(line);
-        std::string identifier;
-        iss >> identifier;
-
-        if (identifier == "newmtl") {
-            iss >> currentMaterialName;
-            materials[currentMaterialName] = Material();
-        }
-        else if (identifier == "Ka") {
-            glm::vec3 ka;
-            iss >> ka.x >> ka.y >> ka.z;
-            materials[currentMaterialName].ambient = ka;
-        }
-        else if (identifier == "Kd") {
-            glm::vec3 kd;
-            iss >> kd.x >> kd.y >> kd.z;
-            materials[currentMaterialName].diffuse = kd;
-        }
-        else if (identifier == "Ks") {
-            glm::vec3 ks;
-            iss >> ks.x >> ks.y >> ks.z;
-            materials[currentMaterialName].specular = ks;
-        }
-        else if (identifier == "Ns") {
-            float ns;
-            iss >> ns;
-            materials[currentMaterialName].specularExponent = ns;
-        }
-        else if (identifier == "d" || identifier == "Tr") {
-            float d;
-            iss >> d;
-            materials[currentMaterialName].transparency = d;
-        }
-        else if (identifier == "Ni") {
-            float ni;
-            iss >> ni;
-            materials[currentMaterialName].opticalDensity = ni;
-        }
-        else if (identifier == "map_Kd") {
-            std::string map_kd;
-            iss >> map_kd;
-            materials[currentMaterialName].diffuseMap = map_kd;
-        }
-    }
-
-    return materials;
-}
 
 //https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html
 template<typename T>

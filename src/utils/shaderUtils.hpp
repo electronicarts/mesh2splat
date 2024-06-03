@@ -15,9 +15,9 @@ GLuint compileShader(const char* source, GLenum type);
 
 GLuint createConverterShaderProgram();
 
-void uploadTextures(std::map<std::string, std::pair<unsigned char*, int>>& textureTypeMap, MaterialGltf material);
+void uploadTextures(std::map<std::string, TextureDataGl>& textureTypeMap, MaterialGltf material);
 
-std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes);
+std::vector<std::pair<Mesh, GLMesh>> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes);
 
 void setupTransformFeedback(size_t bufferSize, GLuint& feedbackBuffer, GLuint& feedbackVAO, GLuint& acBuffer, unsigned int totalStride);
 
@@ -29,7 +29,7 @@ void performGpuConversion(
     GLuint shaderProgram, GLuint vao,
     GLuint framebuffer, size_t vertexCount,
     int normalizedUVSpaceWidth, int normalizedUVSpaceHeight,
-    const std::map<std::string, std::pair<unsigned char*, int>>& textureTypeMap
+    const std::map<std::string, TextureDataGl>& textureTypeMap
 );
 
 void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLuint& framebuffer, unsigned int width, unsigned int height);

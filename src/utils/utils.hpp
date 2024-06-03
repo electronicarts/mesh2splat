@@ -118,6 +118,14 @@ struct GLMesh {
     size_t vertexCount;
 };
 
+struct TextureDataGl {
+    unsigned char* textureData;
+    unsigned int bpp;
+    unsigned int glTextureID;
+
+    TextureDataGl(unsigned char* textureData, unsigned int bpp, unsigned int glTextureID) : textureData(textureData), bpp(bpp), glTextureID(glTextureID){}
+    TextureDataGl(unsigned char* textureData, unsigned int bpp) : textureData(textureData), bpp(bpp), glTextureID(0){}
+};
 
 bool file_exists(std::string fn);
 

@@ -2,9 +2,9 @@
 
 #include "utils/utils.hpp"
 
-std::pair<unsigned char*, int> loadImageAndBpp(std::string texturePath, int& textureWidth, int& textureHeight);
+TextureDataGl loadImageAndBpp(std::string texturePath, int& textureWidth, int& textureHeight);
 
-void loadAllTexturesIntoMap(MaterialGltf& material, std::map<std::string, std::pair<unsigned char*, int>>& textureTypeMap);
+void loadAllTexturesIntoMap(MaterialGltf& material, std::map<std::string, TextureDataGl>& textureTypeMap);
 
 std::vector<Mesh> parseGltfFileToMesh(const std::string& filename);
 

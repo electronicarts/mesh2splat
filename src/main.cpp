@@ -63,39 +63,43 @@ int main() {
     }
 
     printf("Loading mesh into OPENGL buffers\n");
-    std::vector<GLMesh> glMeshes = uploadMeshesToOpenGL(meshes);
+    std::vector<std::pair<Mesh, GLMesh>> dataMeshAndGlMesh = uploadMeshesToOpenGL(meshes);
 
     //I will need to do more than one draw call
-    std::map<std::string, std::pair<unsigned char*, int>> textureTypeMap;
 
     printf("Loading textures into utility std::map\n");
     //TODO: just doing it for the first mesh for now and for only ALBEDO
     std::vector<Gaussian3D> gaussians_3D_list;
     gaussians_3D_list.reserve(MAX_TEXTURE_SIZE * MAX_TEXTURE_SIZE);
-    for (auto& mesh : meshes)
-    {
-        loadAllTexturesIntoMap(mesh.material, textureTypeMap);
-        printf("Loading textures into OPENGL texture buffers\n");
 
-        uploadTextures(textureTypeMap, mesh.material);
-        GLuint acBuffer;
+    for (auto& mesh : dataMeshAndGlMesh)
+    {
+        Mesh meshData = std::get<0>(mesh);
+        GLMesh meshGl = std::get<1>(mesh);
+
+        std::map<std::string, TextureDataGl> textureTypeMap;
+        loadAllTexturesIntoMap(meshData.material, textureTypeMap);
+
+        printf("Loading textures into OPENGL texture buffers\n");
+        uploadTextures(textureTypeMap, meshData.material);
 
         printf("Setting up framebuffer and textures\n");
         GLuint framebuffer;
         setupFrameBuffer(framebuffer, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE);
+        performGpuConversion(
+            shaderProgram, meshGl.vao,
+            framebuffer, meshGl.vertexCount,
+            uvSpaceWidth, uvSpaceHeight, textureTypeMap
+        );
 
-        for (const auto& glMesh : glMeshes) {
+        //Would need here to perform the second pass probably and save this data to another framebuffer
 
-            performGpuConversion(
-                shaderProgram, glMesh.vao,
-                framebuffer, glMesh.vertexCount,
-                uvSpaceWidth, uvSpaceHeight, textureTypeMap
-            );
+        retrieveMeshFromFrameBuffer(gaussians_3D_list, framebuffer, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE);
 
-            //Would need here to perform the second pass probably and save this data to another framebuffer
+        //Free map
+        std::map<std::string, TextureDataGl>::iterator it;
+        for (it = textureTypeMap.begin(); it != textureTypeMap.end(); it++) free(it->second.textureData);
 
-            retrieveMeshFromFrameBuffer(gaussians_3D_list, framebuffer, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE); 
-        }
     }
 
     //Write to file
@@ -105,10 +109,6 @@ int main() {
 
     // Cleanup
     glfwTerminate();
-
-    //Free map
-    std::map<std::string, std::pair<unsigned char*, int>>::iterator it;
-    for (it = textureTypeMap.begin(); it != textureTypeMap.end(); it++) free(it->second.first);
 
     return 0;
 }

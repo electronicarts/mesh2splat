@@ -96,9 +96,8 @@ void findMedianFromFloatVector(std::vector<float>& vec, float& result)
     }
 }
 
-
-
-void uploadTextures(std::map<std::string, std::pair<unsigned char*, int>>& textureTypeMap, MaterialGltf material)
+//TODO: must return the ID for each texture
+void uploadTextures(std::map<std::string, TextureDataGl>& textureTypeMap, MaterialGltf material)
 {
     std::map<std::string, GLenum> textureUnits = {
         { BASE_COLOR_TEXTURE,           GL_TEXTURE0 },
@@ -108,10 +107,10 @@ void uploadTextures(std::map<std::string, std::pair<unsigned char*, int>>& textu
         { EMISSIVE_TEXTURE,             GL_TEXTURE4 }
     };
 
-    for (auto& textureType : textureTypeMap)
+    for (auto& textureTypeMapEntry : textureTypeMap)
     {
-        const std::string& textureName = textureType.first;
-        unsigned char* textureData = textureType.second.first;
+        const std::string& textureName = textureTypeMapEntry.first;
+        unsigned char* textureData = textureTypeMapEntry.second.textureData;
 
         if (textureUnits.find(textureName) != textureUnits.end())
         {
@@ -159,7 +158,7 @@ void uploadTextures(std::map<std::string, std::pair<unsigned char*, int>>& textu
             GLenum internalFormat = GL_RGB;
             GLenum format = GL_RGB;
 
-            if (textureType.second.second == 4)
+            if (textureTypeMapEntry.second.bpp == 4)
             {
                 internalFormat = GL_RGBA;
                 format = GL_RGBA;
@@ -185,8 +184,8 @@ void uploadTextures(std::map<std::string, std::pair<unsigned char*, int>>& textu
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
             //TODO: this is trash, oh mamma mia this is really bad. Change it sooner than later.
-            //Before assignment it was the Bpp and now it is the textureID........
-            textureType.second.second = texture;
+            //Before the assignment it was the Bpp and now it is the textureID........
+            textureTypeMapEntry.second.glTextureID = texture;
 
             GLenum error = glGetError();
             if (error != GL_NO_ERROR) {
@@ -197,10 +196,10 @@ void uploadTextures(std::map<std::string, std::pair<unsigned char*, int>>& textu
 }
 
 
-std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes) {
+std::vector<std::pair<Mesh, GLMesh>> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes) {
     
-    std::vector<GLMesh> glMeshes;
-    glMeshes.reserve(meshes.size());
+    std::vector<std::pair<Mesh, GLMesh>> DataMeshAndGlMesh;
+    DataMeshAndGlMesh.reserve(meshes.size());
 
     for (auto& mesh : meshes) {
         GLMesh glMesh;
@@ -282,10 +281,10 @@ std::vector<GLMesh> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes) {
         glBindVertexArray(0);
 
         // Add to list of GLMeshes
-        glMeshes.push_back(glMesh);
+        DataMeshAndGlMesh.push_back(std::make_pair(mesh, glMesh));
     }
 
-    return glMeshes;
+    return DataMeshAndGlMesh;
 }
 
 void setupFrameBuffer(GLuint& framebuffer, unsigned int width, unsigned int height)
@@ -426,7 +425,7 @@ void performGpuConversion(
     GLuint shaderProgram, GLuint vao,
     GLuint framebuffer, size_t vertexCount,
     int normalizedUVSpaceWidth, int normalizedUVSpaceHeight,
-    const std::map<std::string, std::pair<unsigned char*, int>>& textureTypeMap
+    const std::map<std::string, TextureDataGl>& textureTypeMap
 ) {
     // Use shader program and perform tessellation
     glUseProgram(shaderProgram);
@@ -437,23 +436,25 @@ void performGpuConversion(
     //Textures
     if (textureTypeMap.find(BASE_COLOR_TEXTURE) != textureTypeMap.end())
     {
-        setTexture(shaderProgram, "albedoTexture", textureTypeMap.at(BASE_COLOR_TEXTURE).second,                        0);
+        setTexture(shaderProgram, "albedoTexture", textureTypeMap.at(BASE_COLOR_TEXTURE).glTextureID,                        0);
     }
     if (textureTypeMap.find(NORMAL_TEXTURE) != textureTypeMap.end())
     {
-        setTexture(shaderProgram, "normalTexture", textureTypeMap.at(NORMAL_TEXTURE).second,                            1);
+        setTexture(shaderProgram, "normalTexture", textureTypeMap.at(NORMAL_TEXTURE).glTextureID,                            1);
+        setUniform1i(shaderProgram, "hasNormalMap", 1);
     }
     if (textureTypeMap.find(METALLIC_ROUGHNESS_TEXTURE) != textureTypeMap.end())
     {
-        setTexture(shaderProgram, "metallicRoughnessTexture", textureTypeMap.at(METALLIC_ROUGHNESS_TEXTURE).second,     2);
+        setTexture(shaderProgram, "metallicRoughnessTexture", textureTypeMap.at(METALLIC_ROUGHNESS_TEXTURE).glTextureID,     2);
+        setUniform1i(shaderProgram, "hasMetallicRoughnessMap", 1);
     }
     if (textureTypeMap.find(OCCLUSION_TEXTURE) != textureTypeMap.end())
     {
-        setTexture(shaderProgram, "occlusionTexture", textureTypeMap.at(OCCLUSION_TEXTURE).second,                      3);
+        setTexture(shaderProgram, "occlusionTexture", textureTypeMap.at(OCCLUSION_TEXTURE).glTextureID,                      3);
     }
     if (textureTypeMap.find(EMISSIVE_TEXTURE) != textureTypeMap.end())
     {
-        setTexture(shaderProgram, "emissiveTexture", textureTypeMap.at(EMISSIVE_TEXTURE).second,                        4);
+        setTexture(shaderProgram, "emissiveTexture", textureTypeMap.at(EMISSIVE_TEXTURE).glTextureID,                        4);
     }
 
     //--------------------------------------------------------------------------
@@ -581,15 +582,10 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
             continue;
         }
 
-       // std::cout << Normal_x << " " << Normal_y << " " << Normal_z << "\n" << std::endl;
-
         Gaussian3D gauss;
-        MaterialGltf material;
 
-        material.metallicFactor = metallic;
-        material.roughnessFactor = roughness;
-
-        gauss.material = material;
+        gauss.material.metallicFactor = metallic;
+        gauss.material.roughnessFactor = roughness;
         gauss.normal = glm::vec3(Normal_x, Normal_y, Normal_z);
         gauss.opacity = Rgba_a;
         gauss.position = glm::vec3(GaussianPosition_x, GaussianPosition_y, GaussianPosition_z);

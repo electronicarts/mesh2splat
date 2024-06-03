@@ -177,8 +177,8 @@ void generateNormalizedUvCoordinatesPerFace(int& uvSpaceWidth, int& uvSpaceHeigh
 	for (uint32_t i = 0; i < atlas->meshCount; i++)
 	{
 		const xatlas::Mesh& mesh = atlas->meshes[i];
-		std::cout << "Atlas Vertex count: " << mesh.vertexCount << "\n" << std::endl;
-		std::cout << "Original mesh Vertex count: " << inputMesh.faces.size() * 3 << "\n" << std::endl;
+		//std::cout << "Atlas Vertex count: " << mesh.vertexCount << "\n" << std::endl;
+		//std::cout << "Original mesh Vertex count: " << inputMesh.faces.size() * 3 << "\n" << std::endl;
 
 		for (uint32_t v = 0; v < mesh.vertexCount; v++) {
 			const xatlas::Vertex& vertex = mesh.vertexArray[v];
