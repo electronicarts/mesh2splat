@@ -1,4 +1,4 @@
-#version 430 core
+#version 460 core
 
 //change layout and use different outs
 layout(location = 0) out vec4 FragColor0;
@@ -13,6 +13,8 @@ uniform sampler2D metallicRoughnessTexture;
 uniform sampler2D occlusionTexture;
 uniform sampler2D emissiveTexture;
 
+uniform vec3 meshMaterialColor;
+uniform int hasAlbedoMap;
 uniform int hasNormalMap;
 uniform int hasMetallicRoughnessMap;
 
@@ -31,6 +33,16 @@ void main() {
     //vec3 v = dFdy(GaussianPosition);
     //vec3 n = normalize(cross(u, v));
     
+    vec4 out_Color;
+
+    if (hasAlbedoMap == 1)
+    {
+        out_Color = texture(albedoTexture, UV) * vec4(meshMaterialColor, 1.0f);
+    }
+    else {
+        out_Color = vec4(meshMaterialColor, 1.0f);
+    }
+
     //NORMAL MAP
     //Should compute this in geometry shader
     vec3 out_Normal;
@@ -66,6 +78,6 @@ void main() {
     FragColor0 = vec4(GaussianPosition.x, GaussianPosition.y, GaussianPosition.z, Scale.x);
     FragColor1 = vec4(Scale.z, out_Normal.x, out_Normal.y, out_Normal.z);
     FragColor2 = vec4(Quaternion.x, Quaternion.y, Quaternion.z, Quaternion.w); 
-    FragColor3 = texture(albedoTexture, UV);
+    FragColor3 = out_Color;
     FragColor4 = vec4(MetallicRoughness, 0.0f, 0.0f);
 }

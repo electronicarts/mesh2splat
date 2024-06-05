@@ -529,7 +529,7 @@ std::vector<Mesh> parseGltfFileToMesh(const std::string& filename) {
                 {
                     dst->pos[e] = vertices[index[e]];
                     dst->uv[e] = uvs[index[e]];
-                    dst->normal[e] = normals[index[e]];            
+                    dst->normal[e] = normals[index[e]]; 
                 }
                     
             }

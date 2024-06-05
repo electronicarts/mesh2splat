@@ -39,7 +39,9 @@ int main() {
 
     // Load shaders and meshes
     printf("Creating shader program\n");
-    GLuint shaderProgram = createConverterShaderProgram();
+    GLuint converterShaderProgram = createConverterShaderProgram();
+    GLuint volumetricShaderProgram = createVolumetricSurfaceShaderProgram();
+
     printf("Parsing gltf mesh file\n");
 
     std::vector<Mesh> meshes = parseGltfFileToMesh(OUTPUT_FILENAME);
@@ -58,7 +60,7 @@ int main() {
     {
         for (auto& face : mesh.faces)
         {
-            set3DGaussianScale(Sd_x, Sd_y, face.pos, face.normalizedUvs, face.scale); //TODO: Could compute this on the fly in the Shader, but will do this once everything is working
+            set3DGaussianScale(Sd_x, Sd_y, face.pos, face.normalizedUvs, face.scale); //TODO: SHOULD/MUST compute this on the fly in the Shader, but will do this once everything is working
         }
     }
 
@@ -83,22 +85,36 @@ int main() {
         printf("Loading textures into OPENGL texture buffers\n");
         uploadTextures(textureTypeMap, meshData.material);
 
+
         printf("Setting up framebuffer and textures\n");
         GLuint framebuffer;
         setupFrameBuffer(framebuffer, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE);
+
+        //Pass 1
         performGpuConversion(
-            shaderProgram, meshGl.vao,
+            converterShaderProgram, meshGl.vao,
             framebuffer, meshGl.vertexCount,
-            uvSpaceWidth, uvSpaceHeight, textureTypeMap
+            uvSpaceWidth, uvSpaceHeight, textureTypeMap, meshData.material
         );
+        retrieveMeshFromFrameBuffer(gaussians_3D_list, framebuffer, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE, false);
 
-        //Would need here to perform the second pass probably and save this data to another framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        //Pass 2
 
-        retrieveMeshFromFrameBuffer(gaussians_3D_list, framebuffer, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE);
-
+        generateVolumetricSurface(
+            volumetricShaderProgram, meshGl.vao,
+            framebuffer, meshGl.vertexCount,
+            uvSpaceWidth, uvSpaceHeight, textureTypeMap, meshData.material
+        );
+                
+        retrieveMeshFromFrameBuffer(gaussians_3D_list, framebuffer, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE, true);
+        
         //Free map
         std::map<std::string, TextureDataGl>::iterator it;
         for (it = textureTypeMap.begin(); it != textureTypeMap.end(); it++) free(it->second.textureData);
+
+        glDeleteFramebuffers(1, &framebuffer);
 
     }
 

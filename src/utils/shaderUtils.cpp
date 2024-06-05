@@ -38,11 +38,11 @@ std::string readShaderFile(const char* filePath) {
 
 GLuint createConverterShaderProgram() {
 
-    std::string vertexShaderSource          = readShaderFile(VERTEX_SHADER_LOCATION);
-    std::string tessControlShaderSource     = readShaderFile(TESS_CONTROL_SHADER_LOCATION);
-    std::string tessEvaluationShaderSource  = readShaderFile(TESS_EVAL_SHADER_LOCATION);
-    std::string geomShaderSource            = readShaderFile(GEOM_SHADER_LOCATION);
-    std::string fragmentShaderSource        = readShaderFile(FRAG_SHADER_LOCATION);
+    std::string vertexShaderSource          = readShaderFile(CONVERTER_VERTEX_SHADER_LOCATION);
+    std::string tessControlShaderSource     = readShaderFile(CONVERTER_TESS_CONTROL_SHADER_LOCATION);
+    std::string tessEvaluationShaderSource  = readShaderFile(CONVERTER_TESS_EVAL_SHADER_LOCATION);
+    std::string geomShaderSource            = readShaderFile(CONVERTER_GEOM_SHADER_LOCATION);
+    std::string fragmentShaderSource        = readShaderFile(CONVERTER_FRAG_SHADER_LOCATION);
 
 
     GLuint vertexShader         = compileShader(vertexShaderSource.c_str(), GL_VERTEX_SHADER);
@@ -72,28 +72,34 @@ GLuint createConverterShaderProgram() {
     return program;
 }
 
-float calcTriangleArea(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3)
-{
-    float a = glm::length(p1 - p2);
-    float b = glm::length(p1 - p3);
-    float c = glm::length(p2 - p3);
+GLuint createVolumetricSurfaceShaderProgram() {
 
-    float p = (a + b + c) / 2.0;
+    std::string volumetric_vertexShaderSource = readShaderFile(VOLUMETRIC_SURFACE_VERTEX_SHADER_LOCATION);
+    std::string volumetric_geomShaderSource = readShaderFile(VOLUMETRIC_SURFACE_GEOM_SHADER_LOCATION);
+    std::string volumetric_fragmentShaderSource = readShaderFile(VOLUMETRIC_SURFACE_FRAGMENT_SHADER_LOCATION);
 
-    return sqrt(p * (p - a) * (p - b) * (p - c));
-}
 
-void findMedianFromFloatVector(std::vector<float>& vec, float& result)
-{
-    std::sort(vec.begin(), vec.end());
+    GLuint volumetric_vertexShader = compileShader(volumetric_vertexShaderSource.c_str(), GL_VERTEX_SHADER);
+    GLuint volumetric_geomShader = compileShader(volumetric_geomShaderSource.c_str(), GL_GEOMETRY_SHADER);
+    GLuint volumetric_fragmentShader = compileShader(volumetric_fragmentShaderSource.c_str(), GL_FRAGMENT_SHADER);
 
-    size_t size = vec.size();
-    if (size % 2 == 0) {
-        result = (vec[size / 2 - 1] + vec[size / 2]) / 2;
+
+    GLuint program = glCreateProgram();
+    glAttachShader(program, volumetric_vertexShader);
+    glAttachShader(program, volumetric_geomShader);
+    glAttachShader(program, volumetric_fragmentShader);
+
+    GLint success;
+    const int maxMsgLength = 512;
+    GLchar infoLog[maxMsgLength];
+    glLinkProgram(program);
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(program, maxMsgLength, NULL, infoLog);
+        std::cerr << "ERROR::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
     }
-    else {
-        result = vec[size / 2];
-    }
+
+    return program;
 }
 
 //TODO: must return the ID for each texture
@@ -268,7 +274,7 @@ std::vector<std::pair<Mesh, GLMesh>> uploadMeshesToOpenGL(const std::vector<Mesh
         // UV attribute
         glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, vertexStride, (void*)(10 * sizeof(float)));
         glEnableVertexAttribArray(3);
-        // UV attribute
+        // Normalized UV attribute
         glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, vertexStride, (void*)(12 * sizeof(float)));
         glEnableVertexAttribArray(4);
         // Scale attribute
@@ -313,6 +319,7 @@ void setupFrameBuffer(GLuint& framebuffer, unsigned int width, unsigned int heig
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 }
+
 
 void setupTransformFeedback(size_t bufferSize, GLuint& feedbackBuffer, GLuint& feedbackVAO, GLuint& acBuffer, unsigned int totalStride) {
 
@@ -425,18 +432,19 @@ void performGpuConversion(
     GLuint shaderProgram, GLuint vao,
     GLuint framebuffer, size_t vertexCount,
     int normalizedUVSpaceWidth, int normalizedUVSpaceHeight,
-    const std::map<std::string, TextureDataGl>& textureTypeMap
+    const std::map<std::string, TextureDataGl>& textureTypeMap, MaterialGltf material
 ) {
     // Use shader program and perform tessellation
     glUseProgram(shaderProgram);
 
     //-------------------------------SET UNIFORMS-------------------------------   
     setUniform1i(shaderProgram, "tesselationFactorMultiplier", TESSELATION_LEVEL_FACTOR_MULTIPLIER);
-
+    setUniform3f(shaderProgram, "meshMaterialColor", material.baseColorFactor);
     //Textures
     if (textureTypeMap.find(BASE_COLOR_TEXTURE) != textureTypeMap.end())
     {
         setTexture(shaderProgram, "albedoTexture", textureTypeMap.at(BASE_COLOR_TEXTURE).glTextureID,                        0);
+        setUniform1i(shaderProgram, "hasAlbedoMap", 1);
     }
     if (textureTypeMap.find(NORMAL_TEXTURE) != textureTypeMap.end())
     {
@@ -486,8 +494,72 @@ void performGpuConversion(
 
 }
 
+void generateVolumetricSurface(
+    GLuint shaderProgram, GLuint vao,
+    GLuint framebuffer, size_t vertexCount,
+    int normalizedUVSpaceWidth, int normalizedUVSpaceHeight,
+    const std::map<std::string, TextureDataGl>& textureTypeMap, MaterialGltf material
+)
+{
+    // Use shader program and perform tessellation
+    glUseProgram(shaderProgram);
 
-void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLuint& framebuffer, unsigned int width, unsigned int height) {
+    //-------------------------------SET UNIFORMS-------------------------------   
+    setUniform3f(shaderProgram, "meshMaterialColor", material.baseColorFactor);
+    //Textures
+    if (textureTypeMap.find(BASE_COLOR_TEXTURE) != textureTypeMap.end())
+    {
+        setTexture(shaderProgram, "albedoTexture", textureTypeMap.at(BASE_COLOR_TEXTURE).glTextureID, 0);
+        setUniform1i(shaderProgram, "hasAlbedoMap", 1);
+    }
+    if (textureTypeMap.find(NORMAL_TEXTURE) != textureTypeMap.end())
+    {
+        setTexture(shaderProgram, "normalTexture", textureTypeMap.at(NORMAL_TEXTURE).glTextureID, 1);
+        setUniform1i(shaderProgram, "hasNormalMap", 1);
+    }
+    if (textureTypeMap.find(METALLIC_ROUGHNESS_TEXTURE) != textureTypeMap.end())
+    {
+        setTexture(shaderProgram, "metallicRoughnessTexture", textureTypeMap.at(METALLIC_ROUGHNESS_TEXTURE).glTextureID, 2);
+        setUniform1i(shaderProgram, "hasMetallicRoughnessMap", 1);
+    }
+    if (textureTypeMap.find(OCCLUSION_TEXTURE) != textureTypeMap.end())
+    {
+        setTexture(shaderProgram, "occlusionTexture", textureTypeMap.at(OCCLUSION_TEXTURE).glTextureID, 3);
+    }
+    if (textureTypeMap.find(EMISSIVE_TEXTURE) != textureTypeMap.end())
+    {
+        setTexture(shaderProgram, "emissiveTexture", textureTypeMap.at(EMISSIVE_TEXTURE).glTextureID, 4);
+    }
+
+    //--------------------------------------------------------------------------
+    //Query for true conversion time
+
+    GLuint queryID;
+    glGenQueries(1, &queryID);
+
+    glBindVertexArray(vao);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glBeginQuery(GL_TIME_ELAPSED, queryID);
+
+    glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+
+    glEndQuery(GL_TIME_ELAPSED);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    GLuint64 elapsed_time;
+    glGetQueryObjectui64v(queryID, GL_QUERY_RESULT, &elapsed_time);
+
+    // Convert nanoseconds to milliseconds
+    double elapsed_time_ms = elapsed_time / 1000000.0f;
+
+    std::cout << "Draw call time: " << elapsed_time_ms << " ms" << std::endl;
+}
+
+void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLuint& framebuffer, unsigned int width, unsigned int height, bool print) {
     glFinish();  // Ensure all OpenGL commands are finished
     unsigned int frameBufferStride = 4;
 
@@ -570,6 +642,10 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
 
         float metallic  = pixels4[frameBufferStride * i + 0];
         float roughness = pixels4[frameBufferStride * i + 1];
+        if (print)
+        {
+            std::cout << metallic << " " << roughness << std::endl;
+        }
         if (isnan(metallic) || isnan(roughness))
         {
             printf("! Warning !  MetallicRoughness has nan values\n EXITING...");
@@ -595,4 +671,3 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         gaussians_3D_list.push_back(gauss);
     }
 }
-
