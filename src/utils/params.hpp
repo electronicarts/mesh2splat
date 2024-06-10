@@ -20,8 +20,10 @@
 
 
 //-------------------- INPUT DATA ---------------------------------------------------------------------------------------------------------------
-#define OBJ_NAME								"sphere2"
+#define OBJ_NAME								"microMesh4"
+#define MICROMESH_NAME							"icosphere"
 #define OBJ_FORMAT								".glb"
+
 
 
 //-------------------- DEFAULTS -----------------------------------------------------------------------------------------------------------------
@@ -29,7 +31,7 @@
 
 
 //-------------------- 2D/3D GAUSSIAN PARAMS ----------------------------------------------------------------------------------------------------
-#define PIXEL_SIZE_GAUSSIAN_RADIUS				.2f		// 0.20,...,0.25 seems to be the sweet round, .5f or .75f can give better results other cases
+#define PIXEL_SIZE_GAUSSIAN_RADIUS				.75f	//In order to have good sum overlap at the corners, this ensures the densit at the corner of each pixel is .25%
 #define EPSILON									1e-8	// Default Z axis scale
 
 
@@ -38,9 +40,12 @@
 
 
 //-------------------- DIRECTORIES --------------------------------------------------------------------------------------------------------------
-#define BASE_DATASET_FOLDER						"C:/Users/sscolari/Desktop/dataset/"  OBJ_NAME  "/"					
+#define BASE_MICROMESH_FOLDER					"C:/Users/sscolari/Desktop/dataset/" MICROMESH_NAME "/"
+#define BASE_DATASET_FOLDER						"C:/Users/sscolari/Desktop/dataset/"  OBJ_NAME  "/"				
+
 #define OUTPUT_GAUSSIAN_FORMAT					".ply"
 #define GAUSSIAN_OUTPUT_MODEL_DEST_FOLDER_1		"C:/Users/sscolari/Desktop/halcyon/Content/GaussianSplatting/Mesh2SplatOut.ply"
 #define GAUSSIAN_OUTPUT_MODEL_DEST_FOLDER_2		"C:/Users/sscolari/Desktop/outputGaussians/" OBJ_NAME OUTPUT_GAUSSIAN_FORMAT
 
-#define OUTPUT_FILENAME							BASE_DATASET_FOLDER OBJ_NAME OBJ_FORMAT
+#define INPUT_MESH_FILENAME						BASE_DATASET_FOLDER OBJ_NAME OBJ_FORMAT
+#define INPUT_MICROMESH_FILENAME				BASE_MICROMESH_FOLDER MICROMESH_NAME OBJ_FORMAT

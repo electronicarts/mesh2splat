@@ -6,7 +6,8 @@ layout(triangle_strip, max_vertices = 3) out;
 uniform vec2 metallicRoughnessFactors;
 uniform vec3 inScale;
 
-in TES_OUT {
+// Match this struct with the VS_OUT struct from the vertex shader
+in VS_OUT{
     vec3 position;
     vec3 normal;
     vec4 tangent;

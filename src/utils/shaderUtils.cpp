@@ -1,5 +1,6 @@
 #include "shaderUtils.hpp"
 
+
 GLuint compileShader(const char* source, GLenum type) {
     GLint success;
     GLchar infoLog[512];
@@ -39,23 +40,23 @@ std::string readShaderFile(const char* filePath) {
 GLuint createConverterShaderProgram() {
 
     std::string vertexShaderSource          = readShaderFile(CONVERTER_VERTEX_SHADER_LOCATION);
-    std::string tessControlShaderSource     = readShaderFile(CONVERTER_TESS_CONTROL_SHADER_LOCATION);
-    std::string tessEvaluationShaderSource  = readShaderFile(CONVERTER_TESS_EVAL_SHADER_LOCATION);
+    //std::string tessControlShaderSource     = readShaderFile(CONVERTER_TESS_CONTROL_SHADER_LOCATION);
+    //std::string tessEvaluationShaderSource  = readShaderFile(CONVERTER_TESS_EVAL_SHADER_LOCATION);
     std::string geomShaderSource            = readShaderFile(CONVERTER_GEOM_SHADER_LOCATION);
     std::string fragmentShaderSource        = readShaderFile(CONVERTER_FRAG_SHADER_LOCATION);
 
 
-    GLuint vertexShader         = compileShader(vertexShaderSource.c_str(), GL_VERTEX_SHADER);
-    GLuint tessControlShader    = compileShader(tessControlShaderSource.c_str(), GL_TESS_CONTROL_SHADER);
-    GLuint tessEvaluationShader = compileShader(tessEvaluationShaderSource.c_str(), GL_TESS_EVALUATION_SHADER);
-    GLuint geomShader           = compileShader(geomShaderSource.c_str(), GL_GEOMETRY_SHADER);
-    GLuint fragmentShader       = compileShader(fragmentShaderSource.c_str(), GL_FRAGMENT_SHADER);
+    GLuint vertexShader         = compileShader(vertexShaderSource.c_str(),         GL_VERTEX_SHADER);
+    //GLuint tessControlShader    = compileShader(tessControlShaderSource.c_str(),    GL_TESS_CONTROL_SHADER);
+    //GLuint tessEvaluationShader = compileShader(tessEvaluationShaderSource.c_str(), GL_TESS_EVALUATION_SHADER);
+    GLuint geomShader           = compileShader(geomShaderSource.c_str(),           GL_GEOMETRY_SHADER);
+    GLuint fragmentShader       = compileShader(fragmentShaderSource.c_str(),       GL_FRAGMENT_SHADER);
 
 
     GLuint program = glCreateProgram();
     glAttachShader(program, vertexShader);
-    glAttachShader(program, tessControlShader);
-    glAttachShader(program, tessEvaluationShader);
+    //glAttachShader(program, tessControlShader);
+    //glAttachShader(program, tessEvaluationShader);
     glAttachShader(program, geomShader);
     glAttachShader(program, fragmentShader);
 
@@ -74,14 +75,14 @@ GLuint createConverterShaderProgram() {
 
 GLuint createVolumetricSurfaceShaderProgram() {
 
-    std::string volumetric_vertexShaderSource = readShaderFile(VOLUMETRIC_SURFACE_VERTEX_SHADER_LOCATION);
-    std::string volumetric_geomShaderSource = readShaderFile(VOLUMETRIC_SURFACE_GEOM_SHADER_LOCATION);
+    std::string volumetric_vertexShaderSource   = readShaderFile(VOLUMETRIC_SURFACE_VERTEX_SHADER_LOCATION);
+    std::string volumetric_geomShaderSource     = readShaderFile(VOLUMETRIC_SURFACE_GEOM_SHADER_LOCATION);
     std::string volumetric_fragmentShaderSource = readShaderFile(VOLUMETRIC_SURFACE_FRAGMENT_SHADER_LOCATION);
 
 
-    GLuint volumetric_vertexShader = compileShader(volumetric_vertexShaderSource.c_str(), GL_VERTEX_SHADER);
-    GLuint volumetric_geomShader = compileShader(volumetric_geomShaderSource.c_str(), GL_GEOMETRY_SHADER);
-    GLuint volumetric_fragmentShader = compileShader(volumetric_fragmentShaderSource.c_str(), GL_FRAGMENT_SHADER);
+    GLuint volumetric_vertexShader      = compileShader(volumetric_vertexShaderSource.c_str(),      GL_VERTEX_SHADER);
+    GLuint volumetric_geomShader        = compileShader(volumetric_geomShaderSource.c_str(),        GL_GEOMETRY_SHADER);
+    GLuint volumetric_fragmentShader    = compileShader(volumetric_fragmentShaderSource.c_str(),    GL_FRAGMENT_SHADER);
 
 
     GLuint program = glCreateProgram();
@@ -202,9 +203,8 @@ void uploadTextures(std::map<std::string, TextureDataGl>& textureTypeMap, Materi
 }
 
 
-std::vector<std::pair<Mesh, GLMesh>> uploadMeshesToOpenGL(const std::vector<Mesh>& meshes) {
+void uploadMeshesToOpenGL(const std::vector<Mesh>& meshes, std::vector<std::pair<Mesh, GLMesh>>& DataMeshAndGlMesh) {
     
-    std::vector<std::pair<Mesh, GLMesh>> DataMeshAndGlMesh;
     DataMeshAndGlMesh.reserve(meshes.size());
 
     for (auto& mesh : meshes) {
@@ -290,10 +290,9 @@ std::vector<std::pair<Mesh, GLMesh>> uploadMeshesToOpenGL(const std::vector<Mesh
         DataMeshAndGlMesh.push_back(std::make_pair(mesh, glMesh));
     }
 
-    return DataMeshAndGlMesh;
 }
 
-void setupFrameBuffer(GLuint& framebuffer, unsigned int width, unsigned int height)
+GLuint* setupFrameBuffer(GLuint& framebuffer, unsigned int width, unsigned int height)
 {
     glGenFramebuffers(1, &framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
@@ -317,7 +316,7 @@ void setupFrameBuffer(GLuint& framebuffer, unsigned int width, unsigned int heig
     GLenum drawBuffers[numberOfTextures] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4 };
     glDrawBuffers(numberOfTextures, drawBuffers);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+    return textures;
 }
 
 
@@ -412,7 +411,7 @@ static void setUniformMat4(GLuint shaderProgram, std::string uniformName, glm::m
         std::cerr << "Could not find uniform: '" + uniformName + "'." << std::endl;
     }
 
-    glUniform4fv(uniformLocation, 1, glm::value_ptr(matrix));
+    glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, &matrix[0][0]);
 }
 
 static void setTexture(GLuint shaderProgram, std::string textureUniformName, GLuint texture, unsigned int textureUnitNumber)
@@ -474,11 +473,11 @@ void performGpuConversion(
     glBindVertexArray(vao);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glBeginQuery(GL_TIME_ELAPSED, queryID);
 
-    glDrawArrays(GL_PATCHES, 0, vertexCount);
+    glDrawArrays(GL_TRIANGLES, 0, vertexCount); //Change to GL_PATCHES if I need tesselator
 
     glEndQuery(GL_TIME_ELAPSED);
 
@@ -496,6 +495,7 @@ void performGpuConversion(
 
 void generateVolumetricSurface(
     GLuint shaderProgram, GLuint vao,
+    glm::mat4 modelMatrix, glm::vec3 center, 
     GLuint framebuffer, size_t vertexCount,
     int normalizedUVSpaceWidth, int normalizedUVSpaceHeight,
     const std::map<std::string, TextureDataGl>& textureTypeMap, MaterialGltf material
@@ -505,58 +505,21 @@ void generateVolumetricSurface(
     glUseProgram(shaderProgram);
 
     //-------------------------------SET UNIFORMS-------------------------------   
-    setUniform3f(shaderProgram, "meshMaterialColor", material.baseColorFactor);
-    //Textures
-    if (textureTypeMap.find(BASE_COLOR_TEXTURE) != textureTypeMap.end())
-    {
-        setTexture(shaderProgram, "albedoTexture", textureTypeMap.at(BASE_COLOR_TEXTURE).glTextureID, 0);
-        setUniform1i(shaderProgram, "hasAlbedoMap", 1);
-    }
-    if (textureTypeMap.find(NORMAL_TEXTURE) != textureTypeMap.end())
-    {
-        setTexture(shaderProgram, "normalTexture", textureTypeMap.at(NORMAL_TEXTURE).glTextureID, 1);
-        setUniform1i(shaderProgram, "hasNormalMap", 1);
-    }
-    if (textureTypeMap.find(METALLIC_ROUGHNESS_TEXTURE) != textureTypeMap.end())
-    {
-        setTexture(shaderProgram, "metallicRoughnessTexture", textureTypeMap.at(METALLIC_ROUGHNESS_TEXTURE).glTextureID, 2);
-        setUniform1i(shaderProgram, "hasMetallicRoughnessMap", 1);
-    }
-    if (textureTypeMap.find(OCCLUSION_TEXTURE) != textureTypeMap.end())
-    {
-        setTexture(shaderProgram, "occlusionTexture", textureTypeMap.at(OCCLUSION_TEXTURE).glTextureID, 3);
-    }
-    if (textureTypeMap.find(EMISSIVE_TEXTURE) != textureTypeMap.end())
-    {
-        setTexture(shaderProgram, "emissiveTexture", textureTypeMap.at(EMISSIVE_TEXTURE).glTextureID, 4);
-    }
+    setUniform3f(   shaderProgram,  "meshMaterialColor",    material.baseColorFactor);
+    setUniformMat4( shaderProgram,  "modelMatrix",          modelMatrix);
+    setUniform3f(shaderProgram,     "center",               center);
+
 
     //--------------------------------------------------------------------------
-    //Query for true conversion time
-
-    GLuint queryID;
-    glGenQueries(1, &queryID);
 
     glBindVertexArray(vao);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glBeginQuery(GL_TIME_ELAPSED, queryID);
-
-    glDrawArrays(GL_TRIANGLES, 0, vertexCount);
-
-    glEndQuery(GL_TIME_ELAPSED);
+    glDrawArrays(GL_TRIANGLES, 0, vertexCount); //Change to GL_PATCHES if I need tesselator
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    GLuint64 elapsed_time;
-    glGetQueryObjectui64v(queryID, GL_QUERY_RESULT, &elapsed_time);
-
-    // Convert nanoseconds to milliseconds
-    double elapsed_time_ms = elapsed_time / 1000000.0f;
-
-    std::cout << "Draw call time: " << elapsed_time_ms << " ms" << std::endl;
 }
 
 void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLuint& framebuffer, unsigned int width, unsigned int height, bool print) {
@@ -595,15 +558,21 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         float GaussianPosition_y    = pixels0[frameBufferStride * i + 1];
         float GaussianPosition_z    = pixels0[frameBufferStride * i + 2];
         float Scale_xy              = pixels0[frameBufferStride * i + 3];
+        if (print)
+        {
+            //std::cout << GaussianPosition_x << " " << GaussianPosition_y << " " << GaussianPosition_z << " " << std::endl;
+        }
         if (isnan(GaussianPosition_x) || isnan(GaussianPosition_y) || isnan(GaussianPosition_z)) 
         {
             printf("! Warning !  Pos has nan values\n EXITING...");
             exit(1);
         }
+        
 
 
         // Extract data from the second texture
         float Scale_z   = pixels1[frameBufferStride * i + 0];
+        
         if (isnan(Scale_xy) || isnan(Scale_z))
         {
             printf("! Warning !  Scale has nan values\n EXITING...");
@@ -613,21 +582,25 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         float Normal_x  = pixels1[frameBufferStride * i + 1];
         float Normal_y  = pixels1[frameBufferStride * i + 2];
         float Normal_z  = pixels1[frameBufferStride * i + 3];
+        
         if (isnan(Normal_x) || isnan(Normal_y) || isnan(Normal_z))
         {
             printf("! Warning !  Normal has nan values\nMake sure the 3D mesh was exported including also the tangent of each vertex normal\nEXITING...");
             exit(1);
         }
+        
         // Extract data from the third texture
         float Quaternion_x  = pixels2[frameBufferStride * i + 0];
         float Quaternion_y  = pixels2[frameBufferStride * i + 1];
         float Quaternion_z  = pixels2[frameBufferStride * i + 2];
         float Quaternion_w  = pixels2[frameBufferStride * i + 3];
+        
         if (isnan(Quaternion_x) || isnan(Quaternion_y) || isnan(Quaternion_z) || isnan(Quaternion_w))
         {
             printf("! Warning !  Quaternion has nan values\n EXITING...");
             exit(1);
         }
+        
 
 
         float Rgba_r = pixels3[frameBufferStride * i + 0];
@@ -642,10 +615,8 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
 
         float metallic  = pixels4[frameBufferStride * i + 0];
         float roughness = pixels4[frameBufferStride * i + 1];
-        if (print)
-        {
-            std::cout << metallic << " " << roughness << std::endl;
-        }
+        //std::cout << metallic << " " << roughness << " " << std::endl;
+
         if (isnan(metallic) || isnan(roughness))
         {
             printf("! Warning !  MetallicRoughness has nan values\n EXITING...");

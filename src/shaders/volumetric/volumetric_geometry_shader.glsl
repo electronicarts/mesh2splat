@@ -1,9 +1,12 @@
 #version 460 core
 
 layout(triangles) in;
-layout(line_strip, max_vertices = 40) out;
+layout(triangle_strip, max_vertices = 3) out;
 
-in VS_OUT{
+uniform vec2 metallicRoughnessFactors;
+uniform vec3 inScale;
+
+in VS_OUT {
     vec3 position;
     vec3 normal;
     vec4 tangent;
@@ -19,7 +22,8 @@ out vec4 Tangent;
 out vec3 Normal;
 flat out vec4 Quaternion;
 
-// Copied from GLM
+
+//Copied from GLM
 vec4 quat_cast(mat3 m) {
     float fourXSquaredMinus1 = m[0][0] - m[1][1] - m[2][2];
     float fourYSquaredMinus1 = m[1][1] - m[0][0] - m[2][2];
@@ -74,15 +78,14 @@ vec4 quat_cast(mat3 m) {
     return q;
 }
 
-vec3 project(vec3 v, vec3 u) {
+vec3 project(vec3 v, vec3 u)
+{
     float scalar = dot(v, u) / dot(u, u);
     return scalar * u;
 }
 
-float rand(float n) { return fract(sin(n) * 43758.5453123); }
-
 void main() {
-    // Gram-Schmidt orthonormalization ------------------------------
+    //Gram Schmidt orthonormalization
     vec3 r1 = normalize(cross(gs_in[1].position - gs_in[0].position, gs_in[2].position - gs_in[0].position));
     vec3 m = (gs_in[0].position + gs_in[1].position + gs_in[2].position) / 3.0;
     vec3 r2 = normalize(gs_in[0].position - m);
@@ -105,49 +108,23 @@ void main() {
 
     mat3 rotMat = mat3(r2, r3, r1);
     vec4 q = quat_cast(rotMat);
-    vec4 quaternion = vec4(q.w, q.x, q.y, q.z);
-    //-------------------------------------------------------------
-    //Random barycentric coordinates
-    int numberOfStrains = int(mix(10, 20, rand(gl_PrimitiveIDIn * 100)));
+    vec4 quaternion = vec4(0,0,0,1);
 
-    float currentLastRandomNumber = 0;
+    //SCALE
+    Scale = gs_in[0].scale;
 
-    for (int i = 0; i < numberOfStrains; i++)
+    for (int i = 0; i < 3; i++)
     {
-        float bx = rand(gl_InvocationID + i);
-        float by = rand(gl_InvocationID + bx * 20);
-        float bz = 1 - bx - by;
+        //All the rest
+        Tangent = gs_in[i].tangent;
+        GaussianPosition = gs_in[i].position;
+        Normal = gs_in[i].normal;
+        UV = gs_in[i].uv;
+        Quaternion = quaternion;
 
-        vec3 avgPosition                = (gs_in[0].position * bx + gs_in[1].position * by  + gs_in[2].position * bz);
-        vec2 avgUV                      = (gs_in[0].uv * bx + gs_in[1].uv * by + gs_in[2].uv * bz);
-        vec2 normalizedUvStartingPoint  = gs_in[0].normalizedUv;
-
-        // First vertex
-        float s_xy      = log(exp(gs_in[0].scale.x) / 2.5);
-        float s_z       = log(exp(gs_in[0].scale.x) * 3.5);
-        float edgeLen   = length(gs_in[0].position - gs_in[1].position);
-
-        Scale               = vec3(s_xy, s_xy, s_z);
-        Tangent             = (gs_in[0].tangent * bx + gs_in[1].tangent * by + gs_in[2].tangent * bz);
-        GaussianPosition    = avgPosition;
-        Normal              = r1;
-        UV                  = vec2(gl_PrimitiveIDIn, gl_PrimitiveIDIn);
-        Quaternion          = quaternion;
-
-        gl_Position         = vec4(normalizedUvStartingPoint * 2.0 - 1.0, 0.0, 1.0);
+        gl_Position = vec4(gs_in[i].normalizedUv * 2.0 - 1.0, 0.0, 1.0);
         EmitVertex();
 
-        // Second vertex
-        GaussianPosition                += r1 * (edgeLen * 2);
-        vec2 normalizedUvFinalPoint     = gs_in[1].normalizedUv;
-
-        gl_Position = vec4(normalizedUvFinalPoint * 2.0 - 1.0, 0.0, 1.0);
-        EmitVertex();
-
-
-        EndPrimitive();
     }
-
-
-    
+    EndPrimitive();
 }
