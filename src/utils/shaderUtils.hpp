@@ -43,12 +43,30 @@ void performGpuConversion(
 
 void generateVolumetricSurface(
     GLuint shaderProgram, GLuint vao,
-    glm::mat4 modelMatrix, glm::vec3 center,
-    GLuint framebuffer, size_t vertexCount,
+    glm::mat4* modelMatrices, GLuint ssbo, GLuint counterBuffer,
+    size_t vertexCount, const unsigned int numberOfMicroMeshes,
     int normalizedUVSpaceWidth, int normalizedUVSpaceHeight,
     const std::map<std::string, TextureDataGl>& textureTypeMap, MaterialGltf material
 );
 
-void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLuint& framebuffer, unsigned int width, unsigned int height, bool print);
+void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLuint& framebuffer, unsigned int width, unsigned int height, bool print, bool check);
 
 std::string readShaderFile(const char* filePath);
+
+void setupAtomicCounter(GLuint& counterBuffer);
+
+struct Gaussian3D_ssbo {
+    float GaussianPosition[3];
+    float Scale[3];
+    float UV[2];
+    float Normal[3];
+    float Quaternion[4];
+    float Rgba[4];
+};
+
+// Generate and allocate the SSBO
+GLuint generateSSBO(GLuint& ssbo);
+
+void readBackSSBO(std::vector<Gaussian3D>& gaussians, GLuint ssbo, GLuint counterBuffer);
+
+GLuint readAtomicCounterValue(GLuint counterBuffer);

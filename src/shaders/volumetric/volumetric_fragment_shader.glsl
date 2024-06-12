@@ -1,22 +1,19 @@
 ﻿#version 460 core
 
-//change layout and use different outs
-layout(location = 0) out vec4 FragColor0;
-layout(location = 1) out vec4 FragColor1;
-layout(location = 2) out vec4 FragColor2;
-layout(location = 3) out vec4 FragColor3;
-layout(location = 4) out vec4 FragColor4;
+struct Gaussian3D {
+    float GaussianPosition[3];
+    float Scale[3];
+    float UV[2];
+    float Normal[3];
+    float Quaternion[4];
+    float Rgba[4];
+};
 
-uniform sampler2D albedoTexture;
-uniform sampler2D normalTexture;
-uniform sampler2D metallicRoughnessTexture;
-uniform sampler2D occlusionTexture;
-uniform sampler2D emissiveTexture;
+layout(std430, binding = 0) coherent buffer OutputBuffer {
+    Gaussian3D FragData[];
+};
 
-uniform vec3 meshMaterialColor;
-uniform int hasAlbedoMap;
-uniform int hasNormalMap;
-uniform int hasMetallicRoughnessMap;
+layout(binding = 0, offset = 0) uniform atomic_uint counter;
 
 // Inputs from the geometry shader
 in vec3 GaussianPosition;
@@ -27,11 +24,32 @@ in vec3 Normal;
 in vec4 Quaternion;
 
 void main() {
-	//vec2 MetallicRoughness = vec2(0.2f, 0.5f); //Set these defaults from uniforms
-	// Pack Gaussian parameters into the output fragments
-	FragColor0 = vec4(GaussianPosition.x, GaussianPosition.y, GaussianPosition.z, Scale.x);
-	FragColor1 = vec4(Scale.z, Normal.x, Normal.y, Normal.z);
-	FragColor2 = vec4(Quaternion.x, Quaternion.y, Quaternion.z, Quaternion.w);
-	FragColor3 = vec4(meshMaterialColor, 1.0f);
-	FragColor4 = vec4(0.05f, 0.5f, 0.0f, 0.0f);
+    // Atomically increment the counter to get a unique index
+    uint index = atomicCounterIncrement(counter);
+
+    // Pack Gaussian parameters into the output fragments
+    FragData[index].GaussianPosition[0] = GaussianPosition.x;
+    FragData[index].GaussianPosition[1] = GaussianPosition.y;
+    FragData[index].GaussianPosition[2] = GaussianPosition.z;
+
+    FragData[index].Scale[0] = Scale.x;
+    FragData[index].Scale[1] = Scale.y;
+    FragData[index].Scale[2] = Scale.z;
+
+    FragData[index].UV[0] = UV.x;
+    FragData[index].UV[1] = UV.y;
+
+    FragData[index].Normal[0] = Normal.x;
+    FragData[index].Normal[1] = Normal.y;
+    FragData[index].Normal[2] = Normal.z;
+
+    FragData[index].Quaternion[0] = Quaternion.x;
+    FragData[index].Quaternion[1] = Quaternion.y;
+    FragData[index].Quaternion[2] = Quaternion.z;
+    FragData[index].Quaternion[3] = Quaternion.w;
+
+    FragData[index].Rgba[0] = 0.2f;
+    FragData[index].Rgba[1] = 0.5f;
+    FragData[index].Rgba[2] = 0.7f;
+    FragData[index].Rgba[3] = 1.0f;
 }

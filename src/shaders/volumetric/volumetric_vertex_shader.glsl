@@ -7,8 +7,8 @@ layout(location = 2) in vec4 tangent;
 layout(location = 3) in vec2 uv;
 layout(location = 4) in vec2 normalizedUv;
 layout(location = 5) in vec3 scale;
+layout(location = 6) in mat4 instanceModelMatrix;
 
-uniform mat4 modelMatrix;
 
 // Output struct definition
 out VS_OUT{
@@ -20,12 +20,12 @@ out VS_OUT{
     vec3 scale;
 } vs_out;
 
+
 void main() {
-    vs_out.position = vec3(modelMatrix * vec4(position, 1.0));
-    vs_out.normal = normalize(vec3(mat3(modelMatrix) * normal));
-    vs_out.position += normalize(vec3(modelMatrix[2])) * 0.02f;
-    vs_out.tangent = normalize(vec4(mat3(modelMatrix) * tangent.xyz, tangent.w));
-    vs_out.uv = uv;
+    vs_out.position     = vec3(instanceModelMatrix * vec4(position, 1.0));
+    vs_out.normal       = normalize(vec3(mat3(instanceModelMatrix) * normal));
+    vs_out.tangent      = normalize(vec4(mat3(instanceModelMatrix) * tangent.xyz, tangent.w));
+    vs_out.uv           = uv;
     vs_out.normalizedUv = normalizedUv;
-    vs_out.scale = scale;
+    vs_out.scale        = scale;
 }

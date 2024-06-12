@@ -15,13 +15,14 @@ in VS_OUT {
     vec3 scale;
 } gs_in[];
 
+
 out vec3 GaussianPosition;
 flat out vec3 Scale;
 out vec2 UV;
 out vec4 Tangent;
 out vec3 Normal;
 flat out vec4 Quaternion;
-
+uniform mat4 instanceMatrices[2];
 
 //Copied from GLM
 vec4 quat_cast(mat3 m) {
@@ -128,3 +129,8 @@ void main() {
     }
     EndPrimitive();
 }
+
+//Simple solution use instance_ID to offset
+
+//Modern approach: f1) stream out -- append to buffer -- this would be the best solution!
+//Modern way -- buffer and poke where you want, UAV (try going with this one)

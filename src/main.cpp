@@ -62,45 +62,6 @@ static void prepareMeshAndUploadToGPU(std::string filename, std::vector<std::pai
     uploadMeshesToOpenGL(meshes, dataMeshAndGlMesh);
 }
 
-//For now it works only if micromesh is single mesh, does not work with multiple meshes
-void generateMicromesh(std::string filename, GLuint converterShaderProgram, GLuint outputTexture[5])
-{
-    int normalizedUvSpaceWidth = 0, normalizedUvSpaceHeight = 0;
-    std::vector<std::pair<Mesh, GLMesh>> dataMeshAndGlMesh;
-
-    prepareMeshAndUploadToGPU(filename, dataMeshAndGlMesh, normalizedUvSpaceWidth, normalizedUvSpaceHeight);
-
-    std::vector<Gaussian3D> gaussians_3D_list;
-    gaussians_3D_list.reserve(MAX_TEXTURE_SIZE / 10 * MAX_TEXTURE_SIZE / 10);
-
-    Mesh meshData = std::get<0>(dataMeshAndGlMesh[0]);
-    GLMesh meshGl = std::get<1>(dataMeshAndGlMesh[0]);
-
-    printf("Loading textures into utility std::map\n");
-    std::map<std::string, TextureDataGl> textureTypeMap;
-    loadAllTexturesIntoMap(meshData.material, textureTypeMap);
-
-    printf("Loading textures into OPENGL texture buffers\n");
-    uploadTextures(textureTypeMap, meshData.material);
-
-    printf("Setting up framebuffer and textures\n");
-    GLuint framebuffer;
-    outputTexture = setupFrameBuffer(framebuffer, MAX_TEXTURE_SIZE / 10, MAX_TEXTURE_SIZE / 10);
-
-    performGpuConversion(
-        converterShaderProgram, meshGl.vao,
-        framebuffer, meshGl.vertexCount,
-        normalizedUvSpaceWidth, normalizedUvSpaceHeight, textureTypeMap, meshData.material
-    );
-
-    retrieveMeshFromFrameBuffer(gaussians_3D_list, framebuffer, MAX_TEXTURE_SIZE / 10, MAX_TEXTURE_SIZE , false);
-
-    //Free map
-    std::map<std::string, TextureDataGl>::iterator it;
-    for (it = textureTypeMap.begin(); it != textureTypeMap.end(); it++) free(it->second.textureData);
-    glDeleteFramebuffers(1, &framebuffer);
-
-}
 
 int main() {
     // Initialize GLFW and create a window...
@@ -141,12 +102,11 @@ int main() {
     prepareMeshAndUploadToGPU(INPUT_MICROMESH_FILENAME, dataMicromeshAndGlMesh, normalizedUvSpaceWidthMicro, normalizedUvSpaceHeightMicro);
 
     std::vector<Gaussian3D> gaussians_3D_list;
-    gaussians_3D_list.reserve(MAX_TEXTURE_SIZE * MAX_TEXTURE_SIZE);
 
     GLuint microMeshOutputTexturesWithData[5];
-    //Generate micromesh to be used to be placed on top of other mesh
 
-    //generateMicromesh(INPUT_MICROMESH_FILENAME, converterShaderProgram, microMeshOutputTexturesWithData);
+    GLuint atomicCounter;
+    setupAtomicCounter(atomicCounter);
 
     for (auto& mesh : dataMeshAndGlMesh)
     {
@@ -173,7 +133,7 @@ int main() {
             textureTypeMap, meshData.material
         );
 
-        retrieveMeshFromFrameBuffer(gaussians_3D_list, framebuffer, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE, false);
+        retrieveMeshFromFrameBuffer(gaussians_3D_list, framebuffer, MAX_TEXTURE_SIZE , MAX_TEXTURE_SIZE , false, false);
         
         //------------------PASS 2------------------
         
@@ -182,19 +142,16 @@ int main() {
         //TODO: At this point render as point primitive the micromesh and pass one after the others a model matrix to position each micromesh
         //correctly on the surface
 
-        GLuint volumetricbuffer;
-        GLuint* textures = setupFrameBuffer(volumetricbuffer, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE);
-
         //Do this to decrease the interpolation level in the rasterizer, creat util function for this.
         glViewport(0, 0, MAX_TEXTURE_SIZE / 20, MAX_TEXTURE_SIZE / 20);
 
-        int i = 0;
         int size = meshData.faces.size();
-        for (auto& face : meshData.faces)
+
+        glm::mat4* modelMatrices = new glm::mat4[size];
+
+        for (int i = 0; i < size; i++)
         {
-            std::cout << "Face " << i << "/" << size << std::endl;
-            i++;
-            //--------------THIS SHOULD GO IN SHADER--------------
+            Face face = meshData.faces[i];
             glm::vec3 center = (face.pos[0] + face.pos[1] + face.pos[2]) / 3.0f;
             glm::vec3 r1 = glm::normalize(face.pos[1] - face.pos[0]);
             glm::vec3 normal = glm::normalize((face.normal[0] + face.normal[1] + face.normal[2]) / 3.0f);
@@ -202,18 +159,23 @@ int main() {
             float factor = 10;
             float minScaleFactor = std::min(glm::length(face.pos[2] - face.pos[0]), std::min(glm::length(face.pos[1] - face.pos[0]), glm::length(face.pos[1] - face.pos[2]))) / factor;
             glm::mat4 modelMatrix = createModelMatrix(center, normal, r1, glm::vec3(minScaleFactor, minScaleFactor, minScaleFactor));
-
-            generateVolumetricSurface(
-                volumetricShaderProgram, dataMicromeshAndGlMesh[0].second.vao,
-                modelMatrix, center, 
-                volumetricbuffer, dataMicromeshAndGlMesh[0].second.vertexCount,
-                normalizedUvSpaceWidthMicro, normalizedUvSpaceHeightMicro,
-                textureTypeMap, dataMicromeshAndGlMesh[0].first.material
-            );
-
-            retrieveMeshFromFrameBuffer(gaussians_3D_list, volumetricbuffer, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE, true);
-
+            modelMatrices[i] = modelMatrix;
         }
+
+        GLuint ssbo;
+        generateSSBO(ssbo);
+
+        generateVolumetricSurface(
+            volumetricShaderProgram, dataMicromeshAndGlMesh[0].second.vao,
+            modelMatrices, ssbo, atomicCounter,
+            dataMicromeshAndGlMesh[0].second.vertexCount, size, 
+            normalizedUvSpaceWidthMicro, normalizedUvSpaceHeightMicro,
+            textureTypeMap, dataMicromeshAndGlMesh[0].first.material
+        );
+
+        readBackSSBO(gaussians_3D_list, ssbo, atomicCounter);
+
+
         glViewport(0, 0, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE);
              
         //Free map
@@ -221,7 +183,7 @@ int main() {
         for (it = textureTypeMap.begin(); it != textureTypeMap.end(); it++) free(it->second.textureData);
 
         glDeleteFramebuffers(1, &framebuffer);
-        glDeleteFramebuffers(1, &volumetricbuffer);
+        glDeleteFramebuffers(1, &ssbo);
 
     }
 

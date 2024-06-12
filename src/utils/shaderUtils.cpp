@@ -495,35 +495,59 @@ void performGpuConversion(
 
 void generateVolumetricSurface(
     GLuint shaderProgram, GLuint vao,
-    glm::mat4 modelMatrix, glm::vec3 center, 
-    GLuint framebuffer, size_t vertexCount,
+    glm::mat4* modelMatrices, GLuint ssbo, GLuint counterBuffer,
+    size_t vertexCount, const unsigned int numberOfMicroMeshes,
     int normalizedUVSpaceWidth, int normalizedUVSpaceHeight,
     const std::map<std::string, TextureDataGl>& textureTypeMap, MaterialGltf material
-)
-{
-    // Use shader program and perform tessellation
+) {
     glUseProgram(shaderProgram);
 
-    //-------------------------------SET UNIFORMS-------------------------------   
-    setUniform3f(   shaderProgram,  "meshMaterialColor",    material.baseColorFactor);
-    setUniformMat4( shaderProgram,  "modelMatrix",          modelMatrix);
-    setUniform3f(shaderProgram,     "center",               center);
+    //---------UNIFORMS---------
+    setUniform3f(shaderProgram, "meshMaterialColor", material.baseColorFactor);
 
-
-    //--------------------------------------------------------------------------
+    unsigned int buffer;
+    glGenBuffers(1, &buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glBufferData(GL_ARRAY_BUFFER, numberOfMicroMeshes * sizeof(glm::mat4), &modelMatrices[0], GL_STATIC_DRAW);
 
     glBindVertexArray(vao);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // vertex attributes
+    std::size_t vec4Size = sizeof(glm::vec4);
+    std::size_t mat4Size = sizeof(glm::mat4);
+    for (int i = 0; i < 4; i++)
+    {
+        glEnableVertexAttribArray(6 + i);
+        glVertexAttribPointer(6 + i, 4, GL_FLOAT, GL_FALSE, mat4Size, (void*) (i * vec4Size));
+        glVertexAttribDivisor(6 + i, 1);
+    }
+    glBindVertexArray(0);
 
-    glDrawArrays(GL_TRIANGLES, 0, vertexCount); //Change to GL_PATCHES if I need tesselator
+    //-----------------------------------
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // Bind the SSBO
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo);
 
+    // Bind the atomic counter
+    glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, counterBuffer);
+
+    // Bind the VAO for meshB
+    glBindVertexArray(vao);
+
+    // Reset atomic counter
+
+    // Perform the draw call
+    glDrawArraysInstanced(GL_TRIANGLES, 0, vertexCount, numberOfMicroMeshes);
+
+    // Unbind the SSBO and VAO
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+    glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, 0);
+    glBindVertexArray(0);
 }
 
-void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLuint& framebuffer, unsigned int width, unsigned int height, bool print) {
-    glFinish();  // Ensure all OpenGL commands are finished
+
+
+void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLuint& framebuffer, unsigned int width, unsigned int height, bool print, bool check) {
+    glFinish();  // Ensure all OpenGL commands are finished 
     unsigned int frameBufferStride = 4;
 
     std::vector<float> pixels0(width * height * frameBufferStride); // For RGBA32F
@@ -531,7 +555,6 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
     std::vector<float> pixels2(width * height * frameBufferStride); // For RGBA32F
     std::vector<float> pixels3(width * height * frameBufferStride); // For RGBA32F
     std::vector<float> pixels4(width * height * frameBufferStride); // For RGBA32F
-
 
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
@@ -558,22 +581,16 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         float GaussianPosition_y    = pixels0[frameBufferStride * i + 1];
         float GaussianPosition_z    = pixels0[frameBufferStride * i + 2];
         float Scale_xy              = pixels0[frameBufferStride * i + 3];
-        if (print)
-        {
-            //std::cout << GaussianPosition_x << " " << GaussianPosition_y << " " << GaussianPosition_z << " " << std::endl;
-        }
-        if (isnan(GaussianPosition_x) || isnan(GaussianPosition_y) || isnan(GaussianPosition_z)) 
+        if (check && (isnan(GaussianPosition_x) || isnan(GaussianPosition_y) || isnan(GaussianPosition_z)) )
         {
             printf("! Warning !  Pos has nan values\n EXITING...");
             exit(1);
         }
-        
-
 
         // Extract data from the second texture
         float Scale_z   = pixels1[frameBufferStride * i + 0];
         
-        if (isnan(Scale_xy) || isnan(Scale_z))
+        if (check && (isnan(Scale_xy) || isnan(Scale_z)))
         {
             printf("! Warning !  Scale has nan values\n EXITING...");
             exit(1);
@@ -583,7 +600,7 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         float Normal_y  = pixels1[frameBufferStride * i + 2];
         float Normal_z  = pixels1[frameBufferStride * i + 3];
         
-        if (isnan(Normal_x) || isnan(Normal_y) || isnan(Normal_z))
+        if (check && (isnan(Normal_x) || isnan(Normal_y) || isnan(Normal_z)))
         {
             printf("! Warning !  Normal has nan values\nMake sure the 3D mesh was exported including also the tangent of each vertex normal\nEXITING...");
             exit(1);
@@ -594,20 +611,21 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         float Quaternion_y  = pixels2[frameBufferStride * i + 1];
         float Quaternion_z  = pixels2[frameBufferStride * i + 2];
         float Quaternion_w  = pixels2[frameBufferStride * i + 3];
-        
-        if (isnan(Quaternion_x) || isnan(Quaternion_y) || isnan(Quaternion_z) || isnan(Quaternion_w))
+        if (print)
+        {
+            std::cout << Quaternion_x << " " << Quaternion_y << " " << Quaternion_z << " " << Quaternion_w << std::endl;
+        }
+        if (check && (isnan(Quaternion_x) || isnan(Quaternion_y) || isnan(Quaternion_z) || isnan(Quaternion_w)))
         {
             printf("! Warning !  Quaternion has nan values\n EXITING...");
             exit(1);
         }
-        
-
 
         float Rgba_r = pixels3[frameBufferStride * i + 0];
         float Rgba_g = pixels3[frameBufferStride * i + 1];
         float Rgba_b = pixels3[frameBufferStride * i + 2];
         float Rgba_a = pixels3[frameBufferStride * i + 3];
-        if (isnan(Rgba_r) || isnan(Rgba_g) || isnan(Rgba_b) || isnan(Rgba_a))
+        if (check && (isnan(Rgba_r) || isnan(Rgba_g) || isnan(Rgba_b) || isnan(Rgba_a)))
         {
             printf("! Warning !  Color has nan values\n EXITING...");
             exit(1);
@@ -617,7 +635,7 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         float roughness = pixels4[frameBufferStride * i + 1];
         //std::cout << metallic << " " << roughness << " " << std::endl;
 
-        if (isnan(metallic) || isnan(roughness))
+        if (check && (isnan(metallic) || isnan(roughness)))
         {
             printf("! Warning !  MetallicRoughness has nan values\n EXITING...");
             exit(1);
@@ -628,7 +646,7 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         {
             continue;
         }
-
+        
         Gaussian3D gauss;
 
         gauss.material.metallicFactor = metallic;
@@ -641,4 +659,99 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         gauss.sh0 = getColor(glm::vec3(Rgba_r, Rgba_g, Rgba_b));
         gaussians_3D_list.push_back(gauss);
     }
+}
+
+void setupAtomicCounter(GLuint& counterBuffer)
+{
+    glGenBuffers(1, &counterBuffer);
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, counterBuffer);
+    glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, counterBuffer);
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
+}
+
+
+// Generate and allocate the SSBO
+GLuint generateSSBO(GLuint &ssbo) {
+    glGenBuffers(1, &ssbo);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+
+    // Allocate buffer memory without initializing (using nullptr)
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Gaussian3D_ssbo) * 500000, nullptr, GL_DYNAMIC_DRAW);
+
+    // Bind the buffer to binding point 0
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo);
+
+    // Unbind the buffer
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+    return ssbo;
+}
+
+void readBackSSBO(std::vector<Gaussian3D>& gaussians, GLuint ssbo, GLuint counterBuffer) {
+    // Read the number of fragments generated
+    GLuint numFragments = readAtomicCounterValue(counterBuffer);
+
+    // Bind and map the SSBO
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+
+    std::vector<Gaussian3D_ssbo> storage(numFragments);
+    glGetNamedBufferSubData(ssbo, 0, numFragments * sizeof(Gaussian3D_ssbo), storage.data());
+    
+    Gaussian3D_ssbo* ptr = (Gaussian3D_ssbo*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+
+    if (ptr == nullptr) {
+        std::cerr << "Error: glMapBuffer returned nullptr. Failed to map buffer." << std::endl;
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        return;
+    }
+
+    // Process the data
+    for (auto& data : storage) {
+
+        // Create a Gaussian3D object from the SSBO data
+        glm::vec3 position(data.GaussianPosition[0], data.GaussianPosition[1], data.GaussianPosition[2]);
+        glm::vec3 scale(data.Scale[0], data.Scale[1], data.Scale[2]);
+        glm::vec2 uv(data.UV[0], data.UV[1]);
+        glm::vec3 normal(data.Normal[0], data.Normal[1], data.Normal[2]);
+        glm::vec4 quaternion(data.Quaternion[0], data.Quaternion[1], data.Quaternion[2], data.Quaternion[3]);
+
+        // Assuming the RGB and opacity are stored elsewhere, for now just placeholders
+        glm::vec3 sh0(data.Rgba[0], data.Rgba[1], data.Rgba[2]);
+        float opacity = data.Rgba[3];
+
+        // Assuming material properties are stored elsewhere, for now just placeholders
+        MaterialGltf material;
+        material.metallicFactor = 0.04f;
+        material.roughnessFactor = 0.4f;
+
+        // Append to the vector
+        gaussians.emplace_back(position, normal, scale, quaternion, sh0, opacity, material);
+    }
+
+    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+
+GLuint readAtomicCounterValue(GLuint counterBuffer) {
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, counterBuffer);
+    GLuint* counterValuePtr = (GLuint*)glMapBuffer(GL_ATOMIC_COUNTER_BUFFER, GL_READ_ONLY);
+    GLuint counterValue = 0;
+    if (counterValuePtr) {
+        counterValue = *counterValuePtr;
+        glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
+    }
+    else {
+        std::cerr << "Error: Failed to map atomic counter buffer." << std::endl;
+    }
+
+    //Now reset it
+    GLuint zero = 0;
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, counterBuffer);
+    glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &zero);
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
+
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
+    return counterValue;
 }

@@ -20,7 +20,7 @@
 
 
 //-------------------- INPUT DATA ---------------------------------------------------------------------------------------------------------------
-#define OBJ_NAME								"microMesh4"
+#define OBJ_NAME								"icosphere"
 #define MICROMESH_NAME							"icosphere"
 #define OBJ_FORMAT								".glb"
 
