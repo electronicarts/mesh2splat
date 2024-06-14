@@ -13,7 +13,7 @@ layout(std430, binding = 0) coherent buffer OutputBuffer {
     Gaussian3D FragData[];
 };
 
-layout(binding = 0, offset = 0) uniform atomic_uint counter;
+layout(binding = 1) uniform atomic_uint counter;
 
 // Inputs from the geometry shader
 in vec3 GaussianPosition;

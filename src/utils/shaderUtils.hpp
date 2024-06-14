@@ -38,7 +38,7 @@ void performGpuConversion(
     GLuint framebuffer, size_t vertexCount,
     int normalizedUVSpaceWidth, int normalizedUVSpaceHeight,
     const std::map<std::string, TextureDataGl>& textureTypeMap,
-    MaterialGltf material
+    MaterialGltf material, unsigned int referenceResolution
 );
 
 void generateVolumetricSurface(

@@ -46,8 +46,11 @@ static void prepareMeshAndUploadToGPU(std::string filename, std::vector<std::pai
     printf("Generating normalized UV coordinates (XATLAS)\n");
     generateNormalizedUvCoordinatesPerFace(uvSpaceWidth, uvSpaceHeight, meshes);
 
-    float Sd_x = PIXEL_SIZE_GAUSSIAN_RADIUS / (float)uvSpaceWidth;
-    float Sd_y = PIXEL_SIZE_GAUSSIAN_RADIUS / (float)uvSpaceHeight;
+    //Ported to GPU
+    /*
+    float Sd_x = PIXEL_SIZE_GAUSSIAN_RADIUS / ((float)referenceRes);
+    float Sd_y = PIXEL_SIZE_GAUSSIAN_RADIUS / ((float)referenceRes);
+
 
     printf("Computing 3DGS scale per triangle face (CPU)\n");
     for (auto& mesh : meshes)
@@ -57,7 +60,7 @@ static void prepareMeshAndUploadToGPU(std::string filename, std::vector<std::pai
             set3DGaussianScale(Sd_x, Sd_y, face.pos, face.normalizedUvs, face.scale); //TODO: SHOULD/MUST compute this on the fly in the Shader, but will do this once everything is working
         }
     }
-
+    */
     printf("Loading mesh into OPENGL buffers\n");
     uploadMeshesToOpenGL(meshes, dataMeshAndGlMesh);
 }
@@ -84,7 +87,7 @@ int main() {
         return -1;
     }
 
-    glViewport(0, 0, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE);
+    glViewport(0, 0, RESOLUTION_TARGET, RESOLUTION_TARGET);
 
     // Load shaders and meshes
     printf("Creating shader program\n");
@@ -103,8 +106,6 @@ int main() {
 
     std::vector<Gaussian3D> gaussians_3D_list;
 
-    GLuint microMeshOutputTexturesWithData[5];
-
     GLuint atomicCounter;
     setupAtomicCounter(atomicCounter);
 
@@ -122,18 +123,18 @@ int main() {
 
         printf("Setting up framebuffer and textures\n");
         GLuint framebuffer;
-        setupFrameBuffer(framebuffer, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE);
+        setupFrameBuffer(framebuffer, RESOLUTION_TARGET, RESOLUTION_TARGET);
 
         //------------------PASS 1------------------
         
-            performGpuConversion(
+        performGpuConversion(
             converterShaderProgram, meshGl.vao,
             framebuffer, meshGl.vertexCount,
             normalizedUvSpaceWidth, normalizedUvSpaceHeight, 
-            textureTypeMap, meshData.material
+            textureTypeMap, meshData.material, RESOLUTION_TARGET
         );
 
-        retrieveMeshFromFrameBuffer(gaussians_3D_list, framebuffer, MAX_TEXTURE_SIZE , MAX_TEXTURE_SIZE , false, false);
+        retrieveMeshFromFrameBuffer(gaussians_3D_list, framebuffer, RESOLUTION_TARGET , RESOLUTION_TARGET , false, true);
         
         //------------------PASS 2------------------
         
@@ -143,7 +144,9 @@ int main() {
         //correctly on the surface
 
         //Do this to decrease the interpolation level in the rasterizer, creat util function for this.
-        glViewport(0, 0, MAX_TEXTURE_SIZE / 20, MAX_TEXTURE_SIZE / 20);
+#if VOLUMETRIC
+        //TODO: now its fucked up and does not , fix it?
+        glViewport(0, 0, 64, 64);
 
         int size = meshData.faces.size();
 
@@ -153,15 +156,15 @@ int main() {
         {
             Face face = meshData.faces[i];
             glm::vec3 center = (face.pos[0] + face.pos[1] + face.pos[2]) / 3.0f;
-            glm::vec3 r1 = glm::normalize(face.pos[1] - face.pos[0]);
+            glm::vec3 r1 = glm::normalize(face.pos[0] - face.pos[1]);
             glm::vec3 normal = glm::normalize((face.normal[0] + face.normal[1] + face.normal[2]) / 3.0f);
-            glm::vec3 r2 = glm::normalize(glm::cross(normal, r1));
+            glm::vec3 r2 = glm::normalize(glm::cross(r1, normal));
             float factor = 10;
-            float minScaleFactor = std::min(glm::length(face.pos[2] - face.pos[0]), std::min(glm::length(face.pos[1] - face.pos[0]), glm::length(face.pos[1] - face.pos[2]))) / factor;
-            glm::mat4 modelMatrix = createModelMatrix(center, normal, r1, glm::vec3(minScaleFactor, minScaleFactor, minScaleFactor));
+            float minScaleFactor = std::min(glm::length(face.pos[2] - face.pos[0]), std::min(glm::length(face.pos[1] - face.pos[0]), glm::length(face.pos[1] - face.pos[2])));
+            glm::mat4 modelMatrix = createModelMatrix(center, normal, r2, glm::vec3(1, 1, 1));
             modelMatrices[i] = modelMatrix;
         }
-
+        
         GLuint ssbo;
         generateSSBO(ssbo);
 
@@ -176,15 +179,16 @@ int main() {
         readBackSSBO(gaussians_3D_list, ssbo, atomicCounter);
 
 
-        glViewport(0, 0, MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE);
+        glViewport(0, 0, RESOLUTION_TARGET, RESOLUTION_TARGET);
              
         //Free map
         std::map<std::string, TextureDataGl>::iterator it;
         for (it = textureTypeMap.begin(); it != textureTypeMap.end(); it++) free(it->second.textureData);
-
-        glDeleteFramebuffers(1, &framebuffer);
+        
+        
         glDeleteFramebuffers(1, &ssbo);
-
+#endif      
+        glDeleteFramebuffers(1, &framebuffer);
     }
 
     //Write to file

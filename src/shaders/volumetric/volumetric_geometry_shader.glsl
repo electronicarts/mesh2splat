@@ -107,9 +107,9 @@ void main() {
     // Normalize the final result
     vec3 r3 = normalize(orthogonal_to_r1_and_r2);
 
-    mat3 rotMat = mat3(r2, r3, r1);
-    vec4 q = quat_cast(rotMat);
-    vec4 quaternion = vec4(0,0,0,1);
+    mat3 rotMat     = mat3(r2, r3, r1);
+    vec4 q          = quat_cast(rotMat);
+    vec4 quaternion = vec4(q.w, q.x, q.y, q.z);
 
     //SCALE
     Scale = gs_in[0].scale;

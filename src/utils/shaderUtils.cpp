@@ -431,14 +431,18 @@ void performGpuConversion(
     GLuint shaderProgram, GLuint vao,
     GLuint framebuffer, size_t vertexCount,
     int normalizedUVSpaceWidth, int normalizedUVSpaceHeight,
-    const std::map<std::string, TextureDataGl>& textureTypeMap, MaterialGltf material
+    const std::map<std::string, TextureDataGl>& textureTypeMap, MaterialGltf material, unsigned int referenceResolution
 ) {
     // Use shader program and perform tessellation
     glUseProgram(shaderProgram);
 
     //-------------------------------SET UNIFORMS-------------------------------   
+    
     setUniform1i(shaderProgram, "tesselationFactorMultiplier", TESSELATION_LEVEL_FACTOR_MULTIPLIER);
     setUniform3f(shaderProgram, "meshMaterialColor", material.baseColorFactor);
+    setUniform1f(shaderProgram, "sigma_x", PIXEL_SIZE_GAUSSIAN_RADIUS / (float(referenceResolution))); //I leave both x and y in case want to be anisotropic
+    setUniform1f(shaderProgram, "sigma_y", PIXEL_SIZE_GAUSSIAN_RADIUS / (float(referenceResolution)));
+
     //Textures
     if (textureTypeMap.find(BASE_COLOR_TEXTURE) != textureTypeMap.end())
     {
@@ -505,6 +509,7 @@ void generateVolumetricSurface(
     //---------UNIFORMS---------
     setUniform3f(shaderProgram, "meshMaterialColor", material.baseColorFactor);
 
+
     unsigned int buffer;
     glGenBuffers(1, &buffer);
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
@@ -528,7 +533,7 @@ void generateVolumetricSurface(
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo);
 
     // Bind the atomic counter
-    glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, counterBuffer);
+    glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 1, counterBuffer);
 
     // Bind the VAO for meshB
     glBindVertexArray(vao);
@@ -540,7 +545,7 @@ void generateVolumetricSurface(
 
     // Unbind the SSBO and VAO
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
-    glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, 0);
+    glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 1, 0);
     glBindVertexArray(0);
 }
 
@@ -584,16 +589,19 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         if (check && (isnan(GaussianPosition_x) || isnan(GaussianPosition_y) || isnan(GaussianPosition_z)) )
         {
             printf("! Warning !  Pos has nan values\n EXITING...");
-            exit(1);
+            continue;//exit(1);
         }
 
         // Extract data from the second texture
         float Scale_z   = pixels1[frameBufferStride * i + 0];
-        
+        if (print)
+        {
+            std::cout << Scale_xy << " " << Scale_z << std::endl;
+        }
         if (check && (isnan(Scale_xy) || isnan(Scale_z)))
         {
             printf("! Warning !  Scale has nan values\n EXITING...");
-            exit(1);
+            continue;//exit(1);
         }
 
         float Normal_x  = pixels1[frameBufferStride * i + 1];
@@ -603,7 +611,7 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         if (check && (isnan(Normal_x) || isnan(Normal_y) || isnan(Normal_z)))
         {
             printf("! Warning !  Normal has nan values\nMake sure the 3D mesh was exported including also the tangent of each vertex normal\nEXITING...");
-            exit(1);
+            continue;//exit(1);
         }
         
         // Extract data from the third texture
@@ -611,14 +619,11 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         float Quaternion_y  = pixels2[frameBufferStride * i + 1];
         float Quaternion_z  = pixels2[frameBufferStride * i + 2];
         float Quaternion_w  = pixels2[frameBufferStride * i + 3];
-        if (print)
-        {
-            std::cout << Quaternion_x << " " << Quaternion_y << " " << Quaternion_z << " " << Quaternion_w << std::endl;
-        }
+
         if (check && (isnan(Quaternion_x) || isnan(Quaternion_y) || isnan(Quaternion_z) || isnan(Quaternion_w)))
         {
             printf("! Warning !  Quaternion has nan values\n EXITING...");
-            exit(1);
+            continue;//exit(1);
         }
 
         float Rgba_r = pixels3[frameBufferStride * i + 0];
@@ -628,7 +633,7 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         if (check && (isnan(Rgba_r) || isnan(Rgba_g) || isnan(Rgba_b) || isnan(Rgba_a)))
         {
             printf("! Warning !  Color has nan values\n EXITING...");
-            exit(1);
+            continue;//exit(1);
         }
 
         float metallic  = pixels4[frameBufferStride * i + 0];
@@ -638,7 +643,7 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         if (check && (isnan(metallic) || isnan(roughness)))
         {
             printf("! Warning !  MetallicRoughness has nan values\n EXITING...");
-            exit(1);
+            continue;//exit(1);
         }
 
 

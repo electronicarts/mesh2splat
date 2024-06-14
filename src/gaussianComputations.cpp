@@ -2,7 +2,7 @@
 #include <iostream>
 
 //I think this function can be optimized a lot, I am passing and rearranging vector info too many times, need to make it more concise
-static Eigen::Matrix<double, 3, 2>  computeUv3DJacobian(const std::array<glm::vec3, 3> verticesTriangle3D, const std::array<glm::vec2, 3> verticesTriangleUV) {
+static Eigen::Matrix<double, 3, 2>  computeUv3DJacobian(const glm::vec3 verticesTriangle3D[3], const glm::vec2 verticesTriangleUV[3]) {
     //3Ds
     const glm::vec3& pos0 = verticesTriangle3D[0];
     const glm::vec3& pos1 = verticesTriangle3D[1];
@@ -110,7 +110,7 @@ void set3DGaussianScale(const float Sd_x, const float Sd_y, const glm::vec3* ver
         covariance, sigmaY;         //Row 2
 
     //---------------Computing 3d Cov Matrix--------------------
-
+    /*
     std::array<glm::vec3, 3> verticesTriangle3DArray = {
         verticesTriangle3D[0],
         verticesTriangle3D[1],
@@ -122,15 +122,52 @@ void set3DGaussianScale(const float Sd_x, const float Sd_y, const glm::vec3* ver
         verticesTriangleUVs[1],
         verticesTriangleUVs[2]
     };
+    */
 
-    Eigen::Matrix<double, 3, 2> J = computeUv3DJacobian(verticesTriangle3DArray, verticesTriangleUVsArray);
+    glm::vec2 triangle2D[3] = {
+    glm::vec2(0.0f, 0.0f),
+    glm::vec2(Sd_x, 0.0f),
+    glm::vec2(0.0f, Sd_y)
+    };
+    
+
+    auto computeBarycentric2D = [](const glm::vec2& p, const glm::vec2& a, const glm::vec2& b, const glm::vec2& c) -> glm::vec3 {
+        glm::vec2 v0 = b - a, v1 = c - a, v2 = p - a;
+        float d00 = glm::dot(v0, v0);
+        float d01 = glm::dot(v0, v1);
+        float d11 = glm::dot(v1, v1);
+        float d20 = glm::dot(v2, v0);
+        float d21 = glm::dot(v2, v1);
+        float inv_denom = 1 / (d00 * d11 - d01 * d01);
+        float v = (d11 * d20 - d01 * d21) * inv_denom;
+        float w = (d00 * d21 - d01 * d20) * inv_denom;
+        float u = 1.0f - v - w;
+        return glm::vec3(u, v, w);
+        };
+
+    glm::vec3 baryCoords2D[3];
+    for (int i = 0; i < 3; ++i)
+    {
+        baryCoords2D[i] = computeBarycentric2D(triangle2D[i], verticesTriangleUVs[0], verticesTriangleUVs[1], verticesTriangleUVs[2]);
+    }
+
+    glm::vec3 newTriangle3D[3];
+    for (int i = 0; i < 3; ++i)
+    {
+        newTriangle3D[i] = 
+            baryCoords2D[i].x * verticesTriangle3D[0] +
+            baryCoords2D[i].y * verticesTriangle3D[1] +
+            baryCoords2D[i].z * verticesTriangle3D[2];
+    }
+
+    Eigen::Matrix<double, 3, 2> J = computeUv3DJacobian(newTriangle3D, triangle2D);
 
     Eigen::Matrix3d covMat3d = J * covMat2d * J.transpose();
 
     std::vector<std::pair<glm::vec3, float>> eigenPairs = getSortedEigenvectorEigenvalues(covMat3d);
 
     //Computing and setting scale values from the eigenvalues
-    float SD_xy = sqrtf(eigenPairs[1].second); //3 sigma, need to divide by 3 in the renderer, I select the second largest value, not the largest
+    float SD_xy = sqrtf(eigenPairs[2].second); //3 sigma, need to divide by 3 in the renderer, I select the second largest value, not the largest
     //float SD_y = Sd_x;//0.3333f * sqrtf(eigenPairs[1].second);
     float SD_z = EPSILON; //SD_xy / 5.0f;//(std::min(SD_x, SD_y) / 5.0f); //TODO: magic hyperparameter needs to be understood better
 
