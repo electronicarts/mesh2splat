@@ -4,7 +4,6 @@ layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
 
 uniform vec2 metallicRoughnessFactors;
-uniform vec3 inScale;
 uniform float sigma_x;
 uniform float sigma_y;
 
@@ -27,16 +26,15 @@ out vec3 Normal;
 flat out vec4 Quaternion;
 
 
-mat3x2 transpose2x3(in mat2x3 m) {
-    mat3x2 transposed;
-    transposed[0][0] = m[0][0];
-    transposed[1][0] = m[0][1];
-    transposed[2][0] = m[0][2];
+void transpose2x3(in mat2x3 m, out mat3x2 outputMat) {
+    //mat3x2 transposed;
+    outputMat[0][0] = m[0][0];
+    outputMat[1][0] = m[0][1];
+    outputMat[2][0] = m[0][2];
 
-    transposed[0][1] = m[1][0];
-    transposed[1][1] = m[1][1];
-    transposed[2][1] = m[1][2];
-    return transposed;
+    outputMat[0][1] = m[1][0];
+    outputMat[1][1] = m[1][1];
+    outputMat[2][1] = m[1][2];
 }
 
 vec4 quat_mult(vec4 q1, vec4 q2) {
@@ -88,7 +86,7 @@ mat3 mat3_cast(vec4 q) {
 }
 
 vec4 Diagonalizer(mat3 A, out vec3 outDiagonal) {
-    int maxsteps = 24;
+    int maxsteps = 30;
     vec4 q = vec4(0.0, 0.0, 0.0, 1.0);
 
     for (int i = 0; i < maxsteps; i++) {
@@ -212,9 +210,9 @@ vec3 computeBarycentric2D(vec2 p, vec2 a, vec2 b, vec2 c)
     float d11 = dot(v1, v1);
     float d20 = dot(v2, v0);
     float d21 = dot(v2, v1);
-    float inv_denom = 1.0 / (d00 * d11 - d01 * d01);
-    float v = (d11 * d20 - d01 * d21) * inv_denom;
-    float w = (d00 * d21 - d01 * d20) * inv_denom;
+    float inv_det = 1.0 / (d00 * d11 - d01 * d01);
+    float v = (d11 * d20 - d01 * d21) * inv_det;
+    float w = (d00 * d21 - d01 * d20) * inv_det;
     float u = 1.0 - v - w;
     return vec3(u, v, w);
 }
@@ -320,21 +318,18 @@ mat2x3 computeUv3DJacobian(vec3 verticesTriangle3D[3], vec2 verticesTriangleUV[3
 vec3 sortDescending(vec3 v) {
     float temp;
 
-    // Compare and swap v.x and v.y
     if (v.x < v.y) {
         temp = v.x;
         v.x = v.y;
         v.y = temp;
     }
 
-    // Compare and swap v.x and v.z
     if (v.x < v.z) {
         temp = v.x;
         v.x = v.z;
         v.z = temp;
     }
 
-    // Compare and swap v.y and v.z
     if (v.y < v.z) {
         temp = v.y;
         v.y = v.z;
@@ -344,70 +339,84 @@ vec3 sortDescending(vec3 v) {
     return v;
 }
 
-void main() {
-    //Gram Schmidt orthonormalization
+vec4 gramSchmidtOrthonormalization()
+{
     vec3 r1 = normalize(cross(gs_in[1].position - gs_in[0].position, gs_in[2].position - gs_in[0].position));
-    vec3 m  = (gs_in[0].position + gs_in[1].position + gs_in[2].position) / 3.0;
+    vec3 m = (gs_in[0].position + gs_in[1].position + gs_in[2].position) / 3.0;
     vec3 r2 = normalize(gs_in[0].position - m);
 
     // To obtain r3, first get it as triangleVertices[1] - m
-    vec3 initial_r3 = gs_in[1].position - m; 
+    vec3 initial_r3 = gs_in[1].position - m;
 
     // Gram-Schmidt Orthonormalization to find r3
     // Project initial_r3 onto r1
     // Project initial_r3 onto r1 and subtract it
-    vec3 proj_r3_onto_r1    = project(initial_r3, r1);
-    vec3 orthogonal_to_r1   = initial_r3 - proj_r3_onto_r1;
+    vec3 proj_r3_onto_r1 = project(initial_r3, r1);
+    vec3 orthogonal_to_r1 = initial_r3 - proj_r3_onto_r1;
 
     // Project the result onto r2 and subtract it
-    vec3 proj_r3_onto_r2            = project(orthogonal_to_r1, r2);
-    vec3 orthogonal_to_r1_and_r2    = orthogonal_to_r1 - proj_r3_onto_r2;
+    vec3 proj_r3_onto_r2 = project(orthogonal_to_r1, r2);
+    vec3 orthogonal_to_r1_and_r2 = orthogonal_to_r1 - proj_r3_onto_r2;
 
     // Normalize the final result
-    vec3 r3         = normalize(orthogonal_to_r1_and_r2);
+    vec3 r3 = normalize(orthogonal_to_r1_and_r2);
 
-    /// <Talk with William 2024-06-13>
-    /// Is it actually wrong? (Standard dev as pixel size)
-    /// Read "The pixel is not a little square"
-    /// Read about distance metrics between pixel and gs (L2 is example)
-    /// should not matter on resolution
-    /// 
-    /// Combine gaussians from high res 3DGS
-    /// You can sum the cov matrices and a correction term of the square distances of means
-    /// 
+    mat3 rotMat = mat3(r2, r3, r1);
+    vec4 q = quat_cast(rotMat);
+    return vec4(q.w, q.x, q.y, q.z);
+}
 
-    mat3 rotMat     = mat3( r2, r3, r1 );
-    vec4 q          = quat_cast(rotMat);
-    vec4 quaternion = vec4(q.w, q.x, q.y, q.z);
+void main() {
+    vec4 quaternion = gramSchmidtOrthonormalization();//vec4(q.w, q.x, q.y, q.z);
 
     //SCALE
     mat2 cov2d = construct2DCovMatrix(sigma_x, sigma_y);
     //This matrix can be constructed on CPU 
-    vec2 trianglePixel2D[3];
-    trianglePixel2D[0] = vec2(0.0f, 0.0f);
-    trianglePixel2D[1] = vec2(sigma_x, 0.0f);
-    trianglePixel2D[2] = vec2(0.0f, sigma_y);
+    mat2x3 J;
 
-    vec3 pixel3DTriangle[3];
-    for (int i = 0; i < 3; i++)
+    if (false)
     {
-        vec3 barycentricCoords = computeBarycentric2D(trianglePixel2D[i], gs_in[0].normalizedUv, gs_in[1].normalizedUv, gs_in[2].normalizedUv);
-        pixel3DTriangle[i] = barycentricCoords.x * gs_in[0].position + barycentricCoords.y * gs_in[1].position + barycentricCoords.z * gs_in[2].position;
-    }
+        vec2 trianglePixel2D[3];
+        trianglePixel2D[0] = vec2(0.0f, 0.0f);
+        trianglePixel2D[1] = vec2(sigma_x, 0.0f);
+        trianglePixel2D[2] = vec2(0.0f, sigma_y);
 
-    mat2x3 J = computeUv3DJacobian(pixel3DTriangle, trianglePixel2D);
-    mat3 cov3d = multiplyMat2x3WithMat3x2(J, multiplyMat2x2WithMat3x2(cov2d, transpose2x3(J)));
+        vec3 pixel3DTriangle[3];
+        for (int i = 0; i < 3; i++)
+        {
+            vec3 barycentricCoords = computeBarycentric2D(trianglePixel2D[i], gs_in[0].normalizedUv, gs_in[1].normalizedUv, gs_in[2].normalizedUv);
+            pixel3DTriangle[i] = barycentricCoords.x * gs_in[0].position + barycentricCoords.y * gs_in[1].position + barycentricCoords.z * gs_in[2].position;
+        }
+
+        J = computeUv3DJacobian(pixel3DTriangle, trianglePixel2D);
+    }
+    else
+    {
+        vec3 true_vertices3D[3] = { gs_in[0].position, gs_in[1].position, gs_in[2].position };
+        vec2 true_normalied_vertices2D[3] = { gs_in[0].normalizedUv, gs_in[1].normalizedUv, gs_in[2].normalizedUv };
+
+        J = computeUv3DJacobian(true_vertices3D, true_normalied_vertices2D);
+    }
+  
+    mat3x2 J_T;
+    transpose2x3(J, J_T);
+    mat3 cov3d = multiplyMat2x3WithMat3x2(J, multiplyMat2x2WithMat3x2(cov2d, J_T));
 
     vec3 diagonalizedCov3d_diagonal;
     vec4 quatRot = Diagonalizer(cov3d, diagonalizedCov3d_diagonal);
 
+    //Not entirely sure about the sorting part, maybe I should not sort them(?)
     vec3 sortedEigenvalues = sortDescending(diagonalizedCov3d_diagonal);
+    //float avg_scale = sqrt((sortedEigenvalues[0] + sortedEigenvalues[1]) / 2.0f);// +sqrt(sortedEigenvalues[1])) / 2.0f;
+    float s_x = sqrt(sortedEigenvalues[0]); //avg_scale;
+    float s_y = sqrt(sortedEigenvalues[0]); //avg_scale;
 
-    float s_xy = sqrt(sortedEigenvalues[0]);
-    float packed_s_xy   = log(s_xy);
+    float packed_s_x    = log(s_x);
+    float packed_s_y    = log(s_y);
+
     float packed_s_z    = log(1e-7);
 
-    Scale = vec3(packed_s_xy, packed_s_xy, packed_s_z);
+    Scale = vec3(packed_s_x, packed_s_y, packed_s_z);
 
     for (int i = 0; i < 3; i++)
     {

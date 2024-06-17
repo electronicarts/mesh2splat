@@ -79,5 +79,5 @@ void main() {
     FragColor1 = vec4(Scale.z, out_Normal.x, out_Normal.y, out_Normal.z);
     FragColor2 = vec4(Quaternion.x, Quaternion.y, Quaternion.z, Quaternion.w); 
     FragColor3 = out_Color;
-    FragColor4 = vec4(MetallicRoughness, 0.0f, 0.0f);
+    FragColor4 = vec4(MetallicRoughness, Scale.y, 0.0f);
 }

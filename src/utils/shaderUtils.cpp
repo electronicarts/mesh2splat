@@ -585,7 +585,7 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         float GaussianPosition_x    = pixels0[frameBufferStride * i + 0];
         float GaussianPosition_y    = pixels0[frameBufferStride * i + 1];
         float GaussianPosition_z    = pixels0[frameBufferStride * i + 2];
-        float Scale_xy              = pixels0[frameBufferStride * i + 3];
+        float Scale_x              = pixels0[frameBufferStride * i + 3];
         if (check && (isnan(GaussianPosition_x) || isnan(GaussianPosition_y) || isnan(GaussianPosition_z)) )
         {
             printf("! Warning !  Pos has nan values\n EXITING...");
@@ -596,9 +596,9 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         float Scale_z   = pixels1[frameBufferStride * i + 0];
         if (print)
         {
-            std::cout << Scale_xy << " " << Scale_z << std::endl;
+            std::cout << Scale_x << " " << Scale_z << std::endl;
         }
-        if (check && (isnan(Scale_xy) || isnan(Scale_z)))
+        if (check && (isnan(Scale_x) || isnan(Scale_z)))
         {
             printf("! Warning !  Scale has nan values\n EXITING...");
             continue;//exit(1);
@@ -638,6 +638,8 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
 
         float metallic  = pixels4[frameBufferStride * i + 0];
         float roughness = pixels4[frameBufferStride * i + 1];
+        float Scale_y   = pixels4[frameBufferStride * i + 2];
+
         //std::cout << metallic << " " << roughness << " " << std::endl;
 
         if (check && (isnan(metallic) || isnan(roughness)))
@@ -646,8 +648,8 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
             continue;//exit(1);
         }
 
-
-        if (GaussianPosition_x == 0.0f && GaussianPosition_y == 0.0f && GaussianPosition_z == 0.0f && Scale_xy == 0.0f)
+        //if(std::abs(Scale_xy) >= 5) std::cout << Scale_xy << std::endl;
+        if ((GaussianPosition_x == 0.0f && GaussianPosition_y == 0.0f && GaussianPosition_z == 0.0f) || (Scale_x == 0.0f))
         {
             continue;
         }
@@ -660,7 +662,7 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         gauss.opacity = Rgba_a;
         gauss.position = glm::vec3(GaussianPosition_x, GaussianPosition_y, GaussianPosition_z);
         gauss.rotation = glm::vec4(Quaternion_x, Quaternion_y, Quaternion_z, Quaternion_w); //Try swizzling these around, its always a mess....
-        gauss.scale = glm::vec3(Scale_xy, Scale_xy, Scale_z);
+        gauss.scale = glm::vec3(Scale_x, Scale_y, Scale_z);
         gauss.sh0 = getColor(glm::vec3(Rgba_r, Rgba_g, Rgba_b));
         gaussians_3D_list.push_back(gauss);
     }

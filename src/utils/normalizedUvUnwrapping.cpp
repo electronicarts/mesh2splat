@@ -156,7 +156,7 @@ void generateNormalizedUvCoordinatesPerFace(int& uvSpaceWidth, int& uvSpaceHeigh
 		meshDecl.vertexUvStride = sizeof(float) * 2;
 	}
 
-	if (!vertexUVs.empty())
+	if (!vertexNormals.empty())
 	{
 		meshDecl.vertexNormalData = vertexNormals.data();
 		meshDecl.vertexNormalStride = sizeof(float) * 3;

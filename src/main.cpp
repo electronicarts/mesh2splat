@@ -47,11 +47,11 @@ static void prepareMeshAndUploadToGPU(std::string filename, std::vector<std::pai
     generateNormalizedUvCoordinatesPerFace(uvSpaceWidth, uvSpaceHeight, meshes);
 
     //Ported to GPU
+    
+    //float Sd_x = PIXEL_SIZE_GAUSSIAN_RADIUS / ((float)2048);
+    //float Sd_y = PIXEL_SIZE_GAUSSIAN_RADIUS / ((float)2048);
+
     /*
-    float Sd_x = PIXEL_SIZE_GAUSSIAN_RADIUS / ((float)referenceRes);
-    float Sd_y = PIXEL_SIZE_GAUSSIAN_RADIUS / ((float)referenceRes);
-
-
     printf("Computing 3DGS scale per triangle face (CPU)\n");
     for (auto& mesh : meshes)
     {
@@ -61,6 +61,7 @@ static void prepareMeshAndUploadToGPU(std::string filename, std::vector<std::pai
         }
     }
     */
+
     printf("Loading mesh into OPENGL buffers\n");
     uploadMeshesToOpenGL(meshes, dataMeshAndGlMesh);
 }
@@ -134,6 +135,12 @@ int main() {
             textureTypeMap, meshData.material, RESOLUTION_TARGET
         );
 
+        /*
+        GLuint ssbo;
+        generateSSBO(ssbo);
+
+        readBackSSBO(gaussians_3D_list, ssbo, atomicCounter);
+        */
         retrieveMeshFromFrameBuffer(gaussians_3D_list, framebuffer, RESOLUTION_TARGET , RESOLUTION_TARGET , false, true);
         
         //------------------PASS 2------------------
