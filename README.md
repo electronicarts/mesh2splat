@@ -16,7 +16,7 @@ This methodology sidesteps the need for greater interoperability between classic
 The (current) core concept behind **Mesh2Splat** is rather simple:
 - Auto-unwrap 3D mesh in **normalized UV space** (should respects relative dimensions)
 - Initialize a 2D covariance matrix for our 2D Gaussians as: <br>
-$`{\Sigma_{2D}} = \begin{bmatrix} \sigma^{2}_x & 0 \\\ 0 & \sigma^{2}_y \end{bmatrix}`$ where: $`{\sigma_{x}}\sim {\sigma_{y}}\sim 0.5`$ and $`{\rho} = 0`$
+$`{\Sigma_{2D}} = \begin{bmatrix} \sigma^{2}_x & 0 \\\ 0 & \sigma^{2}_y \end{bmatrix}`$ <br><br> where: $`{\sigma_{x}}\sim {\sigma_{y}}\sim 0.5`$ <br>and $`{\rho} = 0`$
 <br>
 - Then, for each triangle primitive in the Geometry Shader stage, we do the following:
     - Gram-Schmidt orthonormalization to compute the rotation matrix (and quaternion).
