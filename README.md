@@ -2,19 +2,39 @@
 
 ## Introduction
 Welcome to **Mesh2Splat**, a novel approach to convert 3D meshes into 3DGS (3D Gaussian Splatting) models.<br>
-3DGS was born to recontruct a photorealistic 3D representation from a series of images. This is possible thanks to an optimization process which relies on a series of reference images which are compared to 3DGS rendered scene obtained via a differentiable renderer that makes it possible to optimize a set of initial scene parameters [1].<br>
-What if we want to represent a synthetic object (3D model) in 3DGS format rather than a real scene? Currently, the only way to do so is to generate a synthetic dataset (camera poses, renders and sparse point cloud) of the 3D model, and feed this into the 3DGS pipeline. This process can take up to 30min-45min.<br><br>
+3DGS was born to recontruct a photorealistic 3D representation from a series of images. This is possible thanks to an optimization process which relies on a series of reference images which are compared to 3DGS rendered scene obtained via a differentiable renderer that makes it possible to optimize a set of initial scene parameters [1].
+<div align="center"> 
+    <img src="res/seminalTechnique.png" alt="Seminal technique 3dGS" style="width: 80%;">
+</div><br>
+What if we want to represent a synthetic object (3D model) in 3DGS format rather than a real scene? Currently, the only way to do so is to generate a synthetic dataset (camera poses, renders and sparse point cloud) of the 3D model, and feed this into the 3DGS pipeline. This process can take up to 30min-45min.<br>
+
 **Mesh2Splat** instead, by directly using the geometry, materials and texture information from the 3D model, rather than going through the classical 3DGS pipeline, is able to obtain a 3DGS representation of the input 3D models in seconds.<br>
 This methodology sidesteps the need for greater interoperability between classical 3D mesh representation and the novel 3DGS format.<br>
 
 
 ## Concept
-The (current) core concept behind Mesh2Splat is quite simple:
-- Initially "rasterize" a series of 3D Gaussians in 2D UV space, with isotropic scaling in 2D space.
-- Use the UV mapping to place the 3D gaussians back in 3D space
-- As previous work suggests [1, 2], flatten the Gaussians along the normal making them anisotropic helps to better approximate the surface of the mesh.
+The (current) core concept behind **Mesh2Splat** is rather simple:
+- Auto-unwrap 3D mesh in **normalized UV space** (should respects relative dimensions)
+- Initialize a 2D covariance matrix for our 2D Gaussians as: <br>
+$\\
+{\Sigma_{2D}} = \begin{bmatrix} \sigma^{2}_x & 0 \\\ 0 & \sigma^{2}_y \end{bmatrix}
+\\$
+where:
+$\\
+{\sigma_{x}}\sim {\sigma_{y}}\sim 0.5\\$
+and $\\{\rho} = 0\\$
+<br>
+- Then, for each triangle primitive in the Geometry Shader stage, we do the following:
+    - Gram-Schmidt orthonormalization to compute the rotation matrix (and quaternion).
+    - Compute Jacobian matrix from *normalized UV space* to *3D space* for each triangle.
+    - Now, in order to compute the 3D Covariance Matrix we do: $\\{\Sigma_{3D}} = J * \Sigma_{2D} * J^{T}  \\$
+    - At this point, what we are interested from our 3D Covariance Matrix is not the rotation matrix made up of the eigenvectors, but just the eigenvalues. In order to compute the eigenvalues, we apply a matrix diagonalization method.
+    - The packed scale values will be: $\\{packedScale_x} = {packedScale_y} = log(max(...eigenvalues))\\$ while instead $\\{packedScale_z} = log(1e-7)\\$
+    <br>
+
+- Now that we have the **Scale** and **Rotation** for a *3D Gaussian* part of a triangle, what we do is to emit one 3D Gaussian for each vertex of this triangle, setting their respective 3D position to the 3D position of the vertex while setting ``` gl_Position             = vec4(gs_in[i].normalizedUv * 2.0 - 1.0, 0.0, 1.0); ```. This means that the rasterizer will interpolate these values and generate one 3D Gaussian per fragment.
+- In the Fragment/Pixel Shader we can do all our texture fetches and set information regarding Metallic, Roughness, Normals, etc...
 - The `.ply` file format was modified in order to account for roughness and metallic properties
-- Retrieve the material information from the model and embed this information into the 3DGS .ply file.
 
 ## Features
 
@@ -23,6 +43,8 @@ The (current) core concept behind Mesh2Splat is quite simple:
     - Diffuse
     - MetallicRoughness
     - Normal
+    - Ambient Occlusion (wip)
+    - Emissive (wip)
 - **Enhanced Performance**: Significantly reduce the time needed to transform a 3D mesh into a 3DGS.
 - **Relightability**: Compared to 3DGS scenes which are already lit, the 3DGS models obtained from this method have consistent normal information and are totally unlit.
 
@@ -31,7 +53,6 @@ Example of result 3DGS .ply file obtained by converting a 3D mesh. The results a
 3D mesh viewed in Blender. <br>
 The resulting .ply (on the right) is rendered in [Halcyon](https://gitlab.ea.com/seed/ray-machine/halcyon)
 
-![PBR result](res/results.mov)<br>
 Here You can see on the LEFT the true normals extracted from the rotation matrix of the 3D Gaussians, in the center the normal computed by interpolating the tangent vector per vertex and retrieving the normal in tangent space from the normal map. On the right the final 3DGS model lit in real-time with PBR (diffuse + GGX).
 
 <div style="display:flex;"> 
@@ -40,6 +61,13 @@ Here You can see on the LEFT the true normals extracted from the rotation matrix
     <img src="res/scifiMaskPreview.png" alt="Image Description 2" style="width: 200;"> 
 </div>
 
+<br>
+Following are some other 3D meshes converted into 3DGS format.
+<div style="display:flex;"> 
+    <img src="res/mayan.png" alt="Image Description 1" style="width: 200;">
+    <img src="res/robot.png" alt="Image Description 2" style="width: 200;"> 
+    <img src="res/katana.png" alt="Image Description 2" style="width: 200;"> 
+</div>
 
 ## Usage
 Currently, in order to convert a 3D mesh into a 3DGS, you need to specify all the different parameters in ```src/utils/params.hpp```:
