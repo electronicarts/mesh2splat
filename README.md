@@ -103,7 +103,6 @@ robot/
 
 
 ## Roadmap
-- **GPU rasterization / GPU tesselation**: DONE 
 - **Explore better sampling strategies**: I want to improve an explore better sampling strategies in order to maximize gaussian coverage while also limiting wasted details. 
 - **View-Dependent Accuracy**: Mesh2Splat is not capable of capturing view-dependant lighting effects. The main goal is to enable relighting. But embedding view-dependant effects in an efficient way without requiring the optimizer wants to be explored.
 - **Volumetric Data**: As previously mentioned, this kind of data is not modelled in any way by Mesh2Splat.
