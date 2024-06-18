@@ -94,6 +94,9 @@ robot/
 ```
 **Naming of the textures is not important**, but make sure they are in the same folder as the `.gltf/.glb` 3D model you are converting.
 
+## Limitations
+- Volumetric Data such as foliage, grass, hair, clouds, etc. has currently no way of being efficiently and correctly converted to 3DGS.<br>
+*Mesh2Splat* is works great to reconstruct triangle-based surface meshes.
 
 ## Known issues
 - **jpg format**: if using Blender and UV mapping with a ```.jpg``` texture, it will save it's `mimetype` as ```.jpeg```, invalidating some preliminary code I wrote. Just save it as ```.jpeg```, as it is equivalent to ```.jpg```
@@ -103,6 +106,7 @@ robot/
 - **GPU rasterization / GPU tesselation**: DONE 
 - **Explore better sampling strategies**: I want to improve an explore better sampling strategies in order to maximize gaussian coverage while also limiting wasted details. 
 - **View-Dependent Accuracy**: Mesh2Splat is not capable of capturing view-dependant lighting effects. The main goal is to enable relighting. But embedding view-dependant effects in an efficient way without requiring the optimizer wants to be explored.
+- **Volumetric Data**: As previously mentioned, this kind of data is not modelled in any way by Mesh2Splat.
 - **LODs**: Currently, by adjusting the target resolution, lower quality 3DGSs will be produced. These are generated due to lower interpolation in the rasterizer, but an idea is to compute lower LODs directly from the higher quality 3DGSs via Gaussian Mixture Models.
 
 ## References
