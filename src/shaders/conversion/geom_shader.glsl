@@ -6,7 +6,7 @@ layout(triangle_strip, max_vertices = 3) out;
 uniform vec2 metallicRoughnessFactors;
 uniform float sigma_x;
 uniform float sigma_y;
-
+uniform int target_resolution;
 
 // Match this struct with the VS_OUT struct from the vertex shader
 in VS_OUT{
@@ -27,7 +27,6 @@ flat out vec4 Quaternion;
 
 
 void transpose2x3(in mat2x3 m, out mat3x2 outputMat) {
-    //mat3x2 transposed;
     outputMat[0][0] = m[0][0];
     outputMat[1][0] = m[0][1];
     outputMat[2][0] = m[0][2];
@@ -85,6 +84,8 @@ mat3 mat3_cast(vec4 q) {
    return rotMat;
 }
 
+//Taken from Martin, modified indexing to be column-first
+
 vec4 Diagonalizer(mat3 A, out vec3 outDiagonal) {
     int maxsteps = 30;
     vec4 q = vec4(0.0, 0.0, 0.0, 1.0);
@@ -122,9 +123,7 @@ vec4 Diagonalizer(mat3 A, out vec3 outDiagonal) {
 }
 
 
-//-------------------------------------
-
-//Copied from GLM
+//Copied and translated to GLSL from GLM
 vec4 quat_cast(mat3 m) {
     float fourXSquaredMinus1 = m[0][0] - m[1][1] - m[2][2];
     float fourYSquaredMinus1 = m[1][1] - m[0][0] - m[2][2];
@@ -366,15 +365,23 @@ vec4 gramSchmidtOrthonormalization()
     return vec4(q.w, q.x, q.y, q.z);
 }
 
+float polynomial(float x) {
+    return 0.524948 +
+        0.0050501 * x -
+        0.0000406078 * pow(x, 2.0) +
+        1.61708e-7 * pow(x, 3.0) -
+        2.59824e-10 * pow(x, 4.0) +
+        1.33165e-13 * pow(x, 5.0);
+}
+
 void main() {
     vec4 quaternion = gramSchmidtOrthonormalization();//vec4(q.w, q.x, q.y, q.z);
 
-    //SCALE
-    mat2 cov2d = construct2DCovMatrix(sigma_x, sigma_y);
     //This matrix can be constructed on CPU 
-    mat2x3 J;
+    mat2 cov2d = construct2DCovMatrix(sigma_x, sigma_y);
 
-    if (false)
+    mat2x3 J;
+    if (false) //Trying out some different approaches for mapping
     {
         vec2 trianglePixel2D[3];
         trianglePixel2D[0] = vec2(0.0f, 0.0f);
@@ -405,15 +412,20 @@ void main() {
     vec3 diagonalizedCov3d_diagonal;
     vec4 quatRot = Diagonalizer(cov3d, diagonalizedCov3d_diagonal);
 
-    //Not entirely sure about the sorting part, maybe I should not sort them(?)
+    //Not entirely sure about the sorting part, The issue is that I am not sure to who assign X and to who Y, for now it works fine like this
     vec3 sortedEigenvalues = sortDescending(diagonalizedCov3d_diagonal);
     //float avg_scale = sqrt((sortedEigenvalues[0] + sortedEigenvalues[1]) / 2.0f);// +sqrt(sortedEigenvalues[1])) / 2.0f;
-    float s_x = sqrt(sortedEigenvalues[0]); //avg_scale;
-    float s_y = sqrt(sortedEigenvalues[0]); //avg_scale;
+    float s_x = sqrt(sortedEigenvalues[0]);
+    float s_y = sqrt(sortedEigenvalues[0]);
 
-    float packed_s_x    = log(s_x);
-    float packed_s_y    = log(s_y);
+    float descale_factor = 1.0f;
+    if (target_resolution < 1024)
+    {
+        descale_factor = polynomial(target_resolution);
+    }
 
+    float packed_s_x    = log(s_x * descale_factor);
+    float packed_s_y    = log(s_y * descale_factor);
     float packed_s_z    = log(1e-7);
 
     Scale = vec3(packed_s_x, packed_s_y, packed_s_z);

@@ -12,10 +12,11 @@
 #include "gaussianComputations.hpp"
 #include "utils/shaderUtils.hpp"
 #include "utils/normalizedUvUnwrapping.hpp"
+#include "utils/argparser.hpp"
 
-//ALL of this code is really bad.
+//Most of this code is really bad.
 //Want to rewrite it all and make it OOP and cleaner. But dont know if I will have time during my internship here.
-//Also, this will be abandoned and (maybe) ported to Halcyon, so dont even know if it is worth the time
+//Also, this will be abandoned and (maybe) ported to Halcyon, so dont even know if it is worth the time to polish it too much
 
 #if GPU_IMPL
 
@@ -37,37 +38,21 @@ glm::mat4 createModelMatrix(const glm::vec3& center, const glm::vec3& normal, co
     return translationMatrix * rotationMatrix * scaleMatrix;
 }
 
-static void prepareMeshAndUploadToGPU(std::string filename, std::vector<std::pair<Mesh, GLMesh>>& dataMeshAndGlMesh, int& uvSpaceWidth, int& uvSpaceHeight)
+static void prepareMeshAndUploadToGPU(std::string filename, std::string base_folder, std::vector<std::pair<Mesh, GLMesh>>& dataMeshAndGlMesh, int& uvSpaceWidth, int& uvSpaceHeight)
 {
-    std::vector<Mesh> meshes = parseGltfFileToMesh(filename);
+    std::vector<Mesh> meshes = parseGltfFileToMesh(filename, base_folder);
 
     printf("Parsed gltf mesh file\n");
 
     printf("Generating normalized UV coordinates (XATLAS)\n");
     generateNormalizedUvCoordinatesPerFace(uvSpaceWidth, uvSpaceHeight, meshes);
 
-    //Ported to GPU
-    
-    //float Sd_x = PIXEL_SIZE_GAUSSIAN_RADIUS / ((float)2048);
-    //float Sd_y = PIXEL_SIZE_GAUSSIAN_RADIUS / ((float)2048);
-
-    /*
-    printf("Computing 3DGS scale per triangle face (CPU)\n");
-    for (auto& mesh : meshes)
-    {
-        for (auto& face : mesh.faces)
-        {
-            set3DGaussianScale(Sd_x, Sd_y, face.pos, face.normalizedUvs, face.scale); //TODO: SHOULD/MUST compute this on the fly in the Shader, but will do this once everything is working
-        }
-    }
-    */
-
     printf("Loading mesh into OPENGL buffers\n");
     uploadMeshesToOpenGL(meshes, dataMeshAndGlMesh);
 }
 
 
-int main() {
+int main(int argc, char** argv) {
     // Initialize GLFW and create a window...
     if (!glfwInit())
         return -1;
@@ -88,22 +73,57 @@ int main() {
         return -1;
     }
 
-    glViewport(0, 0, RESOLUTION_TARGET, RESOLUTION_TARGET);
+    //BASIC ARG PARSING
+    InputParser input(argc, argv);
+
+    int RESOLUTION                      = RESOLUTION_TARGET;                    //DEFAULT VALUES
+    std::string MESH_FILE_LOCATION      = INPUT_MESH_FILENAME;                  //...
+    std::string OUTPUT_FILE_LOCATION    = GAUSSIAN_OUTPUT_MODEL_DEST_FOLDER_1;  //...
+    std::string BASE_FOLDER             = BASE_DATASET_FOLDER;                  //...
+    float GAUSSIAN_STD                  = PIXEL_SIZE_GAUSSIAN_RADIUS;           //...
+    
+    if (input.cmdOptionExists("-r"))
+    {
+        RESOLUTION = stoi(input.getCmdOption("-r"));
+    }
+    if (input.cmdOptionExists("-f"))
+    {
+        MESH_FILE_LOCATION = input.getCmdOption("-f");
+        size_t lastBackslashPos = MESH_FILE_LOCATION.find_last_of('\\');
+        if (lastBackslashPos != std::string::npos) {
+            BASE_FOLDER = MESH_FILE_LOCATION.substr(0, lastBackslashPos + 1);
+        } 
+    }
+    if(input.cmdOptionExists("-o"))
+    {
+        OUTPUT_FILE_LOCATION = input.getCmdOption("-o");
+    }
+    if (input.cmdOptionExists("-p"))
+    {
+        GAUSSIAN_STD = stoi(input.getCmdOption("-p"));
+    }
+    
+    glViewport(0, 0, RESOLUTION, RESOLUTION);
 
     // Load shaders and meshes
     printf("Creating shader program\n");
     GLuint converterShaderProgram           = createConverterShaderProgram();
+
+#if VOLUMETRIC
     GLuint volumetricShaderProgram          = createVolumetricSurfaceShaderProgram();
+#endif
 
     printf("Parsing gltf mesh file\n");
-    
     int normalizedUvSpaceWidth = 0, normalizedUvSpaceHeight = 0;
     std::vector<std::pair<Mesh, GLMesh>> dataMeshAndGlMesh;
-    prepareMeshAndUploadToGPU(INPUT_MESH_FILENAME, dataMeshAndGlMesh, normalizedUvSpaceWidth, normalizedUvSpaceHeight);
+    prepareMeshAndUploadToGPU(MESH_FILE_LOCATION, BASE_FOLDER, dataMeshAndGlMesh, normalizedUvSpaceWidth, normalizedUvSpaceHeight);
 
+#if VOLUMETRIC
     int normalizedUvSpaceWidthMicro = 0, normalizedUvSpaceHeightMicro = 0;
     std::vector<std::pair<Mesh, GLMesh>> dataMicromeshAndGlMesh;
-    prepareMeshAndUploadToGPU(INPUT_MICROMESH_FILENAME, dataMicromeshAndGlMesh, normalizedUvSpaceWidthMicro, normalizedUvSpaceHeightMicro);
+    //This is wrong, need to change base folder
+    prepareMeshAndUploadToGPU(INPUT_MICROMESH_FILENAME, BASE_FOLDER, dataMicromeshAndGlMesh, normalizedUvSpaceWidthMicro, normalizedUvSpaceHeightMicro);
+#endif
 
     std::vector<Gaussian3D> gaussians_3D_list;
 
@@ -124,7 +144,7 @@ int main() {
 
         printf("Setting up framebuffer and textures\n");
         GLuint framebuffer;
-        setupFrameBuffer(framebuffer, RESOLUTION_TARGET, RESOLUTION_TARGET);
+        setupFrameBuffer(framebuffer, RESOLUTION, RESOLUTION);
 
         //------------------PASS 1------------------
         
@@ -132,7 +152,7 @@ int main() {
             converterShaderProgram, meshGl.vao,
             framebuffer, meshGl.vertexCount,
             normalizedUvSpaceWidth, normalizedUvSpaceHeight, 
-            textureTypeMap, meshData.material, RESOLUTION_TARGET
+            textureTypeMap, meshData.material, RESOLUTION, GAUSSIAN_STD
         );
 
         /*
@@ -141,18 +161,13 @@ int main() {
 
         readBackSSBO(gaussians_3D_list, ssbo, atomicCounter);
         */
-        retrieveMeshFromFrameBuffer(gaussians_3D_list, framebuffer, RESOLUTION_TARGET , RESOLUTION_TARGET , false, true);
+        retrieveMeshFromFrameBuffer(gaussians_3D_list, framebuffer, RESOLUTION, RESOLUTION, false, true);
         
-        //------------------PASS 2------------------
-        
-        //Now upload mesh for use in Shader Storage Buffer Object for compute shader
-        // Here I need another pass that can compute the points on teh surface of the mesh based on some distribution (maybe texture)
-        //TODO: At this point render as point primitive the micromesh and pass one after the others a model matrix to position each micromesh
-        //correctly on the surface
 
-        //Do this to decrease the interpolation level in the rasterizer, creat util function for this.
 #if VOLUMETRIC
-        //TODO: now its fucked up and does not , fix it?
+        //------------------PASS 2------------------
+        //Do this to decrease the interpolation level in the rasterizer, creat util function for this.
+        //TODO: now its fucked up and does not work, fix it?
         glViewport(0, 0, 64, 64);
 
         int size = meshData.faces.size();
@@ -199,9 +214,9 @@ int main() {
     }
 
     //Write to file
-    std::cout << "Writing ply to                ->  " << GAUSSIAN_OUTPUT_MODEL_DEST_FOLDER_1 << std::endl;
-    writeBinaryPLY(GAUSSIAN_OUTPUT_MODEL_DEST_FOLDER_1, gaussians_3D_list);
-    std::cout << "Data successfully written to  ->  " << GAUSSIAN_OUTPUT_MODEL_DEST_FOLDER_1 << std::endl;
+    std::cout << "Writing ply to                ->  " << OUTPUT_FILE_LOCATION << std::endl;
+    writeBinaryPLY(OUTPUT_FILE_LOCATION, gaussians_3D_list);
+    std::cout << "Data successfully written to  ->  " << OUTPUT_FILE_LOCATION << std::endl;
 
     // Cleanup
     glfwTerminate();

@@ -26,9 +26,6 @@ void main() {
     float edge1 = length(tcs_in[0].position - tcs_in[1].position);
     float edge2 = length(tcs_in[1].position - tcs_in[2].position);
     float edge3 = length(tcs_in[2].position - tcs_in[0].position);
-    //loat perimeter = edge1 + edge2 + edge3; //No need
-
-    //float sizeFactor = clamp(perimeter / medianPerimeter, 0.5, 2.0);
 
     int tessFactor1 = int(max(1.0, edge1 * tesselationFactorMultiplier));
     int tessFactor2 = int(max(1.0, edge2 * tesselationFactorMultiplier));

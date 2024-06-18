@@ -301,7 +301,7 @@ const T* getBufferData(const tinygltf::Model& model, int accessorIndex) {
     return dataPtr;
 }
 
-static TextureInfo parseTextureInfo(const tinygltf::Model& model, const tinygltf::Parameter& textureParameter) {
+static TextureInfo parseTextureInfo(const tinygltf::Model& model, const tinygltf::Parameter& textureParameter, std::string base_folder) {
     TextureInfo info;
 
     // Checking and extracting the texture index from the parameter
@@ -313,10 +313,8 @@ static TextureInfo parseTextureInfo(const tinygltf::Model& model, const tinygltf
             if (texture.source >= 0 && texture.source < model.images.size()) {
                 const tinygltf::Image& image = model.images[texture.source];
 
-                // Base path handling
-                std::string basePath = BASE_DATASET_FOLDER; // Update this path as necessary.
                 std::string fileExtension = image.mimeType.substr(image.mimeType.find_last_of('/') + 1);
-                info.path = basePath + image.name + "." + fileExtension;
+                info.path = base_folder + image.name + "." + fileExtension;
 
                 // Dimensions
                 info.width = image.width;
@@ -338,7 +336,7 @@ static TextureInfo parseTextureInfo(const tinygltf::Model& model, const tinygltf
 }
 
 
-static MaterialGltf parseGltfMaterial(const tinygltf::Model& model, int materialIndex) {
+static MaterialGltf parseGltfMaterial(const tinygltf::Model& model, int materialIndex, std::string base_folder) {
     if (materialIndex < 0 || materialIndex >= model.materials.size()) {
         return MaterialGltf();
     }
@@ -364,7 +362,7 @@ static MaterialGltf parseGltfMaterial(const tinygltf::Model& model, int material
     // Base Color Texture
     auto baseColorTexIt = material.values.find("baseColorTexture");
     if (baseColorTexIt != material.values.end()) {
-        materialGltf.baseColorTexture = parseTextureInfo(model, baseColorTexIt->second);
+        materialGltf.baseColorTexture = parseTextureInfo(model, baseColorTexIt->second, base_folder);
     }
     else {
         materialGltf.baseColorTexture.path = EMPTY_TEXTURE;
@@ -373,7 +371,7 @@ static MaterialGltf parseGltfMaterial(const tinygltf::Model& model, int material
     // Normal Texture
     auto normalTexIt = material.additionalValues.find("normalTexture");
     if (normalTexIt != material.additionalValues.end()) {
-        materialGltf.normalTexture = parseTextureInfo(model, normalTexIt->second);
+        materialGltf.normalTexture = parseTextureInfo(model, normalTexIt->second, base_folder);
 
         auto scaleIt = normalTexIt->second.json_double_value.find("scale");
         if (scaleIt != normalTexIt->second.json_double_value.end()) {
@@ -390,13 +388,13 @@ static MaterialGltf parseGltfMaterial(const tinygltf::Model& model, int material
     // Metallic-Roughness Texture
     auto metalRoughTexIt = material.values.find("metallicRoughnessTexture");
     if (metalRoughTexIt != material.values.end()) {
-        materialGltf.metallicRoughnessTexture = parseTextureInfo(model, metalRoughTexIt->second);
+        materialGltf.metallicRoughnessTexture = parseTextureInfo(model, metalRoughTexIt->second, base_folder);
     }
 
     // Occlusion Texture
     auto occlusionTexIt = material.additionalValues.find("occlusionTexture");
     if (occlusionTexIt != material.additionalValues.end()) {
-        materialGltf.occlusionTexture = parseTextureInfo(model, occlusionTexIt->second);
+        materialGltf.occlusionTexture = parseTextureInfo(model, occlusionTexIt->second, base_folder);
 
         auto scaleIt = occlusionTexIt->second.json_double_value.find("strength");
         if (scaleIt != occlusionTexIt->second.json_double_value.end()) {
@@ -413,7 +411,7 @@ static MaterialGltf parseGltfMaterial(const tinygltf::Model& model, int material
     // Emissive Texture
     auto emissiveTexIt = material.additionalValues.find("emissiveTexture");
     if (emissiveTexIt != material.additionalValues.end()) {
-        materialGltf.emissiveTexture = parseTextureInfo(model, emissiveTexIt->second);
+        materialGltf.emissiveTexture = parseTextureInfo(model, emissiveTexIt->second, base_folder);
     }
     else {
         materialGltf.emissiveTexture.path = EMPTY_TEXTURE;
@@ -437,7 +435,7 @@ static MaterialGltf parseGltfMaterial(const tinygltf::Model& model, int material
     return materialGltf;
 }
 
-std::vector<Mesh> parseGltfFileToMesh(const std::string& filename) {
+std::vector<Mesh> parseGltfFileToMesh(const std::string& filename, std::string base_folder) {
     tinygltf::Model model;
     tinygltf::TinyGLTF loader;
     std::string err;
@@ -494,7 +492,7 @@ std::vector<Mesh> parseGltfFileToMesh(const std::string& filename) {
                 hasTangents = true;
             }
             
-            myMesh.material = parseGltfMaterial(model, primitive.material);
+            myMesh.material = parseGltfMaterial(model, primitive.material, base_folder);
 
             //TODO: indices is wrong to be used like this because it is not a global index amongst all primitives
             myMesh.faces.resize(indices.size() / 3);

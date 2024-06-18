@@ -40,15 +40,15 @@ std::string readShaderFile(const char* filePath) {
 GLuint createConverterShaderProgram() {
 
     std::string vertexShaderSource          = readShaderFile(CONVERTER_VERTEX_SHADER_LOCATION);
-    //std::string tessControlShaderSource     = readShaderFile(CONVERTER_TESS_CONTROL_SHADER_LOCATION);
-    //std::string tessEvaluationShaderSource  = readShaderFile(CONVERTER_TESS_EVAL_SHADER_LOCATION);
+    std::string tessControlShaderSource     = readShaderFile(CONVERTER_TESS_CONTROL_SHADER_LOCATION);
+    std::string tessEvaluationShaderSource  = readShaderFile(CONVERTER_TESS_EVAL_SHADER_LOCATION);
     std::string geomShaderSource            = readShaderFile(CONVERTER_GEOM_SHADER_LOCATION);
     std::string fragmentShaderSource        = readShaderFile(CONVERTER_FRAG_SHADER_LOCATION);
 
 
     GLuint vertexShader         = compileShader(vertexShaderSource.c_str(),         GL_VERTEX_SHADER);
-    //GLuint tessControlShader    = compileShader(tessControlShaderSource.c_str(),    GL_TESS_CONTROL_SHADER);
-    //GLuint tessEvaluationShader = compileShader(tessEvaluationShaderSource.c_str(), GL_TESS_EVALUATION_SHADER);
+    GLuint tessControlShader    = compileShader(tessControlShaderSource.c_str(),    GL_TESS_CONTROL_SHADER);
+    GLuint tessEvaluationShader = compileShader(tessEvaluationShaderSource.c_str(), GL_TESS_EVALUATION_SHADER);
     GLuint geomShader           = compileShader(geomShaderSource.c_str(),           GL_GEOMETRY_SHADER);
     GLuint fragmentShader       = compileShader(fragmentShaderSource.c_str(),       GL_FRAGMENT_SHADER);
 
@@ -431,7 +431,7 @@ void performGpuConversion(
     GLuint shaderProgram, GLuint vao,
     GLuint framebuffer, size_t vertexCount,
     int normalizedUVSpaceWidth, int normalizedUVSpaceHeight,
-    const std::map<std::string, TextureDataGl>& textureTypeMap, MaterialGltf material, unsigned int referenceResolution
+    const std::map<std::string, TextureDataGl>& textureTypeMap, MaterialGltf material, unsigned int referenceResolution, float GAUSSIAN_STD
 ) {
     // Use shader program and perform tessellation
     glUseProgram(shaderProgram);
@@ -440,8 +440,10 @@ void performGpuConversion(
     
     setUniform1i(shaderProgram, "tesselationFactorMultiplier", TESSELATION_LEVEL_FACTOR_MULTIPLIER);
     setUniform3f(shaderProgram, "meshMaterialColor", material.baseColorFactor);
-    setUniform1f(shaderProgram, "sigma_x", PIXEL_SIZE_GAUSSIAN_RADIUS / (float(referenceResolution))); //I leave both x and y in case want to be anisotropic
-    setUniform1f(shaderProgram, "sigma_y", PIXEL_SIZE_GAUSSIAN_RADIUS / (float(referenceResolution)));
+    setUniform1f(shaderProgram, "sigma_x", GAUSSIAN_STD / (float(referenceResolution))); //I leave both x and y in case want to be anisotropic
+    setUniform1f(shaderProgram, "sigma_y", GAUSSIAN_STD / (float(referenceResolution)));
+    setUniform1i(shaderProgram, "target_resolution", referenceResolution);
+
 
     //Textures
     if (textureTypeMap.find(BASE_COLOR_TEXTURE) != textureTypeMap.end())
