@@ -76,10 +76,12 @@ Currently, in order to convert a 3D mesh into a 3DGS, you can either specify all
 - **-f**: file location of the 3D mesh in ```.gltf/.glb```  format to convert.
 - **-o**: output destination where to save ```.ply```.
 - **-p**: to modify the default ```1.0f``` standard deviation value for the 2d Gaussians.
-Otherwise, you can directly modify the value in the ```.../params.hpp``` file.
+Otherwise, you can directly modify the value in the ```.../params.hpp``` file.<br>
+
+Coming to the ```src/utils/params.hpp``` in case you dont want to run the executable:
 - ```OBJ_NAME```: the name of the object (will reflect both on the folder name and the .glb and texture name). Currently only `.gltf/.glb` file format is supported. The name of the folder and model has to be the same (I know, I need to change this).
 <br><br>**NOTE**:<br>
-If you want Mesh2Spat to work, if, for example you run the following command from the *terminal*:<br>
+In order for **Mesh2Spat** to work, and convert, for example, a `robot.glb` mesh file, saved in the `.../robot/` folder, you could run the following command from the *terminal*:<br>
 ```Converter.exe -f <yourPath>\robot\robot.glb -r 2048 -o <yourPath>\robot\``` <br>
 Then, for the moment, the code expects the following folder structure (do not nest your textures in subfolders):<br>
 ```
@@ -90,7 +92,7 @@ robot/
 │  ├─ texture_normal_x.<png/jpeg/etc.>
 │
 ```
-Naming of the textures is not important, but make sure they are in the same folder as the `.gltf/.glb` 3D model.
+**Naming of the textures is not important**, but make sure they are in the same folder as the `.gltf/.glb` 3D model you are converting.
 
 
 ## Known issues
