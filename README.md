@@ -27,7 +27,7 @@ $`{\Sigma_{2D}} = \begin{bmatrix} \sigma^{2}_x & 0 \\\ 0 & \sigma^{2}_y \end{bma
         - packedScale_z = log(1e-7)
     
 
-- Now that we have the **Scale** and **Rotation** for a *3D Gaussian* part of a triangle, what we do is to emit one 3D Gaussian for each vertex of this triangle, setting their respective 3D position to the 3D position of the vertex while setting ``` gl_Position             = vec4(gs_in[i].normalizedUv * 2.0 - 1.0, 0.0, 1.0); ```. This means that the rasterizer will interpolate these values and generate one 3D Gaussian per fragment.
+- Now that we have the **Scale** and **Rotation** for a *3D Gaussian* part of a triangle, what we do is to emit one 3D Gaussian for each vertex of this triangle, setting their respective 3D position to the 3D position of the vertex while setting ```gl_Position = vec4(gs_in[i].normalizedUv * 2.0 - 1.0, 0.0, 1.0);```. This means that the rasterizer will interpolate these values and generate one 3D Gaussian per fragment.
 - In the Fragment/Pixel Shader we can do all our texture fetches and set information regarding Metallic, Roughness, Normals, etc...
 - The `.ply` file format was modified in order to account for roughness and metallic properties
 
