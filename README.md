@@ -1,4 +1,4 @@
-# Mesh2Splat
+J# Mesh2Splat
 
 ## Introduction
 Welcome to **Mesh2Splat**, a novel approach to convert 3D meshes into 3DGS (3D Gaussian Splatting) models.<br>
@@ -13,6 +13,10 @@ This methodology sidesteps the need for greater interoperability between classic
 
 
 ## Concept
+The pipeline of Mesh2Splat looks as follows:
+<div align="center"> 
+    <img src="res/Pipeline.jpg.png" alt="Current mesh2splat pipeline" style="width: 80%;">
+</div><br>
 The (current) core concept behind **Mesh2Splat** is rather simple:
 - Auto-unwrap 3D mesh in **normalized UV space** (should respects relative dimensions)
 - Initialize a 2D covariance matrix for our 2D Gaussians as: <br>
