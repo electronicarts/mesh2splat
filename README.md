@@ -56,9 +56,9 @@ The resulting .ply (on the right) is rendered in [Halcyon](https://gitlab.ea.com
 Here You can see the FIRST IMAGE represents the true normals extracted from the rotation matrix of the 3D Gaussians, in the center are shown the normal computed by interpolating the tangent vector per vertex and retrieving the normal in tangent space from the normal map. Last image is the final 3DGS model lit in real-time with PBR (diffuse + GGX).
 <table style="border-collapse: collapse; border: none;">
   <tr style="border: none;">
-    <td style="border: none;"><img src="res/normalFromRotMatrix.png" alt="axis normal" width="200"/></td>
-    <td style="border: none;"><img src="res/embeddedNormal.png" alt="normal normals" width="200"/></td>
-    <td style="border: none;"><img src="res/scifiMaskPreview.png" alt="final output " width="200"/></td>
+    <td style="border: none;"><img src="res/normalFromRotMatrix.png" alt="axis normal" width="350"/></td>
+    <td style="border: none;"><img src="res/embeddedNormal.png" alt="normal normals" width="350"/></td>
+    <td style="border: none;"><img src="res/scifiMaskPreview.png" alt="final output " width="350"/></td>
   </tr>
 </table>
 <div style="display:flex;"> 
