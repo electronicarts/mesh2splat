@@ -81,6 +81,7 @@ int main(int argc, char** argv) {
     std::string OUTPUT_FILE_LOCATION    = GAUSSIAN_OUTPUT_MODEL_DEST_FOLDER_1;  //...
     std::string BASE_FOLDER             = BASE_DATASET_FOLDER;                  //...
     float GAUSSIAN_STD                  = PIXEL_SIZE_GAUSSIAN_RADIUS;           //...
+    int FORMAT                          = PLY_FORMAT;                           // 1 standard PLY, 2 modified ply, 3 litsplat compatible
     
     if (input.cmdOptionExists("-r"))
     {
@@ -101,6 +102,10 @@ int main(int argc, char** argv) {
     if (input.cmdOptionExists("-p"))
     {
         GAUSSIAN_STD = stoi(input.getCmdOption("-p"));
+    }
+    if (input.cmdOptionExists("-v"))
+    {
+        FORMAT = stoi(input.getCmdOption("-v"));
     }
     
     glViewport(0, 0, RESOLUTION, RESOLUTION);
@@ -216,11 +221,26 @@ int main(int argc, char** argv) {
 
     //Write to file
     std::cout << "Writing ply to                ->  " << OUTPUT_FILE_LOCATION << std::endl;
-#if STANDARD_PLY_FORMAT
-    writeBinaryPLY_standard_format(OUTPUT_FILE_LOCATION, gaussians_3D_list);
-#else
-    writeBinaryPLY(OUTPUT_FILE_LOCATION, gaussians_3D_list);
-#endif
+
+    switch (FORMAT)
+    {
+    case 1:
+        writeBinaryPLY_standard_format(OUTPUT_FILE_LOCATION, gaussians_3D_list);
+        break;
+
+    case 2:
+        writeBinaryPLY(OUTPUT_FILE_LOCATION, gaussians_3D_list);
+        break;
+
+    case 3:
+        writeBinaryPLY_lit(OUTPUT_FILE_LOCATION, gaussians_3D_list);
+        break;
+
+    default:
+        writeBinaryPLY_standard_format(OUTPUT_FILE_LOCATION, gaussians_3D_list);
+        break;
+
+    }
     std::cout << "Data successfully written to  ->  " << OUTPUT_FILE_LOCATION << std::endl;
 
     // Cleanup
