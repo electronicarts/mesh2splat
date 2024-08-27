@@ -20,7 +20,10 @@ uniform int hasMetallicRoughnessMap;
 
 
 // Inputs from the geometry shader
-in vec3 GaussianPosition;
+in vec3 V1;
+in vec3 V2;
+in vec3 V3;
+in vec3 Barycentric;
 in vec3 Scale;
 in vec2 UV;
 in vec4 Tangent;
@@ -73,9 +76,9 @@ void main() {
         MetallicRoughness = vec2(0.2f, 0.5f); //Set these defaults from uniforms
     }
 
-
+    vec3 pos = V1 * Barycentric.x + V2 * Barycentric.y + V3 * Barycentric.z;
     // Pack Gaussian parameters into the output fragments
-    FragColor0 = vec4(GaussianPosition.x, GaussianPosition.y, GaussianPosition.z, Scale.x);
+    FragColor0 = vec4(pos.x, pos.y, pos.z, Scale.x);
     FragColor1 = vec4(Scale.z, out_Normal.x, out_Normal.y, out_Normal.z);
     FragColor2 = vec4(Quaternion.x, Quaternion.y, Quaternion.z, Quaternion.w); 
     FragColor3 = out_Color;

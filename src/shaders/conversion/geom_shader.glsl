@@ -18,7 +18,10 @@ in VS_OUT{
     vec3 scale;
 } gs_in[];
 
-out vec3 GaussianPosition;
+flat out vec3 V1;
+flat out vec3 V2;
+flat out vec3 V3;
+out vec3 Barycentric;
 flat out vec3 Scale;
 out vec2 UV;
 out vec4 Tangent;
@@ -340,7 +343,7 @@ vec3 sortDescending(vec3 v) {
 
 vec4 gramSchmidtOrthonormalization()
 {
-    vec3 r1 = normalize(cross(gs_in[1].position - gs_in[0].position, gs_in[2].position - gs_in[0].position));
+    vec3 r1 = (gs_in[0].normal + gs_in[1].normal + gs_in[2].normal) / 3.0; //normalize(cross(gs_in[1].position - gs_in[0].position, gs_in[2].position - gs_in[0].position));
     vec3 m = (gs_in[0].position + gs_in[1].position + gs_in[2].position) / 3.0;
     vec3 r2 = normalize(gs_in[0].position - m);
 
@@ -375,7 +378,40 @@ float polynomial(float x) {
 }
 
 void main() {
-    vec4 quaternion = gramSchmidtOrthonormalization();//vec4(q.w, q.x, q.y, q.z);
+    //vec4 quaternion = gramSchmidtOrthonormalization();//vec4(q.w, q.x, q.y, q.z);
+
+    //vec3 edge1 = normalize(gs_in[1].position - gs_in[0].position);
+    //vec3 edge2 = normalize(gs_in[2].position - gs_in[0].position);
+
+    
+    vec3 edge1 = gs_in[1].position - gs_in[0].position;
+    vec3 edge2 = gs_in[2].position - gs_in[0].position;
+    vec3 edge3 = gs_in[2].position - gs_in[1].position;
+
+    // Determine the longest edge to use as the major axis (xAxis)
+    if (length(edge2) > length(edge1) && length(edge2) > length(edge3)) {
+        vec3 temp = edge1;
+        edge1 = edge2;
+        edge2 = temp;
+    }
+    else if (length(edge3) > length(edge1) && length(edge3) > length(edge2)) {
+        vec3 temp = edge1;
+        edge1 = edge3;
+        edge3 = temp;
+    }
+
+    // Normalize the edge vectors
+    edge1 = normalize(edge1);
+    
+    vec3 normal = normalize(cross(edge1, edge2));
+
+    vec3 xAxis = edge1;
+    vec3 yAxis = normalize(cross(normal, xAxis));
+    vec3 zAxis = normal;
+
+    mat3 rotationMatrix = mat3(xAxis, yAxis, zAxis);
+    vec4 q = quat_cast(rotationMatrix);
+    vec4 quaternion = vec4(q.w, q.x, q.y, q.z);
 
     //This matrix can be constructed on CPU 
     mat2 cov2d = construct2DCovMatrix(sigma_x, sigma_y);
@@ -408,35 +444,70 @@ void main() {
     mat3x2 J_T;
     transpose2x3(J, J_T);
     mat3 cov3d = multiplyMat2x3WithMat3x2(J, multiplyMat2x2WithMat3x2(cov2d, J_T));
+    float det3D = determinant(cov3d);
 
     vec3 diagonalizedCov3d_diagonal;
-    vec4 quatRot = Diagonalizer(cov3d, diagonalizedCov3d_diagonal);
+    Diagonalizer(cov3d, diagonalizedCov3d_diagonal);
 
-    //Not entirely sure about the sorting part, The issue is that I am not sure to who assign X and to who Y, for now it works fine like this
+    //Not entirely sure about the sorting part
     vec3 sortedEigenvalues = sortDescending(diagonalizedCov3d_diagonal);
-    //float avg_scale = sqrt((sortedEigenvalues[0] + sortedEigenvalues[1]) / 2.0f);// +sqrt(sortedEigenvalues[1])) / 2.0f;
     float s_x = sqrt(sortedEigenvalues[0]);
     float s_y = sqrt(sortedEigenvalues[0]);
+    /*
+    mat2 M = mat2
+        (1.0, 0.0,
+        0.0, 1.0);
+    
 
-    //This is a wip
+    float V = 0.75;
+    vec3 J0 = vec3(J[0][0], J[0][1], J[0][2]); // First column
+    vec3 J1 = vec3(J[1][0], J[1][1], J[1][2]); // Second column
+    //vec3 areaVector = cross(J0, J1);
+    float scale = sqrt(det3D);
     
-    float descale_factor = 1.0f;
-    
-    if (target_resolution < 1024)
-    {
-        descale_factor = polynomial(target_resolution);
-    }
-    
-    float packed_s_x    = log(s_x * descale_factor);
-    float packed_s_y    = log(s_y * descale_factor);
+
+    // Transform the 2D identity rotation matrix M using the Jacobian
+    /*
+    mat2x3 M_3D;
+    M_3D[0] = vec3( J_T[0][0] * M[0][0] + J_T[0][1] * M[1][0],
+                    J_T[1][0] * M[0][0] + J_T[1][1] * M[1][0],
+                    J_T[2][0] * M[0][0] + J_T[2][1] * M[1][0]);
+
+    M_3D[1] = vec3( J_T[0][0] * M[0][1] + J_T[0][1] * M[1][1],
+                    J_T[1][0] * M[0][1] + J_T[1][1] * M[1][1],
+                    J_T[2][0] * M[0][1] + J_T[2][1] * M[1][1]);
+
+    M_3D[0] = normalize(M_3D[0]);
+    M_3D[1] = normalize(M_3D[1]);
+
+    // Compute the third orthonormal vector to complete the 3D rotation matrix
+    vec3 orthoZ = cross(M_3D[0], M_3D[1]);
+
+    // Construct the final 3D rotation matrix
+    mat3 rotationMatrix;
+    rotationMatrix[0] = M_3D[0];
+    rotationMatrix[1] = M_3D[1];
+    rotationMatrix[2] = orthoZ;
+
+    vec4 q = quat_cast(rotationMatrix);
+    vec4 quaternion = vec4(q.w, q.x, q.y, q.z);
+    */
+    float packed_s_x    = log(s_x);
+    float packed_s_y    = log(s_y);
     float packed_s_z    = log(1e-7);
 
     Scale = vec3(packed_s_x, packed_s_y, packed_s_z);
 
+    vec3 positions[3] = vec3[3](vec3(1,0,0), vec3(0,1,0), vec3(0,0,1));
+
     for (int i = 0; i < 3; i++)
     {
         Tangent                 = gs_in[i].tangent;       
-        GaussianPosition        = gs_in[i].position;
+        V1                      = gs_in[0].position;
+        V2                      = gs_in[1].position;
+        V3                      = gs_in[2].position;
+
+        Barycentric             = positions[i];
         Normal                  = gs_in[i].normal;
         UV                      = gs_in[i].uv;
         Quaternion              = quaternion;

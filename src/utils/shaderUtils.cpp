@@ -493,9 +493,11 @@ void performGpuConversion(
     glGetQueryObjectui64v(queryID, GL_QUERY_RESULT, &elapsed_time);
 
     // Convert nanoseconds to milliseconds
-    double elapsed_time_ms = elapsed_time / 1000000.0f;
+    double elapsed_time_ms = elapsed_time / 1'000'000.0f;
 
     std::cout << "Draw call time: " << elapsed_time_ms << " ms" << std::endl;
+
+    glDeleteQueries(1, &queryID);
 
 }
 
@@ -590,7 +592,7 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         float Scale_x               = pixels0[frameBufferStride * i + 3];
         if (check && (isnan(GaussianPosition_x) || isnan(GaussianPosition_y) || isnan(GaussianPosition_z)) )
         {
-            printf("! Warning !  Pos has nan values\n EXITING...");
+            //printf("! Warning !  Pos has nan values\n EXITING...");
             continue;//exit(1);
         }
 
@@ -602,7 +604,7 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         }
         if (check && (isnan(Scale_x) || isnan(Scale_z)))
         {
-            printf("! Warning !  Scale has nan values\n EXITING...");
+            //printf("! Warning !  Scale has nan values\n EXITING...");
             continue;//exit(1);
         }
 
@@ -612,7 +614,7 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         
         if (check && (isnan(Normal_x) || isnan(Normal_y) || isnan(Normal_z)))
         {
-            printf("! Warning !  Normal has nan values\nMake sure the 3D mesh was exported including also the tangent of each vertex normal\nEXITING...");
+            //printf("! Warning !  Normal has nan values\nMake sure the 3D mesh was exported including also the tangent of each vertex normal\nEXITING...");
             continue;//exit(1);
         }
         
@@ -624,7 +626,7 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
 
         if (check && (isnan(Quaternion_x) || isnan(Quaternion_y) || isnan(Quaternion_z) || isnan(Quaternion_w)))
         {
-            printf("! Warning !  Quaternion has nan values\n EXITING...");
+            //printf("! Warning !  Quaternion has nan values\n EXITING...");
             continue;//exit(1);
         }
 
@@ -634,7 +636,7 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
         float Rgba_a = pixels3[frameBufferStride * i + 3];
         if (check && (isnan(Rgba_r) || isnan(Rgba_g) || isnan(Rgba_b) || isnan(Rgba_a)))
         {
-            printf("! Warning !  Color has nan values\n EXITING...");
+            //printf("! Warning !  Color has nan values\n EXITING...");
             continue;//exit(1);
         }
 
@@ -644,7 +646,7 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
 
         if (check && (isnan(metallic) || isnan(roughness)))
         {
-            printf("! Warning !  MetallicRoughness has nan values\n EXITING...");
+            //printf("! Warning !  MetallicRoughness has nan values\n EXITING...");
             continue;//exit(1);
         }
 

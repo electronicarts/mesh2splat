@@ -3,7 +3,8 @@
 
 
 //-------------------- TEXTURE AND COLORS -------------------------------------------------------------------------------------------------------
-#define RESOLUTION_TARGET						2048
+#define RESOLUTION_TARGET						512
+#define RESOLUTION_TARGET_STR					"_512"
 #define METALLIC_ROUGHNESS_TEXTURE				"metallicRoughnessTexture"
 #define BASE_COLOR_TEXTURE						"baseColorTexture"
 #define NORMAL_TEXTURE							"normalTexture"
@@ -15,16 +16,15 @@
 
 //-------------------- FLAGS --------------------------------------------------------------------------------------------------------------------
 #define GPU_IMPL								1		//Set to 0 to try the CPU implementation
-#define DRAW_UV_MAPPING							0		//Set to 1 to produce a .tga with the normalized UV mapping produced by XATLAS
+#define DRAW_UV_MAPPING							1		//Set to 1 to produce a .tga with the normalized UV mapping produced by XATLAS
 #define DEBUG									1
 #define VOLUMETRIC								0
-#define PLY_FORMAT								3
+#define PLY_FORMAT								2
 
 //-------------------- INPUT DATA ---------------------------------------------------------------------------------------------------------------
-#define OBJ_NAME								"mayanFigure"
+#define OBJ_NAME								"sphere2"
 #define MICROMESH_NAME							"microMesh6"
 #define OBJ_FORMAT								".glb"
-
 
 //-------------------- DEFAULTS -----------------------------------------------------------------------------------------------------------------
 #define DEFAULT_MATERIAL_NAME					"mm_default_material"
@@ -44,7 +44,7 @@
 #define BASE_DATASET_FOLDER						"C:/Users/sscolari/Desktop/dataset/"  OBJ_NAME  "/"				
 
 #define OUTPUT_GAUSSIAN_FORMAT					".ply"
-#define GAUSSIAN_OUTPUT_MODEL_DEST_FOLDER_1		"C:/Users/sscolari/Desktop/halcyonUpdate/halcyon/Content/Halcyon/PlyTestAssets/Mesh2SplatOut1.ply"
+#define GAUSSIAN_OUTPUT_MODEL_DEST_FOLDER_1		"C:/Users/sscolari/Desktop/halcyonUpdate/halcyon/Content/Halcyon/PlyTestAssets/" OBJ_NAME RESOLUTION_TARGET_STR OUTPUT_GAUSSIAN_FORMAT
 #define GAUSSIAN_OUTPUT_MODEL_DEST_FOLDER_2		"C:/Users/sscolari/Desktop/outputGaussians/" OBJ_NAME OUTPUT_GAUSSIAN_FORMAT
 
 #define INPUT_MESH_FILENAME						BASE_DATASET_FOLDER OBJ_NAME OBJ_FORMAT
