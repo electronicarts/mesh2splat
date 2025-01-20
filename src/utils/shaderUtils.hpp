@@ -45,13 +45,8 @@ void performGpuConversion(
     MaterialGltf material, unsigned int referenceResolution, float GAUSSIAN_STD
 );
 
-
 void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLuint& framebuffer, unsigned int width, unsigned int height, bool print, bool check);
 
-GLuint setupSsboForComputeShader(unsigned int width, unsigned int height);
+void setupSsboForComputeShader(unsigned int width, unsigned int height, GLuint* gaussianBuffer);
 
 std::string readShaderFile(const char* filePath);
-
-void setupSsboAtomicCounter(GLuint& counterBuffer);
-
-GLuint readAtomicCounterValue(GLuint counterBuffer);

@@ -94,14 +94,23 @@ static void runConversion(const std::string& meshFilePath, const std::string& ba
             normalizedUvSpaceWidth, normalizedUvSpaceHeight,
             textureTypeMap, meshData.material, resolution, gaussianStd
         );
-        gaussianBuffer = setupSsboForComputeShader(resolution, resolution);
+
+        if (gaussianBuffer != 0) {
+            glDeleteBuffers(1, &gaussianBuffer);
+        }
+
+        setupSsboForComputeShader(resolution, resolution, &gaussianBuffer);
+        
+        if (drawIndirectBuffer != 0) {
+            glDeleteBuffers(1, &drawIndirectBuffer);
+        }
         drawIndirectBuffer = compute_shader_dispatch(computeShaderProgram, drawBuffers, gaussianBuffer, resolution);
 
         // Cleanup framebuffer and drawbuffers
-        //std::vector<Gaussian3D> data;
-        //retrieveMeshFromFrameBuffer(data, framebuffer, resolution, resolution, false, false);
-
-        delete drawBuffers;
+        const int numberOfTextures = 5;
+        glDeleteTextures(numberOfTextures, drawBuffers); 
+        glDeleteFramebuffers(1, &framebuffer);         
+        delete[] drawBuffers;                            
         glDeleteFramebuffers(1, &framebuffer);
     }
 }
@@ -171,7 +180,7 @@ int main(int argc, char** argv) {
     std::map<std::string, TextureDataGl> textureTypeMap;
 
     GLuint pointsVAO;
-    GL_CHECK(glGenVertexArrays(1, &pointsVAO));
+    glGenVertexArrays(1, &pointsVAO);
 
     // Compile and link rendering shaders
     GLuint renderShaderProgram      = createRendererShaderProgram(); 
@@ -189,12 +198,13 @@ int main(int argc, char** argv) {
     static int formatIndex                  = 0;
     const int formatOptions[]               = { 1, 2};
     const char* formatLabels[]              = { "PLY Standard Format", "Pbr PLY" };
-
+    static float pointSize                  = 5.0f;
     int resolutionTarget                    = resolutionOptions[resolutionIndex];
     int formatOption                        = formatOptions[formatIndex];
     bool wasConversionRunOnce               = false;
     static bool stillNeedtoLoadFirstMesh    = true;
     static char filePathBuffer[256]         = "C:\\Users\\sscolari\\Desktop\\dataset\\scifiHelmet\\scifiHelmet.glb"; //TODO: just for debug, remove this
+    static float gaussian_std = 1.0f;  
 
     //-------RENDER LOOP--------
     while (!glfwWindowShouldClose(window)) {
@@ -213,7 +223,7 @@ int main(int argc, char** argv) {
         {
             static char destinationFilePathBuffer[256] = "";
 
-            static float gaussian_std = 1.0f;      
+                
             const float  minStd = 0.1f;             
             const float  maxStd = 10.0f;  
             
@@ -244,6 +254,7 @@ int main(int argc, char** argv) {
             }
 
             ImGui::SliderFloat("Gaussian Std", &gaussian_std, minStd, maxStd, "%.2f");
+
 
             if (ImGui::SliderFloat("Mesh2Splat quality", &quality, 0.0f, 1.0f, "%.2f"))
             {
@@ -319,7 +330,7 @@ int main(int argc, char** argv) {
             pointsVAO != 0 && 
             renderShaderProgram != 0) 
         {
-            render_point_cloud(window, pointsVAO, gaussianBuffer, drawIndirectBuffer, renderShaderProgram);
+            render_point_cloud(window, pointsVAO, gaussianBuffer, drawIndirectBuffer, renderShaderProgram, gaussian_std);
         }
 
         // Render ImGui on top

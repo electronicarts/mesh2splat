@@ -120,7 +120,6 @@ GLuint compute_shader_dispatch(GLuint computeShaderProgram, GLuint* drawBuffers,
 
     glUseProgram(computeShaderProgram);
 
-    // Bind textures to texture units or image units
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, drawBuffers[0]);
     glUniform1i(glGetUniformLocation(computeShaderProgram, "texPosition"), 0);
@@ -128,6 +127,8 @@ GLuint compute_shader_dispatch(GLuint computeShaderProgram, GLuint* drawBuffers,
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, drawBuffers[3]);
     glUniform1i(glGetUniformLocation(computeShaderProgram, "texColor"), 1);
+
+
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, gaussianBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, gaussianBuffer);
@@ -159,7 +160,7 @@ unsigned int getSplatBufferCount(GLuint counterBuffer)
     return splatCount;
 }
 
-void render_point_cloud(GLFWwindow* window, GLuint pointsVAO, GLuint gaussianBuffer, GLuint drawIndirectBuffer, GLuint renderShaderProgram)
+void render_point_cloud(GLFWwindow* window, GLuint pointsVAO, GLuint gaussianBuffer, GLuint drawIndirectBuffer, GLuint renderShaderProgram, float std_gauss)
 {
     glFinish();
     int width, height;
@@ -185,6 +186,13 @@ void render_point_cloud(GLFWwindow* window, GLuint pointsVAO, GLuint gaussianBuf
 
     glUseProgram(renderShaderProgram);
     glUniformMatrix4fv(glGetUniformLocation(renderShaderProgram, "MVP"), 1, GL_FALSE, glm::value_ptr(MVP));
+
+    GLint stdGaussLocation = glGetUniformLocation(renderShaderProgram, "std_gauss");
+    if(stdGaussLocation != -1) {
+        glUniform1f(stdGaussLocation, std_gauss);
+    } else {
+        std::cerr << "Warning: std_gauss uniform not found in compute shader." << std::endl;
+    }
 
     glBindVertexArray(pointsVAO);
 

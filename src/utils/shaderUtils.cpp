@@ -280,7 +280,7 @@ GLuint* setupFrameBuffer(GLuint& framebuffer, unsigned int width, unsigned int h
     };
     glDrawBuffers(numberOfTextures, drawBuffers);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    return textures;  // Delete this array later
+    return textures; 
 }
 
 
@@ -433,31 +433,31 @@ void performGpuConversion(
     //--------------------------------------------------------------------------
     //Query for conversion time, remove it if dont care about it
 
-    GLuint queryID;
-    glGenQueries(1, &queryID);
+    //GLuint queryID;
+    //glGenQueries(1, &queryID);
 
     glBindVertexArray(vao);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
     //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glBeginQuery(GL_TIME_ELAPSED, queryID);
+    //glBeginQuery(GL_TIME_ELAPSED, queryID);
 
     glDrawArrays(GL_TRIANGLES, 0, vertexCount); 
 
-    glEndQuery(GL_TIME_ELAPSED);
+    //glEndQuery(GL_TIME_ELAPSED);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    GLuint64 elapsed_time;
-    glGetQueryObjectui64v(queryID, GL_QUERY_RESULT, &elapsed_time);
+    //GLuint64 elapsed_time;
+    //glGetQueryObjectui64v(queryID, GL_QUERY_RESULT, &elapsed_time);
 
     // Convert nanoseconds to milliseconds
-    double elapsed_time_ms = elapsed_time / 1'000'000.0f;
+    //double elapsed_time_ms = elapsed_time / 1'000'000.0f;
 
-    std::cout << "Draw call time: " << elapsed_time_ms << " ms" << std::endl;
+    //std::cout << "Draw call time: " << elapsed_time_ms << " ms" << std::endl;
 
-    glDeleteQueries(1, &queryID);
+    //glDeleteQueries(1, &queryID);
 }
 
 
@@ -597,26 +597,14 @@ void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLu
     std::cout << "TOT num gaussians: " << index << std::endl;
 }
 
-GLuint setupSsboForComputeShader(unsigned int width, unsigned int height)
+void setupSsboForComputeShader(unsigned int width, unsigned int height, GLuint* gaussianBuffer)
 {
-    GLuint gaussianBuffer;
-    glGenBuffers(1, &gaussianBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gaussianBuffer);
+    glGenBuffers(1, &(*gaussianBuffer));
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, (*gaussianBuffer));
     glBufferData(GL_SHADER_STORAGE_BUFFER, width * height * sizeof(glm::vec4) * 2, nullptr, GL_STATIC_DRAW);
     unsigned int bindingPos = 2; //TODO: SSBO binding pos, should not hardcode it and should depend on how many drawbuffers from the framebuffer I want to read from
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindingPos, gaussianBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindingPos, (*gaussianBuffer));
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-    return gaussianBuffer;
-}
-
-
-void setupSsboAtomicCounter(GLuint& counterBuffer)
-{
-    //GLuint counterBuffer;
-    glGenBuffers(1, &counterBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, counterBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, counterBuffer);
 }
 
 static void resetSsboAtomicCounter(GLuint& counterBuffer)
@@ -624,29 +612,6 @@ static void resetSsboAtomicCounter(GLuint& counterBuffer)
     GLuint zero = 0;
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, counterBuffer);
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(GLuint), &zero);
-}
-
-
-GLuint readAtomicCounterValue(GLuint counterBuffer) {
-    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, counterBuffer);
-    GLuint* counterValuePtr = (GLuint*)glMapBuffer(GL_ATOMIC_COUNTER_BUFFER, GL_READ_ONLY);
-    GLuint counterValue = 0;
-    if (counterValuePtr) {
-        counterValue = *counterValuePtr;
-        glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
-    }
-    else {
-        std::cerr << "Error: Failed to map atomic counter buffer." << std::endl;
-    }
-
-    //Now reset it
-    GLuint zero = 0;
-    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, counterBuffer);
-    glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &zero);
-    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
-
-    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
-    return counterValue;
 }
 
 GLuint createRendererShaderProgram()
