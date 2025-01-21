@@ -14,4 +14,6 @@ void writeBinaryPLY_lit(const std::string& filename, const std::vector<Gaussian3
 
 void writeBinaryPLY_standard_format(const std::string& filename, const std::vector<Gaussian3D>& gaussians);
 
+void savePlyVector(std::string outputFileLocation, std::vector<Gaussian3D> gaussians_3D_list, unsigned int format);
+
 

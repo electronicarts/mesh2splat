@@ -2,6 +2,31 @@
 
 //TODO: create a separete camera class, avoid it bloating and getting too messy
 
+Renderer::Renderer()
+{
+    glGenVertexArrays(1, &pointsVAO);
+    // Compile and link rendering shaders
+    converterShaderProgram   = createConverterShaderProgram();
+    renderShaderProgram      = createRendererShaderProgram(); 
+    computeShaderProgram     = createComputeShaderProgram(); 
+    //Initialize buffers to be unset
+    gaussianBuffer           = -1;
+    drawIndirectBuffer       = -1;
+    int normalizedUvSpaceWidth = 0;
+    int normalizedUvSpaceHeight = 0;
+}
+
+
+
+Renderer::~Renderer()
+{
+    glDeleteVertexArrays(1, &pointsVAO);
+    glDeleteBuffers(1, &gaussianBuffer);
+    glDeleteBuffers(1, &drawIndirectBuffer);
+    glDeleteProgram(renderShaderProgram);
+    glDeleteProgram(converterShaderProgram);
+    glDeleteProgram(computeShaderProgram);
+}
 
 glm::vec3 Renderer::computeCameraPosition(float yaw, float pitch, float distance) {
     // Convert angles to radians
@@ -146,4 +171,75 @@ void Renderer::render_point_cloud(GLFWwindow* window, GLuint pointsVAO, GLuint g
     glDrawArraysIndirect(GL_POINTS, 0);
 
     glBindVertexArray(0);
+}
+
+
+void Renderer::renderLoop(GLFWwindow* window, ImGuiUI& gui)
+{
+
+    while (!glfwWindowShouldClose(window)) {
+        glfwPollEvents();
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+        
+        gui.renderUI();
+        if (gui.shouldLoadNewMesh()) {
+                mesh2SplatConversionHandler.prepareMeshAndUploadToGPU(gui.getFilePath(), gui.getFilePathParentFolder(), dataMeshAndGlMesh, normalizedUvSpaceWidth, normalizedUvSpaceHeight);
+                for (auto& mesh : dataMeshAndGlMesh)
+                {
+                    Mesh meshData = mesh.first;
+                    GLMesh meshGl = mesh.second;
+                    printf("Loading textures into utility std::map\n");
+                    loadAllTextureMapImagesIntoMap(meshData.material, textureTypeMap);
+                    generateTextures( meshData.material, textureTypeMap );
+                }
+                std::string meshFilePath(gui.getFilePath());
+                //First conversion so when loading model it already visualizes it
+                if (!meshFilePath.empty()) {
+                    mesh2SplatConversionHandler.runConversion(
+                        meshFilePath, gui.getFilePathParentFolder(),
+                        gui.getResolutionTarget(), gui.getGaussianStd(),
+                        converterShaderProgram, computeShaderProgram,
+                        dataMeshAndGlMesh, normalizedUvSpaceWidth, normalizedUvSpaceHeight,
+                        textureTypeMap, gaussianBuffer, drawIndirectBuffer
+                    );
+                }
+           
+            gui.setLoadNewMesh(false);
+        }
+
+        if (gui.shouldRunConversion()) {
+            std::string meshFilePath(gui.getFilePath());
+            if (!meshFilePath.empty()) {
+                //Entry point for conversion code
+                mesh2SplatConversionHandler.runConversion(  
+                    meshFilePath, gui.getFilePathParentFolder(),
+                    gui.getResolutionTarget(), gui.getGaussianStd(),
+                    converterShaderProgram, computeShaderProgram,
+                    dataMeshAndGlMesh, normalizedUvSpaceWidth, normalizedUvSpaceHeight,
+                    textureTypeMap, gaussianBuffer, drawIndirectBuffer
+                );
+            }
+
+            gui.setRunConversion(false);
+        }
+
+        if (gui.shouldSavePly() && gui.getFilePathParentFolder().size() > 0)
+        {
+            std::vector<Gaussian3D> gaussian_3d_list;
+            savePlyVector(std::string(gui.getFilePathParentFolder()), gaussian_3d_list, gui.getFormatOption());
+        }
+
+        ImGui::Render();
+        
+        render_point_cloud(window, pointsVAO, gaussianBuffer, drawIndirectBuffer, renderShaderProgram, gui.getGaussianStd());
+
+        // Render ImGui on top
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        glfwSwapBuffers(window);
+    }
+
+    glfwTerminate();
 }

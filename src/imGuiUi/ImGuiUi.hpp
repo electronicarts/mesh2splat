@@ -10,7 +10,7 @@ public:
     ~ImGuiUI();
 
     // Initialize ImGui context and any required resources
-    void initialize();
+    void initialize(GLFWwindow* window);
 
     // Render the UI for each frame
     void renderUI();

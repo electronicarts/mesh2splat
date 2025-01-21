@@ -760,3 +760,25 @@ void writeBinaryPLY_standard_format(const std::string& filename, const std::vect
 
     file.close();
 }
+
+void savePlyVector(std::string outputFileLocation, std::vector<Gaussian3D> gaussians_3D_list, unsigned int FORMAT)
+{
+    switch (FORMAT)
+    {
+        case 1:
+            writeBinaryPLY_standard_format(outputFileLocation, gaussians_3D_list);
+            break;
+    
+        case 2:
+            writePbrPLY(outputFileLocation, gaussians_3D_list);
+            break;
+    
+        case 3:
+            writeBinaryPLY_lit(outputFileLocation, gaussians_3D_list);
+            break;
+    
+        default:
+            writeBinaryPLY_standard_format(outputFileLocation, gaussians_3D_list);
+            break;
+    }
+}
