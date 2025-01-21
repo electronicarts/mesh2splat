@@ -58,6 +58,8 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
         pointsVAO == 0 ||
         renderShaderProgram == 0) return;
 
+    glUseProgram(renderShaderProgram);
+
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
 
@@ -78,22 +80,15 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
     glm::mat4 model = glm::mat4(1.0);
     glm::mat4 MVP = projection * view * model;
 
-    //std::vector<float> quadVertices = {
-    //    // Tr1
-    //    -0.5f, -0.5f, 0.0f,
-    //     0.5f, -0.5f, 0.0f,
-    //     0.5f,  0.5f, 0.0f,
-    //    // Tr2 
-    //     0.5f,  0.5f, 0.0f,
-    //    -0.5f,  0.5f, 0.0f,
-    //    -0.5f, -0.5f, 0.0f,
-    //};
-
     std::vector<float> quadVertices = {
-    -0.5f, -0.5f, 0.0f,  // Bottom-left
-     0.5f, -0.5f, 0.0f,  // Bottom-right
-     0.5f,  0.5f, 0.0f,  // Top-right
-    -0.5f,  0.5f, 0.0f,  // Top-left
+        // Tr1
+        -0.5f, -0.5f, 0.0f,
+         0.5f, -0.5f, 0.0f,
+         0.5f,  0.5f, 0.0f,
+        // Tr2 
+         0.5f,  0.5f, 0.0f,
+        -0.5f,  0.5f, 0.0f,
+        -0.5f, -0.5f, 0.0f,
     };
 
     glBindVertexArray(pointsVAO);
@@ -101,12 +96,10 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
     GLuint quadVBO, quadEBO;
     glGenBuffers(1, &quadVBO);
     glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, quadVertices.size() * sizeof(float), quadVertices.data(), GL_STATIC_DRAW);
 
-    glUseProgram(renderShaderProgram);
     glUniformMatrix4fv(glGetUniformLocation(renderShaderProgram, "MVP"), 1, GL_FALSE, glm::value_ptr(MVP));
 
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
     glEnableVertexAttribArray(0);
 
@@ -122,7 +115,8 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
     }
 
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawIndirectBuffer);
-    glDrawArraysIndirect(GL_TRIANGLE_STRIP, 0); //instance parameters set in framBufferReaderCS.glsl
+
+    glDrawArraysIndirect(GL_TRIANGLES, 0); //instance parameters set in framBufferReaderCS.glsl
 
     glBindVertexArray(0);
 }

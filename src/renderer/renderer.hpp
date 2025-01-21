@@ -32,12 +32,5 @@ private:
 	GLuint gaussianBuffer;
 	GLuint drawIndirectBuffer;
 
-	struct DrawArraysIndirectCommand {
-        GLuint count;        
-        GLuint instanceCount;    
-        GLuint first;        
-        GLuint baseInstance; 
-    };
-
 };
 
