@@ -9,6 +9,7 @@ ImGuiUI::ImGuiUI(float defaultResolutionIndex, int defaultFormat, float defaultG
       loadNewMesh(false),
       savePly(false)
 {
+    //TODO: remove this and add a different debug default folder
     strcpy(filePathBuffer, "C:\\Users\\sscolari\\Desktop\\dataset\\scifiHelmet\\scifiHelmet.glb");
     destinationFilePathBuffer[0] = '\0';  // empty destination path initially
 }
@@ -67,10 +68,21 @@ void ImGuiUI::renderUI()
     }
 
     ImGui::End();
-
-    // For example: handling loadNewMesh, runConversionFlag, savePly actions
-    // You may want to call methods on other classes (e.g., mesh2splatConverter) based on these flags
 }
+
+void ImGuiUI::preframe()
+{
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+}
+
+void ImGuiUI::postframe()
+{
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
 
 bool ImGuiUI::shouldRunConversion() { return runConversionFlag; };
 bool ImGuiUI::shouldLoadNewMesh() { return loadNewMesh; };

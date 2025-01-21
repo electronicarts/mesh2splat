@@ -29,7 +29,6 @@ void Mesh2splatConverterHandler::runComputePass(GLuint& computeShaderProgram, GL
 
     // Ensure compute shader completion
     glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
-    glFinish(); 
 }
 
 
@@ -41,6 +40,10 @@ void Mesh2splatConverterHandler::runConversionPass(const std::string& meshFilePa
                    std::map<std::string, TextureDataGl>& textureTypeMap,
                    GLuint& gaussianBuffer, GLuint &drawIndirectBuffer) 
 {
+    //TODO: If model has many meshes this is probably not the most efficient approach.
+    //For how the mesh2splat method currently works, we still need to generate a separate frame and drawbuffer per mesh, but the gpu conversion
+    //could be done via batch rendering (I guess (?))
+
     for (auto& mesh : dataMeshAndGlMesh) {
         Mesh meshData = std::get<0>(mesh);
         GLMesh meshGl = std::get<1>(mesh);
@@ -68,7 +71,7 @@ void Mesh2splatConverterHandler::runConversionPass(const std::string& meshFilePa
         }
 
         //TODO: ideally this should not be necessary, and we should directly atomically append into the SSBO from the fragment shader
-        // not doing so results in wasted work, but need to handle fragment syncronization. For now this is ok.
+        // not doing so results in wasted work (wherever texture map has no data), but need to handle fragment syncronization. For now this is ok.
         runComputePass(computeShaderProgram, drawBuffers, gaussianBuffer, drawIndirectBuffer, resolution);
 
         // Cleanup framebuffer and drawbuffers
@@ -97,12 +100,12 @@ void Mesh2splatConverterHandler::performGpuConversion(
     //Textures
     if (textureTypeMap.find(BASE_COLOR_TEXTURE) != textureTypeMap.end())
     {
-        setTexture2D(shaderProgram, "albedoTexture", textureTypeMap.at(BASE_COLOR_TEXTURE).glTextureID,                        0);
+        setTexture2D(shaderProgram, "albedoTexture", textureTypeMap.at(BASE_COLOR_TEXTURE).glTextureID,     0);
         setUniform1i(shaderProgram, "hasAlbedoMap", 1);
     }
     if (textureTypeMap.find(NORMAL_TEXTURE) != textureTypeMap.end())
     {
-        setTexture2D(shaderProgram, "normalTexture", textureTypeMap.at(NORMAL_TEXTURE).glTextureID,                            1);
+        setTexture2D(shaderProgram, "normalTexture", textureTypeMap.at(NORMAL_TEXTURE).glTextureID,         1);
         setUniform1i(shaderProgram, "hasNormalMap", 1);
     }
     if (textureTypeMap.find(METALLIC_ROUGHNESS_TEXTURE) != textureTypeMap.end())
@@ -112,11 +115,11 @@ void Mesh2splatConverterHandler::performGpuConversion(
     }
     if (textureTypeMap.find(AO_TEXTURE) != textureTypeMap.end())
     {
-        setTexture2D(shaderProgram, "occlusionTexture", textureTypeMap.at(AO_TEXTURE).glTextureID,                      3);
+        setTexture2D(shaderProgram, "occlusionTexture", textureTypeMap.at(AO_TEXTURE).glTextureID,          3);
     }
     if (textureTypeMap.find(EMISSIVE_TEXTURE) != textureTypeMap.end())
     {
-        setTexture2D(shaderProgram, "emissiveTexture", textureTypeMap.at(EMISSIVE_TEXTURE).glTextureID,                        4);
+        setTexture2D(shaderProgram, "emissiveTexture", textureTypeMap.at(EMISSIVE_TEXTURE).glTextureID,     4);
     }
 
     glBindVertexArray(vao);

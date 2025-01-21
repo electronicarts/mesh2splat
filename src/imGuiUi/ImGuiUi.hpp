@@ -9,11 +9,10 @@ public:
     ImGuiUI(float defaultResolutionIndex, int defaultFormat, float defaultGaussianStd, float defaultMesh2SPlatQuality);
     ~ImGuiUI();
 
-    // Initialize ImGui context and any required resources
+    void preframe();
     void initialize(GLFWwindow* window);
-
-    // Render the UI for each frame
     void renderUI();
+    void postframe();
 
     bool shouldRunConversion();
     bool shouldLoadNewMesh();

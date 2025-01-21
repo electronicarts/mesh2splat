@@ -21,7 +21,7 @@ layout(std430, binding = 5) buffer GaussianBuffer {
 
 layout(std430, binding = 6) buffer DrawCommand {
     uint count;
-    uint primCount;
+    uint instanceCount;
     uint first;
     uint baseInstance;
 } drawCommand;
@@ -31,7 +31,7 @@ layout(local_size_x = 16, local_size_y = 16) in;
 void main() {
     if (gl_GlobalInvocationID.x == 0 && gl_GlobalInvocationID.y == 0) {
         drawCommand.count = 0;        
-        drawCommand.primCount = 1;    
+        drawCommand.instanceCount = 1;    
         drawCommand.first = 0;        
         drawCommand.baseInstance = 0; 
     }
