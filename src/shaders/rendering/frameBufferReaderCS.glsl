@@ -24,24 +24,29 @@ layout(std430, binding = 6) buffer DrawCommand {
     uint instanceCount;
     uint first;
     uint baseInstance;
-} drawCommand;
+} drawElementsIndirectCommand;
 
 
 layout(local_size_x = 16, local_size_y = 16) in;  
 void main() {
     if (gl_GlobalInvocationID.x == 0 && gl_GlobalInvocationID.y == 0) {
-        drawCommand.count = 0; //for quad rendering        
-        drawCommand.instanceCount = 1;    
-        drawCommand.first = 0;        
-        drawCommand.baseInstance = 0; 
+        drawElementsIndirectCommand.count = 4; //for quad rendering        
+        drawElementsIndirectCommand.instanceCount = 0;    
+        drawElementsIndirectCommand.first = 0;        
+        drawElementsIndirectCommand.baseInstance = 0; 
     }
     memoryBarrierShared();
 
-    uint index      = atomicAdd(drawCommand.count, 1);
     ivec2 pix       = ivec2(gl_GlobalInvocationID.xy);
 
-    //should change ordering and leave scale as first components, otherwise confusing
     vec4 posAndScaleXData       = texelFetch(texPositionAndScaleX, pix, 0);
+
+    if (posAndScaleXData == vec4(0, 0, 0, 0)) return; //TOOD: naive check
+
+    uint index      = atomicAdd(drawElementsIndirectCommand.instanceCount, 1);
+
+    //should change ordering and leave scale as first components, otherwise confusing
+    //vec4 posAndScaleXData       = texelFetch(texPositionAndScaleX, pix, 0);
     vec4 position               = vec4(posAndScaleXData.xyz, 1);
 
     vec4 scaleZAndNormalData    = texelFetch(scaleZAndNormal, pix, 0);

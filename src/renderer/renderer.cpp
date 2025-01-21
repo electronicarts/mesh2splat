@@ -51,7 +51,7 @@ unsigned int Renderer::getSplatBufferCount(GLuint counterBuffer)
     return splatCount;
 }
 
-void Renderer::runPointCloudRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint gaussianBuffer, GLuint drawIndirectBuffer, GLuint renderShaderProgram, float std_gauss)
+void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint gaussianBuffer, GLuint drawIndirectBuffer, GLuint renderShaderProgram, float std_gauss)
 {
     if (gaussianBuffer == static_cast<GLuint>(-1) ||
         drawIndirectBuffer == static_cast<GLuint>(-1) ||
@@ -78,37 +78,52 @@ void Renderer::runPointCloudRenderingPass(GLFWwindow* window, GLuint pointsVAO, 
     glm::mat4 model = glm::mat4(1.0);
     glm::mat4 MVP = projection * view * model;
 
-    glUseProgram(renderShaderProgram);
-    glUniformMatrix4fv(glGetUniformLocation(renderShaderProgram, "MVP"), 1, GL_FALSE, glm::value_ptr(MVP));
+    //std::vector<float> quadVertices = {
+    //    // Tr1
+    //    -0.5f, -0.5f, 0.0f,
+    //     0.5f, -0.5f, 0.0f,
+    //     0.5f,  0.5f, 0.0f,
+    //    // Tr2 
+    //     0.5f,  0.5f, 0.0f,
+    //    -0.5f,  0.5f, 0.0f,
+    //    -0.5f, -0.5f, 0.0f,
+    //};
 
-    GLint stdGaussLocation = glGetUniformLocation(renderShaderProgram, "std_gauss");
-    if(stdGaussLocation != -1) {
-        glUniform1f(stdGaussLocation, std_gauss);
-    } else {
-        std::cerr << "Warning: std_gauss uniform not found in compute shader." << std::endl;
-    }
+    std::vector<float> quadVertices = {
+    -0.5f, -0.5f, 0.0f,  // Bottom-left
+     0.5f, -0.5f, 0.0f,  // Bottom-right
+     0.5f,  0.5f, 0.0f,  // Top-right
+    -0.5f,  0.5f, 0.0f,  // Top-left
+    };
 
     glBindVertexArray(pointsVAO);
 
+    GLuint quadVBO, quadEBO;
+    glGenBuffers(1, &quadVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices.data(), GL_STATIC_DRAW);
+
+    glUseProgram(renderShaderProgram);
+    glUniformMatrix4fv(glGetUniformLocation(renderShaderProgram, "MVP"), 1, GL_FALSE, glm::value_ptr(MVP));
+
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+    glEnableVertexAttribArray(0);
+
     glBindBuffer(GL_ARRAY_BUFFER, gaussianBuffer);
-    unsigned int stride = sizeof(glm::vec4) * 5;
     //We need to redo this vertex attrib binding as the buffer could have been deleted if the compute/conversion pass was run, adn we need to free the data to avoid
     // memory leak. Could use a flag to check if the buffer was freed or not
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, stride, (void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(float)*4));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(float)*8));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(float)*12));
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(float)*16));
-    glEnableVertexAttribArray(4);
-    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(float)*20));
-    glEnableVertexAttribArray(5);
+    unsigned int stride = sizeof(glm::vec4) * 5;
+    
+    for (int i = 1; i <= 5; ++i) {
+        glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(glm::vec4) * (i - 1)));
+        glEnableVertexAttribArray(i);
+        glVertexAttribDivisor(i, 1);
+    }
 
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawIndirectBuffer);
-    glDrawArraysIndirect(GL_POINTS, 0);
+    glDrawArraysIndirect(GL_TRIANGLE_STRIP, 0);
+    //glDrawArraysIndirect(GL_TRIANGLES, 0);
 
     glBindVertexArray(0);
 }
@@ -179,7 +194,7 @@ void Renderer::renderLoop(GLFWwindow* window, ImGuiUI& gui)
             }
 
             //TODO: scen graph related --> should have per render pass a vector of optional parameters and a simple blackboard
-            runPointCloudRenderingPass(window, pointsVAO, gaussianBuffer, drawIndirectBuffer, renderShaderProgram, gui.getGaussianStd());
+            run3dgsRenderingPass(window, pointsVAO, gaussianBuffer, drawIndirectBuffer, renderShaderProgram, gui.getGaussianStd());
         }
 
         gui.postframe();

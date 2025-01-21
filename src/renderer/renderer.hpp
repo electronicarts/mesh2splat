@@ -12,7 +12,7 @@ public:
 	~Renderer();
 
 	static glm::vec3 computeCameraPosition(float yaw, float pitch, float distance);
-	void runPointCloudRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint gaussianBuffer, GLuint drawIndirectBuffer, GLuint renderShaderProgram, float std_gauss);
+	void run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint gaussianBuffer, GLuint drawIndirectBuffer, GLuint renderShaderProgram, float std_gauss);
 	void renderLoop(GLFWwindow* window, ImGuiUI& gui);
 	//For now not using this, will implement a simil scene graph setup later
 	void recordRenderPass();
