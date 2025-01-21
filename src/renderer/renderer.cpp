@@ -68,7 +68,6 @@ void Renderer::runPointCloudRenderingPass(GLFWwindow* window, GLuint pointsVAO, 
                                             (float)width / (float)height,
                                             closePlane, farPlane);
 
-
     glViewport(0, 0, width, height);
 
     //TODO: refactor, should not be here. Create a separate transformations class
@@ -93,6 +92,8 @@ void Renderer::runPointCloudRenderingPass(GLFWwindow* window, GLuint pointsVAO, 
 
     glBindBuffer(GL_ARRAY_BUFFER, gaussianBuffer);
     unsigned int stride = sizeof(glm::vec4) * 5;
+    //We need to redo this vertex attrib binding as the buffer could have been deleted if the compute/conversion pass was run, adn we need to free the data to avoid
+    // memory leak. Could use a flag to check if the buffer was freed or not
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, stride, (void*)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(float)*4));

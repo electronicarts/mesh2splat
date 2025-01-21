@@ -30,7 +30,7 @@ layout(std430, binding = 6) buffer DrawCommand {
 layout(local_size_x = 16, local_size_y = 16) in;  
 void main() {
     if (gl_GlobalInvocationID.x == 0 && gl_GlobalInvocationID.y == 0) {
-        drawCommand.count = 0;        
+        drawCommand.count = 0; //for quad rendering        
         drawCommand.instanceCount = 1;    
         drawCommand.first = 0;        
         drawCommand.baseInstance = 0; 

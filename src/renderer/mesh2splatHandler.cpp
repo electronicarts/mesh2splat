@@ -60,6 +60,7 @@ void Mesh2splatConverterHandler::runConversionPass(const std::string& meshFilePa
             textureTypeMap, meshData.material, resolution, gaussianStd
         );
 
+        //Need to do this to free memory, this means we need to rebind the gaussianBuffer in later stages
         if (gaussianBuffer != 0) {
             glDeleteBuffers(1, &gaussianBuffer);
         }
