@@ -30,7 +30,7 @@ GLuint createComputeShaderProgram();
 
 void generateTextures(MaterialGltf material, std::map<std::string, TextureDataGl>& textureTypeMap);
 
-void uploadMeshesToOpenGL(const std::vector<Mesh>& meshes, std::vector<std::pair<Mesh, GLMesh>>& DataMeshAndGlMesh);
+void generateMeshesVBO(const std::vector<Mesh>& meshes, std::vector<std::pair<Mesh, GLMesh>>& DataMeshAndGlMesh);
 
 void setupTransformFeedback(size_t bufferSize, GLuint& feedbackBuffer, GLuint& feedbackVAO, GLuint& acBuffer, unsigned int totalStride);
 
@@ -50,4 +50,4 @@ void setUniform1i(GLuint shaderProgram, std::string uniformName, unsigned int un
 void setUniform3f(GLuint shaderProgram, std::string uniformName, glm::vec3 uniformValue);
 void setUniform2f(GLuint shaderProgram, std::string uniformName, glm::vec2 uniformValue);
 void setUniformMat4(GLuint shaderProgram, std::string uniformName, glm::mat4 matrix);
-void setTexture(GLuint shaderProgram, std::string textureUniformName, GLuint texture, unsigned int textureUnitNumber);
+void setTexture2D(GLuint shaderProgram, std::string textureUniformName, GLuint texture, unsigned int textureUnitNumber);

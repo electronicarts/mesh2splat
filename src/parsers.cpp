@@ -434,7 +434,7 @@ static MaterialGltf parseGltfMaterial(const tinygltf::Model& model, int material
     return materialGltf;
 }
 
-std::vector<Mesh> parseGltfFileToMesh(const std::string& filename, std::string base_folder) {
+void parseGltfFileToMesh(const std::string& filename, std::string base_folder, std::vector<Mesh>& meshes) {
     tinygltf::Model model;
     tinygltf::TinyGLTF loader;
     std::string err;
@@ -444,15 +444,13 @@ std::vector<Mesh> parseGltfFileToMesh(const std::string& filename, std::string b
     bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, filename);
     if (!ret) {
         std::cerr << "Failed to load glTF: " << err << std::endl;
-        return {};
+        return;
     }
     
 
     if (!warn.empty()) {
         std::cout << "glTF parse warning: " << warn << std::endl;
     }
-
-    std::vector<Mesh>       meshes;
 
     //remember that "when a 3D model is created as GLTF it is already triangulated"
     for (const auto& mesh : model.meshes) {
@@ -534,7 +532,6 @@ std::vector<Mesh> parseGltfFileToMesh(const std::string& filename, std::string b
             meshes.push_back(myMesh);
         }
     }
-    return meshes; //TODO: struct struct struct!
 }
 
 void writePbrPLY(const std::string& filename, const std::vector<Gaussian3D>& gaussians) {

@@ -163,7 +163,7 @@ void generateTextures(MaterialGltf material, std::map<std::string, TextureDataGl
 }
 
 
-void uploadMeshesToOpenGL(const std::vector<Mesh>& meshes, std::vector<std::pair<Mesh, GLMesh>>& DataMeshAndGlMesh) {
+void generateMeshesVBO(const std::vector<Mesh>& meshes, std::vector<std::pair<Mesh, GLMesh>>& DataMeshAndGlMesh) {
     
     DataMeshAndGlMesh.clear();
     DataMeshAndGlMesh.reserve(meshes.size());
@@ -379,7 +379,7 @@ void setUniformMat4(GLuint shaderProgram, std::string uniformName, glm::mat4 mat
     glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, &matrix[0][0]);
 }
 
-void setTexture(GLuint shaderProgram, std::string textureUniformName, GLuint texture, unsigned int textureUnitNumber)
+void setTexture2D(GLuint shaderProgram, std::string textureUniformName, GLuint texture, unsigned int textureUnitNumber)
 {
     GLint uniformLocation = glGetUniformLocation(shaderProgram, textureUniformName.c_str());
 

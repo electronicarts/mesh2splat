@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
     if (!glfwInit())
         return -1;
 
-    GLFWwindow* window = glfwCreateWindow(720, 480, "Mesh2Splat", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1080, 720, "Mesh2Splat", NULL, NULL);
     if (!window) {
         glfwTerminate();
         return -1;

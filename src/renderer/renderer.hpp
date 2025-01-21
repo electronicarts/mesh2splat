@@ -15,6 +15,8 @@ public:
 	GLuint compute_shader_dispatch(GLuint computeShaderProgram, GLuint* drawBuffers, GLuint gaussianBuffer, unsigned int resolutionTarget);
 	void render_point_cloud(GLFWwindow* window, GLuint pointsVAO, GLuint gaussianBuffer, GLuint drawIndirectBuffer, GLuint renderShaderProgram, float std_gauss);
 	void renderLoop(GLFWwindow* window, ImGuiUI& gui);
+	//For now not using this, will implement a simil scene graph setup later
+	void recordRenderPass();
 private:
 	unsigned int getSplatBufferCount(GLuint counterBuffer);
 	Mesh2splatConverterHandler mesh2SplatConversionHandler;

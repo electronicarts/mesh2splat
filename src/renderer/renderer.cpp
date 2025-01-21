@@ -5,11 +5,9 @@
 Renderer::Renderer()
 {
     glGenVertexArrays(1, &pointsVAO);
-    // Compile and link rendering shaders
     converterShaderProgram   = createConverterShaderProgram();
     renderShaderProgram      = createRendererShaderProgram(); 
     computeShaderProgram     = createComputeShaderProgram(); 
-    //Initialize buffers to be unset
     gaussianBuffer           = -1;
     drawIndirectBuffer       = -1;
     int normalizedUvSpaceWidth = 0;
@@ -173,10 +171,11 @@ void Renderer::render_point_cloud(GLFWwindow* window, GLuint pointsVAO, GLuint g
     glBindVertexArray(0);
 }
 
-
 void Renderer::renderLoop(GLFWwindow* window, ImGuiUI& gui)
 {
-
+    //Yeah not greates setup, the logic itself should not probably reside in the gui, but good enough like this.
+    //Should implement the concept of a render pass rather than having a specialized class handle one type of pass
+    //TODO: make render passes and logic handling more modular
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         ImGui_ImplOpenGL3_NewFrame();
@@ -197,7 +196,7 @@ void Renderer::renderLoop(GLFWwindow* window, ImGuiUI& gui)
                 std::string meshFilePath(gui.getFilePath());
                 //First conversion so when loading model it already visualizes it
                 if (!meshFilePath.empty()) {
-                    mesh2SplatConversionHandler.runConversion(
+                    mesh2SplatConversionHandler.runConversionPass(
                         meshFilePath, gui.getFilePathParentFolder(),
                         gui.getResolutionTarget(), gui.getGaussianStd(),
                         converterShaderProgram, computeShaderProgram,
@@ -213,7 +212,7 @@ void Renderer::renderLoop(GLFWwindow* window, ImGuiUI& gui)
             std::string meshFilePath(gui.getFilePath());
             if (!meshFilePath.empty()) {
                 //Entry point for conversion code
-                mesh2SplatConversionHandler.runConversion(  
+                mesh2SplatConversionHandler.runConversionPass(  
                     meshFilePath, gui.getFilePathParentFolder(),
                     gui.getResolutionTarget(), gui.getGaussianStd(),
                     converterShaderProgram, computeShaderProgram,
