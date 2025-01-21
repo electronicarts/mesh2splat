@@ -1,95 +1,9 @@
 #include "renderer.hpp"
 
-//TODO: make this a renderer class, move here all the opengl logic and create a separete camera class, avoid it bloating and getting too messy
-float yaw = -90.0f, pitch = 0.0f;
-double lastMouseX = 320.0f, lastMouseY = 240.0f;  
-bool firstMouse = true;
-float cameraRadius = 5.0f; 
-float distance = 5.0f;
-bool mouseDraggingForRotation;
-bool mouseDraggingForPanning;
-float panSpeed = 0.01;
-glm::vec3 cameraTarget = glm::vec3(0,0,0);
-
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
-    ImGuiIO& io = ImGui::GetIO();
-    if (!io.WantCaptureMouse) {
-        if (button == GLFW_MOUSE_BUTTON_LEFT) {
-            if (action == GLFW_PRESS) {
-                mouseDraggingForRotation = true;
-                glfwGetCursorPos(window, &lastMouseX, &lastMouseY);
-            } else if (action == GLFW_RELEASE) {
-                mouseDraggingForRotation = false;
-            }
-        }
-        if (button == GLFW_MOUSE_BUTTON_RIGHT) {
-            if (action == GLFW_PRESS) {
-                mouseDraggingForPanning = true;
-                glfwGetCursorPos(window, &lastMouseX, &lastMouseY);
-            } else if (action == GLFW_RELEASE) {
-                mouseDraggingForPanning = false;
-            }
-        }
-    }
-}
-
-// Cursor position callback to update yaw and pitch during dragging
-void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
-    ImGuiIO& io = ImGui::GetIO();
-    if (!io.WantCaptureMouse) {
-        if (mouseDraggingForRotation) {
-            double dx = xpos - lastMouseX;
-            double dy = ypos - lastMouseY;
-
-            // Sensitivity factors for smoother control
-            float sensitivity = 0.1f;
-            yaw += static_cast<float>(dx) * sensitivity;
-            pitch += static_cast<float>(dy) * sensitivity;
-
-            // Clamp pitch to avoid flipping the camera
-            if (pitch > 89.0f)  pitch = 89.0f;
-            if (pitch < -89.0f) pitch = -89.0f;
-
-            lastMouseX = xpos;
-            lastMouseY = ypos;
-        }
-
-        if (mouseDraggingForPanning)
-        {
-            double currentRightMouseX = xpos;
-            double currentRightMouseY = ypos;
+//TODO: create a separete camera class, avoid it bloating and getting too messy
 
 
-            double dx = currentRightMouseX - lastMouseX;
-            double dy = currentRightMouseY - lastMouseY;
-
-            // Calculate camera axes for panning
-            glm::vec3 camPos = computeCameraPosition();
-            glm::vec3 front = glm::normalize(cameraTarget - camPos);
-            glm::vec3 worldUp(0.0f, 1.0f, 0.0f);
-            glm::vec3 cameraRight = glm::normalize(glm::cross(front, worldUp));
-            glm::vec3 cameraUp = glm::normalize(glm::cross(cameraRight, front));
-
-            cameraTarget += -static_cast<float>(dx) * panSpeed * cameraRight
-                + static_cast<float>(dy) * panSpeed * cameraUp;
-
-            lastMouseX = currentRightMouseX;
-            lastMouseY = currentRightMouseY;
-        }
-    }
-}
-
-// Scroll callback to adjust camera distance (zoom)
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-    float zoomSpeed = 1.0f;
-    distance -= static_cast<float>(yoffset) * zoomSpeed;
-    
-    // Clamp distance to avoid extreme zoom
-    if(distance < 1.0f)  distance = 1.0f;
-    if(distance > 150.0f) distance = 150.0f;
-}
-
-glm::vec3 computeCameraPosition() {
+glm::vec3 Renderer::computeCameraPosition(float yaw, float pitch, float distance) {
     // Convert angles to radians
     float yawRadians   = glm::radians(yaw);
     float pitchRadians = glm::radians(pitch);
@@ -104,7 +18,7 @@ glm::vec3 computeCameraPosition() {
 }
 
 
-GLuint compute_shader_dispatch(GLuint computeShaderProgram, GLuint* drawBuffers, GLuint gaussianBuffer, unsigned int resolutionTarget)
+GLuint Renderer::compute_shader_dispatch(GLuint computeShaderProgram, GLuint* drawBuffers, GLuint gaussianBuffer, unsigned int resolutionTarget)
 {
     struct DrawArraysIndirectCommand {
         GLuint count;        // Number of vertices to draw.
@@ -159,7 +73,7 @@ GLuint compute_shader_dispatch(GLuint computeShaderProgram, GLuint* drawBuffers,
     return drawIndirectBuffer;
 }
 
-unsigned int getSplatBufferCount(GLuint counterBuffer)
+unsigned int Renderer::getSplatBufferCount(GLuint counterBuffer)
 {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, counterBuffer);
     unsigned int splatCount = 1000;
@@ -171,7 +85,7 @@ unsigned int getSplatBufferCount(GLuint counterBuffer)
     return splatCount;
 }
 
-void render_point_cloud(GLFWwindow* window, GLuint pointsVAO, GLuint gaussianBuffer, GLuint drawIndirectBuffer, GLuint renderShaderProgram, float std_gauss)
+void Renderer::render_point_cloud(GLFWwindow* window, GLuint pointsVAO, GLuint gaussianBuffer, GLuint drawIndirectBuffer, GLuint renderShaderProgram, float std_gauss)
 {
     if (gaussianBuffer == static_cast<GLuint>(-1) ||
         drawIndirectBuffer == static_cast<GLuint>(-1) ||
@@ -194,7 +108,7 @@ void render_point_cloud(GLFWwindow* window, GLuint pointsVAO, GLuint gaussianBuf
     glViewport(0, 0, width, height);
 
     // --- Existing camera and point rendering code---- TODO: refactor, should not be here
-    glm::vec3 cameraPos = computeCameraPosition();
+    glm::vec3 cameraPos = computeCameraPosition(yaw, pitch, distance);
     glm::vec3 target(0.0f);
     glm::vec3 up(0.0f, 1.0f, 0.0f);
     glm::mat4 view = glm::lookAt(cameraPos, target, up);

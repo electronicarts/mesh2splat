@@ -37,16 +37,17 @@ void setupTransformFeedback(size_t bufferSize, GLuint& feedbackBuffer, GLuint& f
 GLuint* setupFrameBuffer(GLuint& framebuffer, unsigned int width, unsigned int height);
 
 //Make arguments into a struct its too many parameters to pass and not readable...
-void performGpuConversion(
-    GLuint shaderProgram, GLuint vao,
-    GLuint framebuffer, size_t vertexCount,
-    int normalizedUVSpaceWidth, int normalizedUVSpaceHeight,
-    const std::map<std::string, TextureDataGl>& textureTypeMap,
-    MaterialGltf material, unsigned int referenceResolution, float GAUSSIAN_STD
-);
 
 void retrieveMeshFromFrameBuffer(std::vector<Gaussian3D>& gaussians_3D_list, GLuint& framebuffer, unsigned int width, unsigned int height, bool print, bool check);
 
 void setupSsbo(unsigned int width, unsigned int height, GLuint* gaussianBuffer);
 
 std::string readShaderFile(const char* filePath);
+
+//Make template function for this and make these one generic
+void setUniform1f(GLuint shaderProgram, std::string uniformName, float uniformValue);
+void setUniform1i(GLuint shaderProgram, std::string uniformName, unsigned int uniformValue);
+void setUniform3f(GLuint shaderProgram, std::string uniformName, glm::vec3 uniformValue);
+void setUniform2f(GLuint shaderProgram, std::string uniformName, glm::vec2 uniformValue);
+void setUniformMat4(GLuint shaderProgram, std::string uniformName, glm::mat4 matrix);
+void setTexture(GLuint shaderProgram, std::string textureUniformName, GLuint texture, unsigned int textureUnitNumber);

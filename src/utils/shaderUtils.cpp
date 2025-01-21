@@ -323,7 +323,7 @@ void setupTransformFeedback(size_t bufferSize, GLuint& feedbackBuffer, GLuint& f
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, feedbackBuffer);
 }
 
-static void setUniform1f(GLuint shaderProgram, std::string uniformName, float uniformValue)
+void setUniform1f(GLuint shaderProgram, std::string uniformName, float uniformValue)
 {
     GLint uniformLocation = glGetUniformLocation(shaderProgram, uniformName.c_str());
 
@@ -334,7 +334,7 @@ static void setUniform1f(GLuint shaderProgram, std::string uniformName, float un
     glUniform1f(uniformLocation, uniformValue);
 }
 
-static void setUniform1i(GLuint shaderProgram, std::string uniformName, unsigned int uniformValue)
+void setUniform1i(GLuint shaderProgram, std::string uniformName, unsigned int uniformValue)
 {
     GLint uniformLocation = glGetUniformLocation(shaderProgram, uniformName.c_str());
 
@@ -345,7 +345,7 @@ static void setUniform1i(GLuint shaderProgram, std::string uniformName, unsigned
     glUniform1i(uniformLocation, uniformValue);
 }
 
-static void setUniform3f(GLuint shaderProgram, std::string uniformName, glm::vec3 uniformValue)
+void setUniform3f(GLuint shaderProgram, std::string uniformName, glm::vec3 uniformValue)
 {
     GLint uniformLocation = glGetUniformLocation(shaderProgram, uniformName.c_str());
 
@@ -356,7 +356,7 @@ static void setUniform3f(GLuint shaderProgram, std::string uniformName, glm::vec
     glUniform3f(uniformLocation, uniformValue[0], uniformValue[1], uniformValue[2]);
 }
 
-static void setUniform2f(GLuint shaderProgram, std::string uniformName, glm::vec2 uniformValue)
+void setUniform2f(GLuint shaderProgram, std::string uniformName, glm::vec2 uniformValue)
 {
     GLint uniformLocation = glGetUniformLocation(shaderProgram, uniformName.c_str());
 
@@ -368,7 +368,7 @@ static void setUniform2f(GLuint shaderProgram, std::string uniformName, glm::vec
 }
 
 
-static void setUniformMat4(GLuint shaderProgram, std::string uniformName, glm::mat4 matrix)
+void setUniformMat4(GLuint shaderProgram, std::string uniformName, glm::mat4 matrix)
 {
     GLint uniformLocation = glGetUniformLocation(shaderProgram, uniformName.c_str());
 
@@ -379,7 +379,7 @@ static void setUniformMat4(GLuint shaderProgram, std::string uniformName, glm::m
     glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, &matrix[0][0]);
 }
 
-static void setTexture(GLuint shaderProgram, std::string textureUniformName, GLuint texture, unsigned int textureUnitNumber)
+void setTexture(GLuint shaderProgram, std::string textureUniformName, GLuint texture, unsigned int textureUnitNumber)
 {
     GLint uniformLocation = glGetUniformLocation(shaderProgram, textureUniformName.c_str());
 
@@ -392,74 +392,6 @@ static void setTexture(GLuint shaderProgram, std::string textureUniformName, GLu
     glUniform1i(uniformLocation, textureUnitNumber);
 }
 
-void performGpuConversion(
-    GLuint shaderProgram, GLuint vao,
-    GLuint framebuffer, size_t vertexCount,
-    int normalizedUVSpaceWidth, int normalizedUVSpaceHeight,
-    const std::map<std::string, TextureDataGl>& textureTypeMap, MaterialGltf material, unsigned int referenceResolution, float GAUSSIAN_STD
-) {
-    // Use shader program and perform tessellation
-    glUseProgram(shaderProgram);
-
-    //-------------------------------SET UNIFORMS-------------------------------   
-    setUniform3f(shaderProgram, "meshMaterialColor", material.baseColorFactor);
-    setUniform1f(shaderProgram, "sigma_x", GAUSSIAN_STD / (float(referenceResolution))); //I separate x and y in case want it to be anisotropic in the future
-    setUniform1f(shaderProgram, "sigma_y", GAUSSIAN_STD / (float(referenceResolution)));
-
-    //Textures
-    if (textureTypeMap.find(BASE_COLOR_TEXTURE) != textureTypeMap.end())
-    {
-        setTexture(shaderProgram, "albedoTexture", textureTypeMap.at(BASE_COLOR_TEXTURE).glTextureID,                        0);
-        setUniform1i(shaderProgram, "hasAlbedoMap", 1);
-    }
-    if (textureTypeMap.find(NORMAL_TEXTURE) != textureTypeMap.end())
-    {
-        setTexture(shaderProgram, "normalTexture", textureTypeMap.at(NORMAL_TEXTURE).glTextureID,                            1);
-        setUniform1i(shaderProgram, "hasNormalMap", 1);
-    }
-    if (textureTypeMap.find(METALLIC_ROUGHNESS_TEXTURE) != textureTypeMap.end())
-    {
-        setTexture(shaderProgram, "metallicRoughnessTexture", textureTypeMap.at(METALLIC_ROUGHNESS_TEXTURE).glTextureID,     2);
-        setUniform1i(shaderProgram, "hasMetallicRoughnessMap", 1);
-    }
-    if (textureTypeMap.find(AO_TEXTURE) != textureTypeMap.end())
-    {
-        setTexture(shaderProgram, "occlusionTexture", textureTypeMap.at(AO_TEXTURE).glTextureID,                      3);
-    }
-    if (textureTypeMap.find(EMISSIVE_TEXTURE) != textureTypeMap.end())
-    {
-        setTexture(shaderProgram, "emissiveTexture", textureTypeMap.at(EMISSIVE_TEXTURE).glTextureID,                        4);
-    }
-
-    //--------------------------------------------------------------------------
-    //Query for conversion time, remove it if dont care about it
-
-    //GLuint queryID;
-    //glGenQueries(1, &queryID);
-
-    glBindVertexArray(vao);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-
-    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    //glBeginQuery(GL_TIME_ELAPSED, queryID);
-
-    glDrawArrays(GL_TRIANGLES, 0, vertexCount); 
-
-    //glEndQuery(GL_TIME_ELAPSED);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    //GLuint64 elapsed_time;
-    //glGetQueryObjectui64v(queryID, GL_QUERY_RESULT, &elapsed_time);
-
-    // Convert nanoseconds to milliseconds
-    //double elapsed_time_ms = elapsed_time / 1'000'000.0f;
-
-    //std::cout << "Draw call time: " << elapsed_time_ms << " ms" << std::endl;
-
-    //glDeleteQueries(1, &queryID);
-}
 
 
 static void writeAttachmentToPNG(const std::vector<float>& pixels, int width, int height, const std::string& filename) {
