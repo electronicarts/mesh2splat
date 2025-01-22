@@ -85,12 +85,12 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
     std::vector<float> quadVertices = {
         // Tr1
         -1.0f, -1.0f, 0.0f,
-         1.0f, -1.0f, 0.0f,
+         -1.0f, 1.0f, 0.0f,
          1.0f,  1.0f, 0.0f,
         // Tr2 
-         1.0f,  1.0f, 0.0f,
-        -1.0f,  1.0f, 0.0f,
-        -1.0f, -1.0f, 0.0f,
+         -1.0f,  -1.0f, 0.0f,
+        1.0f,  1.0f, 0.0f,
+        1.0f, -1.0f, 0.0f,
     };
 
     glBindVertexArray(pointsVAO);

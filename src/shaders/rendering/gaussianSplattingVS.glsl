@@ -66,13 +66,13 @@ vec3 computeConic(mat4 objectToWorld, mat4 worldToView, mat4 viewToClip, vec2 re
 	vec3 vsCenterPos	= vsCenterPosHom.xyz;
 
 	// covariance Matrix in world space, symmetric, can be optimized
-	mat3 wsBigSigma = (mat3(objectToWorld)) * transpose(mat3(objectToWorld));
+	mat3 wsBigSigma = (transpose(mat3(objectToWorld))) * mat3(objectToWorld);
 	//float3x3 wsBigSigma = mul((float3x3) objectToWorld, transpose((float3x3) objectToWorld));
 
 	// covariance Matrix in view space, symmetric, can be optimized
 	mat3 W = mat3(worldToView);
 
-	mat3 vsBigSigma = W * wsBigSigma * transpose(W);
+	mat3 vsBigSigma = transpose(W) * wsBigSigma * W;
 
 	//mat3 vsBigSigma = mul(W, mul(wsBigSigma, transpose(W)));
 
@@ -166,7 +166,7 @@ mat4 calcMatrixFromRotationScaleTranslation(vec3 translation, vec4 rot, vec3 sca
 		vec4(wsRotMulScale[1], 0),
 		vec4(wsRotMulScale[2], 0),
 		vec4(0, 0, 0, 1)
-	}; //invariant to hlsl -> glsl translation
+	}; 
 
 	//rot4x4 = transpose(rot4x4);
 
