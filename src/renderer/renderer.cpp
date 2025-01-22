@@ -162,7 +162,7 @@ void Renderer::clearingPrePass(glm::vec4 clearColor)
 
 bool Renderer::updateShadersIfNeeded() {
     for (auto& entry : shaderFiles) {
-        ShaderFileInfo info = entry.second;
+        ShaderFileInfo& info = entry.second;
         if (shaderFileChanged(info)) {
             // Update timestamp
             info.lastWriteTime = fs::last_write_time(info.filePath);
@@ -187,16 +187,16 @@ void Renderer::renderLoop(GLFWwindow* window, ImGuiUI& gui)
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
+        clearingPrePass(gui.getSceneBackgroundColor());
+
+        gui.preframe();
+        gui.renderUI();
+
         double currentTime = glfwGetTime();
         if (currentTime - lastShaderCheckTime > 1.0) {
             gui.setRunConversion(updateShadersIfNeeded());
             lastShaderCheckTime = currentTime;
         }
-
-        clearingPrePass(gui.getSceneBackgroundColor());
-
-        gui.preframe();
-        gui.renderUI();
 
         {
             if (gui.shouldLoadNewMesh()) {

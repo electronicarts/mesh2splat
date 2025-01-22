@@ -64,7 +64,7 @@ void main() {
 
     //TODO: I could save at least one vec4 by packing the pbr properties in the .w of position and .w of color
     gaussianBuffer.vertices[index].position     = position;
-    gaussianBuffer.vertices[index].color        = colorData; 
+    gaussianBuffer.vertices[index].color        = vec4(0,0,1,1); 
     gaussianBuffer.vertices[index].scale        = scale; 
     gaussianBuffer.vertices[index].normal       = normal; 
     gaussianBuffer.vertices[index].rotation     = quaternion; 
