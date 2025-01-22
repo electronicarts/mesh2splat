@@ -3,6 +3,7 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <glm.hpp>
 
 class ImGuiUI {
 public:
@@ -22,6 +23,7 @@ public:
     float getGaussianStd();
     int getResolutionTarget();
     int getFormatOption();
+    glm::vec4 getSceneBackgroundColor();
 
     void setLoadNewMesh(bool shouldLoadNewMesh);
     void setRunConversion(bool shouldRunConversionFlag);
@@ -46,8 +48,10 @@ private:
     char destinationFilePathBuffer[256];
 
     const float minStd = 0.1f;
-    const float maxStd = 10.0f;
+    const float maxStd = 3.0f;
     const int maxRes = 2048;
     const int minRes = 16;
+
+    glm::vec4 sceneBackgroundColor = { 0,0,0,1 };
 };
 

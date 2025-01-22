@@ -26,6 +26,23 @@ Renderer::~Renderer()
     glDeleteProgram(computeShaderProgram);
 }
 
+void Renderer::initializeOpenGLState() {
+    //TODO: Better have a way to set these opengl states at the render pass level in next refactor
+    //glEnable(GL_DEPTH_TEST);
+    //glDepthFunc(GL_LESS);
+
+    
+    //glEnable(GL_BLEND);
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //glBlendEquation(GL_FUNC_ADD);
+
+    //glEnable(GL_CULL_FACE);
+    //glCullFace(GL_BACK);
+    //glFrontFace(GL_CCW);
+
+    //glEnable(GL_MULTISAMPLE);
+}
+
 //TODO: kinda bad that I pass parameters to this function that are global variables (in )
 glm::vec3 Renderer::computeCameraPosition(float yaw, float pitch, float distance) {
     // Convert angles to radians
@@ -60,6 +77,10 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
         renderShaderProgram == 0) return;
 
     glUseProgram(renderShaderProgram);
+
+    //TODO: this will work once storting is working
+    //glEnable(GL_BLEND);
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
@@ -128,8 +149,9 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
     glBindVertexArray(0);
 }
 	
-void Renderer::clearingPrePass()
+void Renderer::clearingPrePass(glm::vec4 clearColor)
 {
+    glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 }
@@ -143,7 +165,7 @@ void Renderer::renderLoop(GLFWwindow* window, ImGuiUI& gui)
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
-        clearingPrePass();
+        clearingPrePass(gui.getSceneBackgroundColor());
 
         gui.preframe();
         gui.renderUI();

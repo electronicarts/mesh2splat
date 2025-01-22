@@ -4,8 +4,8 @@ layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
 
 uniform vec2 metallicRoughnessFactors;
-uniform float sigma_x;
-uniform float sigma_y;
+uniform float u_sigma_x;
+uniform float u_sigma_y;
 
 // Match this struct with the VS_OUT struct from the vertex shader
 in VS_OUT{
@@ -429,8 +429,8 @@ void main() {
     vec3 Ju = vec3(J_T[0][0], J_T[1][0], J_T[2][0]); 
     vec3 Jv = vec3(J_T[0][1], J_T[1][1], J_T[2][1]); 
 
-    float gaussian_scale_x = length(Ju) * sigma_x;
-    float gaussian_scale_y = length(Jv) * sigma_y;
+    float gaussian_scale_x = length(Ju) * u_sigma_x;
+    float gaussian_scale_y = length(Jv) * u_sigma_y;
 
 
     float packed_s_x    = log(gaussian_scale_x);

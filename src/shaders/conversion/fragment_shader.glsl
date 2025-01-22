@@ -13,7 +13,6 @@ uniform sampler2D metallicRoughnessTexture;
 uniform sampler2D occlusionTexture;
 uniform sampler2D emissiveTexture;
 
-uniform vec3 meshMaterialColor;
 uniform int hasAlbedoMap;
 uniform int hasNormalMap;
 uniform int hasMetallicRoughnessMap;
@@ -36,14 +35,11 @@ void main() {
     //vec3 v = dFdy(GaussianPosition);
     //vec3 n = normalize(cross(u, v));
     
-    vec4 out_Color;
+    vec4 out_Color = vec4(0,0,0,1);
 
     if (hasAlbedoMap == 1)
     {
-        out_Color = texture(albedoTexture, UV) * vec4(meshMaterialColor, 1.0f);
-    }
-    else {
-        out_Color = vec4(meshMaterialColor, 1.0f);
+        out_Color = texture(albedoTexture, UV);
     }
 
     //NORMAL MAP

@@ -11,13 +11,14 @@ public:
 	Renderer();
 	~Renderer();
 
+	void initializeOpenGLState();
 	static glm::vec3 computeCameraPosition(float yaw, float pitch, float distance);
 	void run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint gaussianBuffer, GLuint drawIndirectBuffer, GLuint renderShaderProgram, float std_gauss);
 	void renderLoop(GLFWwindow* window, ImGuiUI& gui);
 	//For now not using this, will implement a simil scene graph setup later
 	void recordRenderPass();
 private:
-	void clearingPrePass();
+	void clearingPrePass(glm::vec4 clearColor);
 	unsigned int getSplatBufferCount(GLuint counterBuffer);
 	Mesh2splatConverterHandler mesh2SplatConversionHandler;
 	int normalizedUvSpaceWidth, normalizedUvSpaceHeight;

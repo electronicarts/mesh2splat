@@ -50,6 +50,8 @@ void ImGuiUI::renderUI()
         }
     }
 
+    ImGui::ColorEdit4("Background Color", &sceneBackgroundColor.x);
+
     ImGui::Combo("Resolution", &resolutionIndex, resolutionLabels, IM_ARRAYSIZE(resolutionLabels));
     ImGui::Combo("Format", &formatIndex, formatLabels, IM_ARRAYSIZE(formatLabels));
 
@@ -57,7 +59,10 @@ void ImGuiUI::renderUI()
         runConversionFlag = true;
     }
 
-    ImGui::SliderFloat("Gaussian Std", &gaussian_std, minStd, maxStd, "%.2f");
+    if (ImGui::SliderFloat("Gaussian Std", &gaussian_std, minStd, maxStd, "%.2f"))
+    {
+        runConversionFlag = true;
+    };
     if (ImGui::SliderFloat("Mesh2Splat quality", &quality, 0.0f, 1.0f, "%.2f")) {
         runConversionFlag = true;
     }
@@ -94,6 +99,8 @@ void ImGuiUI::setRunConversion(bool shouldRunConversionFlag) { runConversionFlag
 std::string ImGuiUI::getFilePath() { return std::string(filePathBuffer); };
 std::string ImGuiUI::getFilePathParentFolder(){return parent_folder;};
 int ImGuiUI::getFormatOption() { return formatOptions[formatIndex]; };
+glm::vec4 ImGuiUI::getSceneBackgroundColor() { return sceneBackgroundColor; };
+
 
 float ImGuiUI::getGaussianStd() { return gaussian_std; };
 int ImGuiUI::getResolutionTarget() { return static_cast<int>(minRes + quality * (maxRes - minRes)); };

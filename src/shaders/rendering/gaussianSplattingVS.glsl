@@ -193,7 +193,7 @@ void main() {
 
 	vec3 param  = computeConic(splatToWorld, transpose(u_worldToView), transpose(u_viewToClip), u_resolution, alphaScale);
 	vec2 corner = computeCorner(offset, param, u_resolution);
-	corner /= 2.0;
+	//corner /= 2.0;
 	vec4 splatClipPos = u_MVP * vec4(splatMeanWs, 1.0f);
 	gl_Position = splatClipPos + vec4(corner * splatClipPos.w * GAUSSIAN_CUTOFF_SCALE, 0, 0);
 

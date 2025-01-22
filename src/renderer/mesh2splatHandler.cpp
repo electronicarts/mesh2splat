@@ -94,9 +94,8 @@ void Mesh2splatConverterHandler::performGpuConversion(
     glUseProgram(shaderProgram);
 
     //-------------------------------SET UNIFORMS-------------------------------   
-    setUniform3f(shaderProgram, "meshMaterialColor", material.baseColorFactor);
-    setUniform1f(shaderProgram, "sigma_x", GAUSSIAN_STD / (float(referenceResolution))); //I separate x and y in case want it to be anisotropic in the future
-    setUniform1f(shaderProgram, "sigma_y", GAUSSIAN_STD / (float(referenceResolution)));
+    setUniform1f(shaderProgram, "u_sigma_x", GAUSSIAN_STD / (float(referenceResolution))); //I separate x and y in case want it to be anisotropic in the future
+    setUniform1f(shaderProgram, "u_sigma_y", GAUSSIAN_STD / (float(referenceResolution)));
 
     //Textures
     if (textureTypeMap.find(BASE_COLOR_TEXTURE) != textureTypeMap.end())

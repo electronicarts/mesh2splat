@@ -26,6 +26,7 @@ int main(int argc, char** argv) {
     Renderer simpleRenderer;
     ImGuiUI ImGuiUI(3, 0, 0.1f, 0.5f); //TODO: give a meaning to these params
     ImGuiUI.initialize(glewGlfwHandler.getWindow());
+    simpleRenderer.initializeOpenGLState();
     simpleRenderer.renderLoop(glewGlfwHandler.getWindow(), ImGuiUI);
 
     return 0;
