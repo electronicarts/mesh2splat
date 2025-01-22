@@ -16,8 +16,8 @@ public:
 	static glm::vec3 computeCameraPosition(float yaw, float pitch, float distance);
 	void run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint gaussianBuffer, GLuint drawIndirectBuffer, GLuint renderShaderProgram, float std_gauss);
 	void renderLoop(GLFWwindow* window, ImGuiUI& gui);
-	//For now not using this, will implement a simil scene graph setup later
-	void recordRenderPass();
+	//TODO: For now not using this, will implement a render-pass based structure and change how the render-loop is implemented
+	void recordRenderPass(); 
 	bool updateShadersIfNeeded();
 private:
 	void clearingPrePass(glm::vec4 clearColor);
@@ -40,5 +40,6 @@ private:
 	std::vector<std::pair<std::string, GLenum>> computeShadersInfo;
 	std::vector<std::pair<std::string, GLenum>> rendering3dgsShadersInfo;
 	double lastShaderCheckTime;
+
 };
 

@@ -79,7 +79,7 @@ void initializeShaderFileMonitoring(
     shaderFiles["converterFrag"]        = { fs::last_write_time(CONVERTER_FRAG_SHADER_LOCATION),   CONVERTER_FRAG_SHADER_LOCATION };
     shaderFiles["readerCompute"]        = { fs::last_write_time(TRANSFORM_COMPUTE_SHADER_LOCATION),   TRANSFORM_COMPUTE_SHADER_LOCATION };
     shaderFiles["renderer3dgsVert"]     = { fs::last_write_time(RENDERER_VERTEX_SHADER_LOCATION),   RENDERER_VERTEX_SHADER_LOCATION };
-    shaderFiles["renderer3dgsVert"]     = { fs::last_write_time(RENDERER_FRAGMENT_SHADER_LOCATION),   RENDERER_FRAGMENT_SHADER_LOCATION };
+    shaderFiles["renderer3dgsFrag"]     = { fs::last_write_time(RENDERER_FRAGMENT_SHADER_LOCATION),   RENDERER_FRAGMENT_SHADER_LOCATION };
 
     converterShadersInfo = {
         { CONVERTER_VERTEX_SHADER_LOCATION,     GL_VERTEX_SHADER   },

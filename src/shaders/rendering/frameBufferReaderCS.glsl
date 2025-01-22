@@ -49,7 +49,6 @@ void main() {
     uint index      = atomicAdd(drawElementsIndirectCommand.instanceCount, 1);
 
     //should change ordering and leave scale as first components, otherwise confusing
-    //vec4 posAndScaleXData       = texelFetch(texPositionAndScaleX, pix, 0);
     vec4 position               = vec4(posAndScaleXData.xyz, 1);
 
     vec4 scaleZAndNormalData    = texelFetch(scaleZAndNormal, pix, 0);
@@ -64,7 +63,7 @@ void main() {
 
     //TODO: I could save at least one vec4 by packing the pbr properties in the .w of position and .w of color
     gaussianBuffer.vertices[index].position     = position;
-    gaussianBuffer.vertices[index].color        = vec4(0,0,1,1); 
+    gaussianBuffer.vertices[index].color        = colorData; 
     gaussianBuffer.vertices[index].scale        = scale; 
     gaussianBuffer.vertices[index].normal       = normal; 
     gaussianBuffer.vertices[index].rotation     = quaternion; 
