@@ -80,7 +80,9 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
 
     //TODO: this will work once sorting is working
 	glEnable(GL_BLEND);
+    glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
+
     //glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 	glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_ONE);
     //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -102,7 +104,7 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
     glm::vec3 target(0.0f);
     glm::vec3 up(0.0f, 1.0f, 0.0f);
     glm::mat4 view = glm::lookAt(cameraPos, target, up);
-    glm::mat4 model = glm::mat4(1.0);
+    glm::mat4 model = glm::mat4(0.9f);
     glm::mat4 MVP = projection * view * model;
 
     float htany = tan(glm::radians(fov) / 2);
@@ -124,10 +126,10 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
 
     glBindVertexArray(pointsVAO);
 
-    GLuint quadVBO, quadEBO;
+    GLuint quadVBO;
     glGenBuffers(1, &quadVBO);
     glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    glBufferData(GL_ARRAY_BUFFER, quadVertices.size() * sizeof(float), quadVertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, quadVertices.size() * sizeof(float), quadVertices.data(), GL_DYNAMIC_DRAW);
 
     //TODO: should name all uniforms with this convention for clarity
     setUniformMat4(renderShaderProgram, "u_MVP", MVP);
@@ -140,20 +142,22 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
     glEnableVertexAttribArray(0);
 
+    glFinish();
     glBindBuffer(GL_ARRAY_BUFFER, gaussianBuffer);
-
+    
     GLint bufferSize = 0;
     glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &bufferSize);
     size_t gaussianCount = bufferSize / sizeof(GaussianDataSSBO);
     std::vector<GaussianDataSSBO> gaussians(gaussianCount);
     glGetBufferSubData(GL_ARRAY_BUFFER, 0, bufferSize, gaussians.data());
-    
+    // Insert a fence sync after buffer data retrieval
+
     //TODO: Sort the gaussian, will need to add a radix sort compute pass here
 
     // Transform Gaussian positions to view space
     auto viewSpaceDepth = [&](const GaussianDataSSBO& g) -> float {
         glm::vec4 viewPos = view * glm::vec4(g.position.x,g.position.y, g.position.z, 1.0);
-        return viewPos.z; // Use z-value for depth sorting
+        return viewPos.z; 
     };
 
     std::sort(gaussians.begin(), gaussians.end(),
@@ -167,6 +171,7 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
              gaussians.data(), 
              GL_DYNAMIC_DRAW);
 
+    
     //We need to redo this vertex attrib binding as the buffer could have been deleted if the compute/conversion pass was run, adn we need to free the data to avoid
     // memory leak. Could use a flag to check if the buffer was freed or not
     unsigned int stride = sizeof(glm::vec4) * 6; //TODO: ISSUE6 (check for it)
@@ -188,9 +193,8 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
 	
 void Renderer::clearingPrePass(glm::vec4 clearColor)
 {
-    glClearColor(0, 0, 0, 0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    //glEnable(GL_DEPTH_TEST);
+    glClearColor(clearColor.r, clearColor.g, clearColor.b, 0);
+    glClear(GL_COLOR_BUFFER_BIT);
 }
 
 bool Renderer::updateShadersIfNeeded() {

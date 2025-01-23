@@ -76,10 +76,11 @@ void computeCov3D(vec4 quat, vec3 scales, out mat3 sigma3d) {
 
 void main() {
 
-	mat3 cov3D;
+	mat3 cov3d;
 
+	//vec3 gaussianWorld = u_objectToWorld * vec4(gaussianPosition_ms.xyz, 1);
 	//TODO: I am technically having to log and then exp the same scale values along the pipeline, but whatever
-	computeCov3D(gaussianQuaternion, exp(gaussianPackedScale.xyz), cov3D);
+	computeCov3D(gaussianQuaternion, vec3(exp(gaussianPackedScale.xy), max(exp(gaussianPackedScale.x), exp(gaussianPackedScale.y))), cov3d);
 	vec4 gaussian_vs = u_worldToView * vec4(gaussianPosition_ms.xyz, 1);
 
 	vec4 pos2dHom = u_viewToClip * gaussian_vs;
@@ -106,25 +107,23 @@ void main() {
 
 	//Jacobian of affine approximation of projective transformation
 	mat3 J = mat3(
-	  u_hfov_focal.z / gaussian_vs.z, 0., -(u_hfov_focal.z * tx) / (gaussian_vs.z * gaussian_vs.z),
-	  0., u_hfov_focal.z / gaussian_vs.z, -(u_hfov_focal.z * ty) / (gaussian_vs.z * gaussian_vs.z),
-	  0., 0., 0.
+	  u_hfov_focal.z / gaussian_vs.z, 0., 0,
+	  -(u_hfov_focal.z * tx) / (gaussian_vs.z * gaussian_vs.z), u_hfov_focal.z / gaussian_vs.z, 0,
+	  0., -(u_hfov_focal.z * ty) / (gaussian_vs.z * gaussian_vs.z), 0.
 	);
-
-	//Apply jacobian
-	mat3 T = transpose(mat3(u_worldToView)) * J;
-
-	// J*W*Sigma3D*W.T*J.T
-	mat3 cov2d = transpose(T) * transpose(cov3D) * T;
+	
+	mat3 JW = J * mat3(u_worldToView);
+	mat3 cov2d = JW * cov3d * transpose(JW);
 
 	//Just care about applying low pass filter to 2x2 upper matrix
 	cov2d[0][0] += 0.3f;
 	cov2d[1][1] += 0.3f; 
 
-	float det = determinant(cov2d);
-	if (det == 0.0f)
-		gl_Position = vec4(0.f, 0.f, 0.f, 0.f);
-
+	float det = determinant(mat2(cov2d));
+	if (det == 0.0f){
+		gl_Position = vec4(10000.f, 10000.f, 10000.f, 10000.f);
+		return;
+	}
 	float det_inv = 1.f / det;
 
 
