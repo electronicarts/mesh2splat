@@ -259,7 +259,7 @@ void generateTextures(MaterialGltf material, std::map<std::string, TextureDataGl
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 40);
             //TODO: this is trash, oh mamma mia this is really bad. Change it sooner than later.
             //Before the assignment it was the Bpp and now it is the textureID...
             textureTypeMapEntry.second.glTextureID = texture;

@@ -24,7 +24,6 @@ public:
 	bool updateShadersIfNeeded(bool forceReload=false);
 private:
 	void clearingPrePass(glm::vec4 clearColor);
-	unsigned int getSplatBufferCount(GLuint counterBuffer);
 	Mesh2splatConverterHandler mesh2SplatConversionHandler;
 	int normalizedUvSpaceWidth, normalizedUvSpaceHeight;
     std::vector<std::pair<Mesh, GLMesh>> dataMeshAndGlMesh;

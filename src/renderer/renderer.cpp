@@ -52,11 +52,18 @@ Renderer::Renderer()
 Renderer::~Renderer()
 {
     glDeleteVertexArrays(1, &pointsVAO);
-    glDeleteBuffers(1, &gaussianBuffer);
-    glDeleteBuffers(1, &drawIndirectBuffer);
+
     glDeleteProgram(renderShaderProgram);
     glDeleteProgram(converterShaderProgram);
     glDeleteProgram(computeShaderProgram);
+    glDeleteProgram(radixSortPrepassProgram);
+    glDeleteProgram(radixSortGatherProgram);
+
+    glDeleteBuffers(1, &gaussianBuffer);
+    glDeleteBuffers(1, &drawIndirectBuffer);
+    glDeleteBuffers(1, &keysBuffer);
+    glDeleteBuffers(1, &valuesBuffer);
+    glDeleteBuffers(1, &gaussianBufferSorted);
 }
 
 void Renderer::initializeOpenGLState() {
@@ -72,7 +79,6 @@ void Renderer::initializeOpenGLState() {
     //glEnable(GL_CULL_FACE);
     //glCullFace(GL_FRONT);
 
-    //glEnable(GL_MULTISAMPLE);
 }
 
 //TODO: kinda bad that I pass parameters to this function that are global variables (in )
@@ -87,18 +93,6 @@ glm::vec3 Renderer::computeCameraPosition(float yaw, float pitch, float distance
     float z = distance * cos(pitchRadians) * sin(yawRadians);
     
     return glm::vec3(x, y, z);
-}
-
-unsigned int Renderer::getSplatBufferCount(GLuint counterBuffer)
-{
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, counterBuffer);
-    unsigned int splatCount = 1000;
-    unsigned int* counterPtr = (unsigned int*) glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(unsigned int), GL_MAP_READ_BIT);
-    if (counterPtr) {
-        splatCount = *counterPtr;
-        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-    }
-    return splatCount;
 }
 
 void debugPrintGaussians(GLuint gaussianBuffer, unsigned int maxPrintCount = 50)
@@ -144,11 +138,6 @@ void debugPrintGaussians(GLuint gaussianBuffer, unsigned int maxPrintCount = 50)
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 }
 
-// Debug function to read and print the contents of two SSBOs (keys & values).
-//  - keySsbo:    The OpenGL buffer ID for the keys.
-//  - valSsbo:    The OpenGL buffer ID for the values.
-//  - count:      Number of elements in each buffer (keys/values are both size `count`).
-//  - maxPrint:   If you have a huge buffer, you might limit how many entries to print.
 void debugPrintKeysValues(GLuint keySsbo, GLuint valSsbo, size_t count, size_t maxPrint = 50)
 {
     // Sanity clamp: if count < maxPrint, just print them all
@@ -222,17 +211,7 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
     float focal_z = height / (2 * htany);
     glm::vec3 hfov_focal = glm::vec3(htanx, htany, focal_z);
 
-
-    //READ INFO FROM SSBO BUFFER FOR: RADIX SORT PREPASS - RADIX SORT - RADIX SORT POST PASS
-    
-    glFinish();
-
     //------------- RADIX SORT PREPASS ----------------
-    glBindBuffer(GL_ARRAY_BUFFER, gaussianBuffer);
-    
-    GLint bufferSize = 0;
-    glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &bufferSize);
-
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawIndirectBuffer);
     //TODO: should not need to re-define this buffer each time lol
     struct DrawArraysIndirectCommand {
@@ -246,9 +225,6 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
     );
     unsigned int validCount = cmd->instanceCount;
     glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER);
-    
-    //std::vector<GaussianDataSSBO> gaussians(validCount);
-    //glGetBufferSubData(GL_ARRAY_BUFFER, 0, validCount * sizeof(GaussianDataSSBO), gaussians.data());
 
     // Transform Gaussian positions to view space and apply global sort
     glUseProgram(radixSortPrepassProgram);
@@ -269,15 +245,13 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
     glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
     //debugPrintKeysValues(keysBuffer, valuesBuffer, validCount, 10000);
     //------------- RADIX SORT PASS ----------------
-    
     glu::RadixSort sorter;
     sorter(keysBuffer, valuesBuffer, validCount);
     //debugPrintKeysValues(keysBuffer, valuesBuffer, validCount, 10000);
     //------------- RADIX SORT GATHER PASS ---------------- //TODO: I think I could actually not need to gather all the gaussians in a new buffer and simply use indices into the old one during rendering
     glUseProgram(radixSortGatherProgram);
     setUniform1ui(radixSortGatherProgram, "u_count", validCount);
-    
-    ; //TODO: should not create it here, should have rather a persistent buffer
+
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, gaussianBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, gaussianBuffer);
     setupSortedBufferSsbo(validCount, gaussianBufferSorted, 1); // <-- last int is binding pos
@@ -285,9 +259,9 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, valuesBuffer);
     glDispatchCompute(threadGroup_xy, 1, 1);
     glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
-    //debugPrintGaussians(gaussianBufferSorted, 10000);
     
     //------------- END RADIX SORT STAGE -------------
+    glFinish(); //Do I need actually need this ?
 
     glUseProgram(renderShaderProgram);
 
@@ -298,7 +272,6 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
 
     //The correct one: from slide deck of Bernard K.
 	glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_ONE);
-
 
     //Probably better with indexing, may save some performance
     std::vector<float> quadVertices = {
@@ -319,12 +292,8 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
     glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
     glBufferData(GL_ARRAY_BUFFER, quadVertices.size() * sizeof(float), quadVertices.data(), GL_DYNAMIC_DRAW);
 
-    //TODO: should name all uniforms with this convention for clarity
-    //setUniformMat4(renderShaderProgram, "u_MVP", MVP);
     setUniformMat4(renderShaderProgram, "u_worldToView", view);
-    //setUniformMat4(renderShaderProgram, "u_objectToWorld", model);
     setUniformMat4(renderShaderProgram, "u_viewToClip", projection);
-    //setUniform2f(renderShaderProgram,   "u_resolution", glm::ivec2(width, height));
     setUniform3f(renderShaderProgram,   "u_hfov_focal", hfov_focal);
     setUniform1f(renderShaderProgram,   "u_std_dev", std_gauss / (float(resolutionTarget)));
 

@@ -4,9 +4,6 @@
 void Mesh2splatConverterHandler::runComputePass(GLuint& computeShaderProgram, GLuint* drawBuffers, GLuint& gaussianBuffer, GLuint& drawIndirectBuffer, unsigned int resolutionTarget)
 {
     glGenBuffers(1, &drawIndirectBuffer);
-    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawIndirectBuffer);
-    glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawArraysIndirectCommand), nullptr, GL_DYNAMIC_DRAW);
-
     glUseProgram(computeShaderProgram);
 
     setTexture2D(computeShaderProgram, "texPositionAndScaleX",    drawBuffers[0], 0);
@@ -19,6 +16,7 @@ void Mesh2splatConverterHandler::runComputePass(GLuint& computeShaderProgram, GL
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, gaussianBuffer);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, drawIndirectBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(DrawArraysIndirectCommand), nullptr, GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, drawIndirectBuffer);
 
     // Dispatch compute work groups
@@ -28,7 +26,7 @@ void Mesh2splatConverterHandler::runComputePass(GLuint& computeShaderProgram, GL
     glDispatchCompute(groupsX, groupsY, 1);
 
     // Ensure compute shader completion
-    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
+    glMemoryBarrier(GL_COMMAND_BARRIER_BIT |GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 

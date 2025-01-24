@@ -11,8 +11,8 @@ void main() {
     uint i = gl_GlobalInvocationID.x;
     if (i >= u_count) return;
 
-    uint old_index = val[i];    // Which Gaussian belongs at slot i?
-    // Each Gaussian has 6 vec4's:
+    uint old_index = val[i]; 
+    //I am basically doing a buffer swap based on the values (indices) computed during the radxi sort pass
     for (int j=0; j<6; j++) {
         out_data[i*6 + j] = in_data[old_index*6 + j];
     }
