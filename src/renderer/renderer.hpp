@@ -7,6 +7,8 @@
 #include "../utils/shaderUtils.hpp"
 #include "../radixSort/RadixSort.hpp"
 
+#define MAX_GAUSSIANS_TO_SORT 5000000 
+
 class Renderer
 {
 public:
@@ -19,7 +21,7 @@ public:
 	void renderLoop(GLFWwindow* window, ImGuiUI& gui);
 	//TODO: For now not using this, will implement a render-pass based structure and change how the render-loop is implemented
 	void recordRenderPass(); 
-	bool updateShadersIfNeeded();
+	bool updateShadersIfNeeded(bool forceReload=false);
 private:
 	void clearingPrePass(glm::vec4 clearColor);
 	unsigned int getSplatBufferCount(GLuint counterBuffer);
@@ -34,6 +36,7 @@ private:
 	GLuint renderShaderProgram;
 	GLuint computeShaderProgram;
 	GLuint radixSortPrepassProgram;
+	GLuint radixSortGatherProgram;
 
 	GLuint gaussianBuffer;
 	GLuint drawIndirectBuffer;
@@ -41,12 +44,15 @@ private:
 	GLuint keysBuffer;
 	GLuint valuesBuffer;
 
+	GLuint gaussianBufferSorted;
+
 	
 	std::unordered_map<std::string, ShaderFileInfo> shaderFiles;
 	//Todo make this into a map and store name->shaderInfo map
 	std::vector<std::pair<std::string, GLenum>> converterShadersInfo;
 	std::vector<std::pair<std::string, GLenum>> computeShadersInfo;
 	std::vector<std::pair<std::string, GLenum>> radixSortPrePassShadersInfo;
+	std::vector<std::pair<std::string, GLenum>> radixSortGatherPassShadersInfo;
 	std::vector<std::pair<std::string, GLenum>> rendering3dgsShadersInfo;
 	double lastShaderCheckTime;
 

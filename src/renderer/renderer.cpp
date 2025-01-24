@@ -5,18 +5,48 @@
 Renderer::Renderer()
 {
     glGenVertexArrays(1, &pointsVAO);
-    converterShaderProgram   = createConverterShaderProgram();
-    renderShaderProgram      = createRendererShaderProgram(); 
-    computeShaderProgram     = createComputeShaderProgram(); 
     gaussianBuffer           = -1;
     drawIndirectBuffer       = -1;
     keysBuffer               = -1;
 	valuesBuffer             = -1;
+    gaussianBufferSorted     = -1;
     normalizedUvSpaceWidth   = 0;
     normalizedUvSpaceHeight  = 0;
 
-    lastShaderCheckTime     = glfwGetTime();
-    initializeShaderFileMonitoring(shaderFiles, converterShadersInfo, computeShadersInfo, radixSortPrePassShadersInfo, rendering3dgsShadersInfo);
+    lastShaderCheckTime      = glfwGetTime();
+    //TODO: should this maybe live in the Renderer rather than shader utils? Probably yes
+    initializeShaderFileMonitoring(
+        shaderFiles,
+        converterShadersInfo, computeShadersInfo,
+        radixSortPrePassShadersInfo, radixSortGatherPassShadersInfo,
+        rendering3dgsShadersInfo
+    );
+    //TODO: now that some more passes are being added I see how this won´t scale at all, need a better way to deal with shader registration and passes
+    updateShadersIfNeeded(true);
+
+    glGenBuffers(1, &keysBuffer);
+    glGenBuffers(1, &valuesBuffer);
+    glGenBuffers(1, &gaussianBufferSorted);
+
+    // 2) Suppose you guess a maximum size: e.g. maxElements = 1e6
+    GLsizeiptr maxKeysBytes   = MAX_GAUSSIANS_TO_SORT * sizeof(unsigned int);
+    GLsizeiptr maxValuesBytes = MAX_GAUSSIANS_TO_SORT * sizeof(unsigned int);
+    GLsizeiptr maxGaussBytes  = MAX_GAUSSIANS_TO_SORT * sizeof(GaussianDataSSBO);
+
+    // 3) Bind & allocate
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, keysBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, maxKeysBytes, nullptr, GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, keysBuffer);
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, valuesBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, maxValuesBytes, nullptr, GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, valuesBuffer);
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gaussianBufferSorted);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, maxGaussBytes, nullptr, GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, gaussianBufferSorted);
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 Renderer::~Renderer()
@@ -70,7 +100,7 @@ unsigned int Renderer::getSplatBufferCount(GLuint counterBuffer)
     }
     return splatCount;
 }
-/*
+
 void debugPrintGaussians(GLuint gaussianBuffer, unsigned int maxPrintCount = 50)
 {
     // 1. Bind the buffer
@@ -112,7 +142,49 @@ void debugPrintGaussians(GLuint gaussianBuffer, unsigned int maxPrintCount = 50)
 
     // 6. Unmap the buffer when done
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-}*/
+}
+
+// Debug function to read and print the contents of two SSBOs (keys & values).
+//  - keySsbo:    The OpenGL buffer ID for the keys.
+//  - valSsbo:    The OpenGL buffer ID for the values.
+//  - count:      Number of elements in each buffer (keys/values are both size `count`).
+//  - maxPrint:   If you have a huge buffer, you might limit how many entries to print.
+void debugPrintKeysValues(GLuint keySsbo, GLuint valSsbo, size_t count, size_t maxPrint = 50)
+{
+    // Sanity clamp: if count < maxPrint, just print them all
+    if (count < maxPrint) {
+        maxPrint = count;
+    }
+
+    // 1. Read back the key buffer
+    std::vector<GLuint> keys(count);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, keySsbo);
+    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, count * sizeof(GLuint), keys.data());
+
+    // 2. Read back the value buffer
+    std::vector<GLuint> vals(count);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, valSsbo);
+    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, count * sizeof(GLuint), vals.data());
+
+    // 3. Print a small header
+    printf("===== Debug Print of Keys and Values (showing up to %zu of %zu) =====\n", maxPrint, count);
+    printf("Index |  Key (uint)  |  Value (uint)\n");
+    printf("------|--------------|--------------\n");
+
+    // 4. Print the first `maxPrint` entries
+    for (size_t i = 0; i < maxPrint; ++i)
+    {
+        printf("%5zu | %10u  | %10u\n", i, keys[i], vals[i]);
+    }
+
+    // 5. If we limited the output, let the user know
+    if (maxPrint < count) {
+        printf("... (truncated; total %zu)\n", count);
+    }
+
+    printf("\n");
+}
+
 
 //TODO: no need to pass the renderShaderProgram, its a member var
 void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint gaussianBuffer, GLuint drawIndirectBuffer, GLuint renderShaderProgram, float std_gauss, int resolutionTarget)
@@ -154,7 +226,8 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
     //READ INFO FROM SSBO BUFFER FOR: RADIX SORT PREPASS - RADIX SORT - RADIX SORT POST PASS
     
     glFinish();
-    //-------------RADIX SORT PREPASS----------------
+
+    //------------- RADIX SORT PREPASS ----------------
     glBindBuffer(GL_ARRAY_BUFFER, gaussianBuffer);
     
     GLint bufferSize = 0;
@@ -173,24 +246,48 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
     );
     unsigned int validCount = cmd->instanceCount;
     glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER);
-    std::vector<GaussianDataSSBO> gaussians(validCount);
-    glGetBufferSubData(GL_ARRAY_BUFFER, 0, validCount * sizeof(GaussianDataSSBO), gaussians.data());
+    
+    //std::vector<GaussianDataSSBO> gaussians(validCount);
+    //glGetBufferSubData(GL_ARRAY_BUFFER, 0, validCount * sizeof(GaussianDataSSBO), gaussians.data());
 
-    //TODO: JUST MISSING RADIX SORT COMPUTE PASSES
     // Transform Gaussian positions to view space and apply global sort
     glUseProgram(radixSortPrepassProgram);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, gaussianBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, gaussianBuffer);
+    //debugPrintGaussians(gaussianBuffer, 10000);
     setUniformMat4(radixSortPrepassProgram, "u_view", view);
-    setUniform1i(radixSortPrepassProgram, "u_count", validCount);
-    setupKeysBufferSsbo(validCount, &keysBuffer, 1);
-    setupValuesBufferSsbo(validCount, &valuesBuffer, 2);
-
+    setUniform1ui(radixSortPrepassProgram, "u_count", validCount);
+    setupKeysBufferSsbo(validCount, keysBuffer, 1);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, keysBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, keysBuffer);
+    setupValuesBufferSsbo(validCount, valuesBuffer, 2);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, valuesBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, valuesBuffer);
+    unsigned int threadGroup_xy = (validCount + 255) / 256;
+    glDispatchCompute(threadGroup_xy, 1, 1);
+    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
+    //debugPrintKeysValues(keysBuffer, valuesBuffer, validCount, 10000);
+    //------------- RADIX SORT PASS ----------------
+    
     glu::RadixSort sorter;
     sorter(keysBuffer, valuesBuffer, validCount);
+    //debugPrintKeysValues(keysBuffer, valuesBuffer, validCount, 10000);
+    //------------- RADIX SORT GATHER PASS ---------------- //TODO: I think I could actually not need to gather all the gaussians in a new buffer and simply use indices into the old one during rendering
+    glUseProgram(radixSortGatherProgram);
+    setUniform1ui(radixSortPrepassProgram, "u_count", validCount);
     
-    //END RADIX SORT STAGE
+    ; //TODO: should not create it here, should have rather a persistent buffer
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gaussianBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, gaussianBuffer);
+    setupSortedBufferSsbo(validCount, gaussianBufferSorted, 1); // <-- last int is binding pos
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gaussianBufferSorted);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, valuesBuffer);
+    glDispatchCompute(threadGroup_xy, 1, 1);
+    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
+    //debugPrintGaussians(gaussianBufferSorted, 10000);
+    
+    //------------- END RADIX SORT STAGE -------------
 
     glUseProgram(renderShaderProgram);
 
@@ -199,9 +296,8 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
 
-    //The correct one, from slide deck of Bernard K.
+    //The correct one: from slide deck of Bernard K.
 	glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_ONE);
-
 
 
     //Probably better with indexing, may save some performance
@@ -232,30 +328,11 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
     setUniform3f(renderShaderProgram,   "u_hfov_focal", hfov_focal);
     setUniform1f(renderShaderProgram,   "u_std_dev", std_gauss / (float(resolutionTarget)));
 
+    //per instance quad data
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
     glEnableVertexAttribArray(0);
 
-
-    auto viewSpaceDepth = [&](const GaussianDataSSBO& g) -> float {
-        glm::vec4 viewPos = view * glm::vec4(g.position.x,g.position.y, g.position.z, 1.0);
-        return viewPos.z; 
-    };
-
-    std::sort(gaussians.begin(), gaussians.end(),
-              [&](const GaussianDataSSBO& a, const GaussianDataSSBO& b) {
-                  return viewSpaceDepth(a) > viewSpaceDepth(b);
-              });
-    
-    //glBindBuffer(GL_ARRAY_BUFFER, gaussianBuffer);
-    glBufferData(GL_ARRAY_BUFFER, 
-             gaussians.size() * sizeof(GaussianDataSSBO), 
-             gaussians.data(), 
-             GL_DYNAMIC_DRAW);
-
-
-
-    //glu::RadixSort radixSort;
-    //radixSort();
+    glBindBuffer(GL_ARRAY_BUFFER, gaussianBufferSorted);
 
     //We need to redo this vertex attrib binding as the buffer could have been deleted if the compute/conversion pass was run, and we need to free the data to avoid
     // memory leak. Should structure renderer architecture
@@ -270,30 +347,35 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawIndirectBuffer);
     
     glDrawArraysIndirect(GL_TRIANGLES, 0); //instance parameters set in framBufferReaderCS.glsl
-
     glBindVertexArray(0);
     glDisable(GL_BLEND);
 }
 	
 void Renderer::clearingPrePass(glm::vec4 clearColor)
 {
-    glClearColor(clearColor.r, clearColor.g, clearColor.b, 0); //Important for correct blending
+    glClearColor(clearColor.r, clearColor.g, clearColor.b, 0); //alpha==0 Important for correct blending --> but still front to back expects first DST to be (0,0,0,0)
+    //TODO: find way to circumvent first write, as bkg color should not be accounted for in blending --> not sure actually possible using "glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_ONE)"
     glClear(GL_COLOR_BUFFER_BIT);
 }
 
-bool Renderer::updateShadersIfNeeded() {
+bool Renderer::updateShadersIfNeeded(bool forceReload) {
     for (auto& entry : shaderFiles) {
         ShaderFileInfo& info = entry.second;
-        if (shaderFileChanged(info)) {
+        if (forceReload || shaderFileChanged(info) ) {
             // Update timestamp
-            info.lastWriteTime = fs::last_write_time(info.filePath);
+            info.lastWriteTime                  = fs::last_write_time(info.filePath);
+            
+            this->converterShaderProgram        = reloadShaderPrograms(converterShadersInfo,             this->converterShaderProgram);
+            this->computeShaderProgram          = reloadShaderPrograms(computeShadersInfo,               this->computeShaderProgram);
 
-            this->renderShaderProgram       = reloadShaderProgram(converterShadersInfo,         this->renderShaderProgram);
-            this->computeShaderProgram      = reloadShaderProgram(computeShadersInfo,           this->computeShaderProgram);
-            this->renderShaderProgram       = reloadShaderProgram(rendering3dgsShadersInfo,     this->renderShaderProgram);
-            this->radixSortPrepassProgram   = reloadShaderProgram(radixSortPrePassShadersInfo,  this->radixSortPrepassProgram);
+            this->radixSortPrepassProgram       = reloadShaderPrograms(radixSortPrePassShadersInfo,      this->radixSortPrepassProgram);
+            this->radixSortGatherProgram        = reloadShaderPrograms(radixSortGatherPassShadersInfo,   this->radixSortGatherProgram);
 
-            return true; //TODO: ideally it should just reload the programs for which that shader is included, need dependency for that
+            this->renderShaderProgram           = reloadShaderPrograms(rendering3dgsShadersInfo,         this->renderShaderProgram);
+
+            return true; //TODO: ideally it should just reload the programs for which that shader is included, may need dependency for that? Cannot just recompile one program as some are dependant on others
+            //TODO P1: investigate this, I am not sure I dont think I need to recreate all programs, I am now convinced I can just do reloadShaderPrograms(info, --> ) need to know how it is saved within the map
+            //TODO --> adopt convention in naming of entries in map such that in the "shaderFiles" they are named as the shaderInfo for consistency
         }
     }
     return false;

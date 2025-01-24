@@ -21,7 +21,7 @@ void main() {
     if (i >= u_count) return;
     vec4 pos_world = data[i*6 + 0];  
     vec4 pos_view  = u_view * pos_world;
-    float depth    = -pos_view.z; //Sign changes sorting order     
+    float depth    = pos_view.z; //Sign changes sorting order     
     uint bits = floatBitsToUint(depth);
 
     key[i] = bits; 

@@ -72,20 +72,22 @@ void initializeShaderFileMonitoring(
     std::unordered_map<std::string, ShaderFileInfo>& shaderFiles,
     std::vector<std::pair<std::string, GLenum>>& converterShadersInfo,
     std::vector<std::pair<std::string, GLenum>>& computeShadersInfo,
-    std::vector<std::pair<std::string, GLenum>>& radixSortPrePostShadersInfo,
+    std::vector<std::pair<std::string, GLenum>>& radixSortPrePassShadersInfo,
+    std::vector<std::pair<std::string, GLenum>>& radixSortGatherPassShadersInfo,
     std::vector<std::pair<std::string, GLenum>>& rendering3dgsShadersInfo) {
 
-    shaderFiles["converterVert"]        = { fs::last_write_time(CONVERTER_VERTEX_SHADER_LOCATION), CONVERTER_VERTEX_SHADER_LOCATION };
-    shaderFiles["converterGeom"]        = { fs::last_write_time(CONVERTER_GEOM_SHADER_LOCATION),   CONVERTER_GEOM_SHADER_LOCATION };
-    shaderFiles["converterFrag"]        = { fs::last_write_time(CONVERTER_FRAG_SHADER_LOCATION),   CONVERTER_FRAG_SHADER_LOCATION };
+    shaderFiles["converterVert"]                = { fs::last_write_time(CONVERTER_VERTEX_SHADER_LOCATION), CONVERTER_VERTEX_SHADER_LOCATION };
+    shaderFiles["converterGeom"]                = { fs::last_write_time(CONVERTER_GEOM_SHADER_LOCATION),   CONVERTER_GEOM_SHADER_LOCATION };
+    shaderFiles["converterFrag"]                = { fs::last_write_time(CONVERTER_FRAG_SHADER_LOCATION),   CONVERTER_FRAG_SHADER_LOCATION };
     
-    shaderFiles["readerCompute"]        = { fs::last_write_time(TRANSFORM_COMPUTE_SHADER_LOCATION),   TRANSFORM_COMPUTE_SHADER_LOCATION };
+    shaderFiles["readerCompute"]                = { fs::last_write_time(TRANSFORM_COMPUTE_SHADER_LOCATION),   TRANSFORM_COMPUTE_SHADER_LOCATION };
     
     //TODO: add postPass
-    shaderFiles["radixSortPrepassCompute"]     = { fs::last_write_time(RADIX_SORT_PREPASS_SHADER_LOCATION),   RADIX_SORT_PREPASS_SHADER_LOCATION };
+    shaderFiles["radixSortPrepassCompute"]      = { fs::last_write_time(RADIX_SORT_PREPASS_SHADER_LOCATION),   RADIX_SORT_PREPASS_SHADER_LOCATION };
+    shaderFiles["radixSortGatherCompute"]       = { fs::last_write_time(RADIX_SORT_GATHER_SHADER_LOCATION),   RADIX_SORT_GATHER_SHADER_LOCATION };
     
-    shaderFiles["renderer3dgsVert"]     = { fs::last_write_time(RENDERER_VERTEX_SHADER_LOCATION),   RENDERER_VERTEX_SHADER_LOCATION };
-    shaderFiles["renderer3dgsFrag"]     = { fs::last_write_time(RENDERER_FRAGMENT_SHADER_LOCATION),   RENDERER_FRAGMENT_SHADER_LOCATION };
+    shaderFiles["renderer3dgsVert"]             = { fs::last_write_time(RENDERER_VERTEX_SHADER_LOCATION),   RENDERER_VERTEX_SHADER_LOCATION };
+    shaderFiles["renderer3dgsFrag"]             = { fs::last_write_time(RENDERER_FRAGMENT_SHADER_LOCATION),   RENDERER_FRAGMENT_SHADER_LOCATION };
 
     converterShadersInfo = {
         { CONVERTER_VERTEX_SHADER_LOCATION,     GL_VERTEX_SHADER   },
@@ -97,8 +99,12 @@ void initializeShaderFileMonitoring(
         { TRANSFORM_COMPUTE_SHADER_LOCATION,    GL_COMPUTE_SHADER }
     };
 
-    radixSortPrePostShadersInfo = {
+    radixSortPrePassShadersInfo = {
         { RADIX_SORT_PREPASS_SHADER_LOCATION,    GL_COMPUTE_SHADER }
+    };
+
+    radixSortGatherPassShadersInfo = {
+        { RADIX_SORT_GATHER_SHADER_LOCATION,    GL_COMPUTE_SHADER }
     };
 
     rendering3dgsShadersInfo = {
@@ -112,7 +118,7 @@ bool shaderFileChanged(const ShaderFileInfo& info) {
     return (currentWriteTime != info.lastWriteTime);
 }
 
-GLuint reloadShaderProgram(
+GLuint reloadShaderPrograms(
     const std::vector<std::pair<std::string, GLenum>>& shaderInfos,
     GLuint oldProgram)
 {
@@ -434,7 +440,8 @@ void setUniform1f(GLuint shaderProgram, std::string uniformName, float uniformVa
     glUniform1f(uniformLocation, uniformValue);
 }
 
-void setUniform1i(GLuint shaderProgram, std::string uniformName, unsigned int uniformValue)
+//TODO: holy moly, the radix sort was being zeroes because I was setting an int rather than an unsigned int... 
+void setUniform1i(GLuint shaderProgram, std::string uniformName, int uniformValue)
 {
     GLint uniformLocation = glGetUniformLocation(shaderProgram, uniformName.c_str());
 
@@ -443,6 +450,17 @@ void setUniform1i(GLuint shaderProgram, std::string uniformName, unsigned int un
     }
 
     glUniform1i(uniformLocation, uniformValue);
+}
+
+void setUniform1ui(GLuint shaderProgram, std::string uniformName, unsigned int uniformValue)
+{
+    GLint uniformLocation = glGetUniformLocation(shaderProgram, uniformName.c_str());
+
+    if (uniformLocation == -1) {
+        std::cerr << "Could not find uniform: '" + uniformName + "'." << std::endl;
+    }
+
+    glUniform1ui(uniformLocation, uniformValue);
 }
 
 void setUniform3f(GLuint shaderProgram, std::string uniformName, glm::vec3 uniformValue)
@@ -562,23 +580,30 @@ void setupGaussianBufferSsbo(unsigned int width, unsigned int height, GLuint* ga
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
-void setupKeysBufferSsbo(unsigned int size, GLuint* keysBuffer, unsigned int bindingPos)
+void setupSortedBufferSsbo(unsigned int size, GLuint sortedBuffer, unsigned int bindingPos)
 {
-    glGenBuffers(1, &(*keysBuffer));
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, (*keysBuffer));
-    GLsizeiptr bufferSize = size * sizeof(unsigned int);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, sortedBuffer);
+    GLsizeiptr bufferSize = size * sizeof(GaussianDataSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, bufferSize, nullptr, GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindingPos, (*keysBuffer));
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindingPos, sortedBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
-void setupValuesBufferSsbo(unsigned int size, GLuint* valuesBuffer, unsigned int bindingPos)
+void setupKeysBufferSsbo(unsigned int size, GLuint keysBuffer, unsigned int bindingPos)
 {
-    glGenBuffers(1, &(*valuesBuffer));
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, (*valuesBuffer));
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, keysBuffer);
     GLsizeiptr bufferSize = size * sizeof(unsigned int);
     glBufferData(GL_SHADER_STORAGE_BUFFER, bufferSize, nullptr, GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindingPos, (*valuesBuffer));
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindingPos, keysBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+void setupValuesBufferSsbo(unsigned int size, GLuint valuesBuffer, unsigned int bindingPos)
+{ 
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, valuesBuffer);
+    GLsizeiptr bufferSize = size * sizeof(unsigned int);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, bufferSize, nullptr, GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindingPos, valuesBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 

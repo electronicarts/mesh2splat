@@ -18,6 +18,7 @@
 #define TRANSFORM_COMPUTE_SHADER_LOCATION "./src/shaders/rendering/frameBufferReaderCS.glsl" 
 
 #define RADIX_SORT_PREPASS_SHADER_LOCATION "./src/shaders/rendering/radixSortPrepass.glsl" 
+#define RADIX_SORT_GATHER_SHADER_LOCATION "./src/shaders/rendering/radixSortGather.glsl" 
 
 #define RENDERER_VERTEX_SHADER_LOCATION "./src/shaders/rendering/gaussianSplattingVS.glsl" 
 #define RENDERER_FRAGMENT_SHADER_LOCATION "./src/shaders/rendering/gaussianSplattingPS.glsl" 
@@ -43,8 +44,9 @@ GLuint* setupFrameBuffer(GLuint& framebuffer, unsigned int width, unsigned int h
 void read3dgsDataFromSsboBuffer(GLuint& indirectDrawCommandBuffer, GLuint& gaussianBuffer, GaussianDataSSBO*& gaussians, unsigned int& gaussianCount);
 
 void setupGaussianBufferSsbo(unsigned int width, unsigned int height, GLuint* gaussianBuffer);
-void setupKeysBufferSsbo(unsigned int size, GLuint* keysBuffer, unsigned int bindingPos);
-void setupValuesBufferSsbo(unsigned int size, GLuint* valuesBuffer, unsigned int bindingPos);
+void setupSortedBufferSsbo(unsigned int size, GLuint sortedBuffer, unsigned int bindingPos);
+void setupKeysBufferSsbo(unsigned int size, GLuint keysBuffer, unsigned int bindingPos);
+void setupValuesBufferSsbo(unsigned int size, GLuint valuesBuffer, unsigned int bindingPos);
 
 std::string readShaderFile(const char* filePath);
 
@@ -55,23 +57,26 @@ struct ShaderFileInfo {
     std::string filePath;
 };
 
+//TODO: Wont scale, use some data structure
 void initializeShaderFileMonitoring(
     std::unordered_map<std::string, ShaderFileInfo>& shaderFiles,
     std::vector<std::pair<std::string, GLenum>>& converterShadersInfo,
     std::vector<std::pair<std::string, GLenum>>& computeShadersInfo,
     std::vector<std::pair<std::string, GLenum>>& radixSortPrePostShadersInfo,
+    std::vector<std::pair<std::string, GLenum>>& radixSortGatherShadersInfo,
     std::vector<std::pair<std::string, GLenum>>& rendering3dgsShadersInfo
 );
 
 bool shaderFileChanged(const ShaderFileInfo& info);
 
-GLuint reloadShaderProgram(
+GLuint reloadShaderPrograms(
     const std::vector<std::pair<std::string, GLenum>>& shaderInfos,
     GLuint oldProgram);
 
-//Make template function for this and make these one generic
+//TODO: Make template function for this and make these one generic
 void setUniform1f(GLuint shaderProgram, std::string uniformName, float uniformValue);
-void setUniform1i(GLuint shaderProgram, std::string uniformName, unsigned int uniformValue);
+void setUniform1i(GLuint shaderProgram, std::string uniformName, int uniformValue);
+void setUniform1ui(GLuint shaderProgram, std::string uniformName, unsigned int uniformValue);
 void setUniform3f(GLuint shaderProgram, std::string uniformName, glm::vec3 uniformValue);
 void setUniform2f(GLuint shaderProgram, std::string uniformName, glm::vec2 uniformValue);
 void setUniform2i(GLuint shaderProgram, std::string uniformName, glm::vec2 uniformValue);
