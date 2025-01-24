@@ -275,7 +275,7 @@ void Renderer::run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint
     //debugPrintKeysValues(keysBuffer, valuesBuffer, validCount, 10000);
     //------------- RADIX SORT GATHER PASS ---------------- //TODO: I think I could actually not need to gather all the gaussians in a new buffer and simply use indices into the old one during rendering
     glUseProgram(radixSortGatherProgram);
-    setUniform1ui(radixSortPrepassProgram, "u_count", validCount);
+    setUniform1ui(radixSortGatherProgram, "u_count", validCount);
     
     ; //TODO: should not create it here, should have rather a persistent buffer
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, gaussianBuffer);
