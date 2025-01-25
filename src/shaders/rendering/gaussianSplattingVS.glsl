@@ -90,7 +90,7 @@ void main() {
 	vec4 gaussian_vs = u_worldToView * vec4(gaussianPosition_ms.xyz, 1);
 
 	vec4 pos2dHom = u_viewToClip * gaussian_vs;
-	
+	vec4 tmp = pos2dHom;
 	//persective divide
 	pos2dHom.xyz = pos2dHom.xyz / pos2dHom.w;
 	pos2dHom.w = 1.f;
@@ -132,12 +132,11 @@ void main() {
 	float det_inv = 1.f / det;
 
 	vec2 quadwh_scr = vec2(3.f * sqrt(cov2d[0][0]), 3.f * sqrt(cov2d[1][1]));
-	vec2 quadwh_ndc = quadwh_scr / wh * 2; //HMM
+	vec2 quadwh_ndc = (quadwh_scr / wh) * 2; //HMM
 	pos2dHom.xy = pos2dHom.xy + vertexPos.xy * quadwh_ndc;
 
 	gl_Position = pos2dHom;
-	//save space using vec3 as its a 2x2 symmetric
-	//Should actually use the conic to compute varying density
+	//TODO: Should actually use the conic to compute varying density
 	out_conic = vec3(cov2d[1][1] * det_inv, -cov2d[0][1] * det_inv, cov2d[0][0] * det_inv);
 	out_color = gaussianColor.rgb;
 	out_opacity = gaussianColor.a;

@@ -5,6 +5,20 @@ void Mesh2splatConverterHandler::runComputePass(GLuint& computeShaderProgram, GL
 {
     glGenBuffers(1, &drawIndirectBuffer);
     glUseProgram(computeShaderProgram);
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawIndirectBuffer);
+    glBufferData(GL_DRAW_INDIRECT_BUFFER,
+                 sizeof(DrawArraysIndirectCommand),
+                 nullptr,
+                 GL_DYNAMIC_DRAW);
+
+    DrawArraysIndirectCommand cmd_init;
+    cmd_init.count         = 6;  
+    cmd_init.instanceCount = 0;  
+    cmd_init.first         = 0;
+    cmd_init.baseInstance  = 0;
+
+    // 4) Upload to the GPU buffer
+    glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawArraysIndirectCommand), &cmd_init);
 
     unsigned int i = 0;
     for (auto uniformName : std::vector<std::string>{ "texPositionAndScaleX", "scaleZAndNormal", "rotationAsQuat", "texColor", "pbrAndScaleY" })
@@ -17,7 +31,6 @@ void Mesh2splatConverterHandler::runComputePass(GLuint& computeShaderProgram, GL
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, gaussianBuffer);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, drawIndirectBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(DrawArraysIndirectCommand), nullptr, GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, drawIndirectBuffer);
 
     // Dispatch compute work groups

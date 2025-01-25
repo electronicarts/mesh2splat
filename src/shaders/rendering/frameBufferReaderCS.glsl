@@ -32,14 +32,14 @@ layout(std430, binding = 6) writeonly buffer DrawCommand {
 layout(local_size_x = 16, local_size_y = 16) in;  
 void main() {
 
-    if (gl_GlobalInvocationID.x == 0 && gl_GlobalInvocationID.y == 0) {
-        drawElementsIndirectCommand.count = 6; //for quad rendering        
-        drawElementsIndirectCommand.instanceCount = 0;    
-        drawElementsIndirectCommand.first = 0;        
-        drawElementsIndirectCommand.baseInstance = 0; 
-    }
-    
-    memoryBarrierShared();
+    //if (gl_GlobalInvocationID.x == 0 && gl_GlobalInvocationID.y == 0) {
+    //    drawElementsIndirectCommand.count = 6; //for quad rendering        
+    //    drawElementsIndirectCommand.instanceCount = 0;    
+    //    drawElementsIndirectCommand.first = 0;        
+    //    drawElementsIndirectCommand.baseInstance = 0; 
+    //}
+    //
+    //memoryBarrierShared();
 
     ivec2 pix       = ivec2(gl_GlobalInvocationID.xy);
 

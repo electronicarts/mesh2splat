@@ -16,5 +16,5 @@ float splatAlpha(vec2 pos)
 }
 
 void main() {			
-    FragColor = vec4(out_color, 1.0) * splatAlpha(out_uv);
+    FragColor = vec4(out_color, out_opacity) * splatAlpha(out_uv);
 }
