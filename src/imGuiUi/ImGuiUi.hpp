@@ -20,6 +20,7 @@ public:
     bool shouldRunConversion();
     bool shouldLoadNewMesh();
     bool shouldSavePly();
+    bool wasMeshLoaded();
     std::string getFilePath();
     std::string getFilePathParentFolder();
     std::string getFullFilePathDestination();
@@ -29,6 +30,7 @@ public:
     glm::vec4 getSceneBackgroundColor();
 
     void setLoadNewMesh(bool shouldLoadNewMesh);
+    void setMeshLoaded(bool loaded);
     void setRunConversion(bool shouldRunConversionFlag);
     void setShouldSavePly(bool shouldSavePly);
 
@@ -47,6 +49,7 @@ private:
     float quality;
     bool runConversionFlag;
     bool loadNewMesh;
+    bool hasMeshBeenLoaded;
     bool savePly;
 
     char filePathBuffer[256];

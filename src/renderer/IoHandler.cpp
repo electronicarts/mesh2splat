@@ -1,6 +1,7 @@
 #include "IoHandler.hpp"
 #include "renderer.hpp"
 
+//TODO: yeah, these are globals for now :D
 float yaw = -90.0f, pitch = 0.0f;
 double lastMouseX = 320.0f, lastMouseY = 240.0f;  
 bool firstMouse = true;
@@ -64,7 +65,7 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
             double dy = currentRightMouseY - lastMouseY;
 
             // Calculate camera axes for panning
-            glm::vec3 camPos = Renderer::computeCameraPosition(yaw, pitch, distance);
+            glm::vec3 camPos = Renderer::computeCameraPosition();
             glm::vec3 front = glm::normalize(cameraTarget - camPos);
             glm::vec3 worldUp(0.0f, 1.0f, 0.0f);
             glm::vec3 cameraRight = glm::normalize(glm::cross(front, worldUp));

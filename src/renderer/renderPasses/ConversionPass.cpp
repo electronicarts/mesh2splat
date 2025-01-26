@@ -1,50 +1,44 @@
 #pragma once
 #include "ConversionPass.hpp"
 
-void ConversionPass::execute(const std::string& meshFilePath, const std::string& baseFolder,
-                   int resolution, float gaussianStd,
-                   GLuint converterShaderProgram, GLuint computeShaderProgram,
-                   std::vector<std::pair<Mesh, GLMesh>>& dataMeshAndGlMesh,
-                   int normalizedUvSpaceWidth, int normalizedUvSpaceHeight,
-                   std::map<std::string, TextureDataGl>& textureTypeMap,
-                   GLuint& gaussianBuffer, GLuint &drawIndirectBuffer)
+void ConversionPass::execute(RenderContext &renderContext)
 {
     //TODO: If model has many meshes this is probably not the most efficient approach.
     //For how the mesh2splat method currently works, we still need to generate a separate frame and drawbuffer per mesh, but the gpu conversion
     //could be done via batch rendering (I guess (?))
     
     //If we are running the conversion pass means the currently existing framebuffer with respective draw buffers should be deleted before the conversion passes
-    for (auto& mesh : dataMeshAndGlMesh) {
+    for (auto& mesh : renderContext.dataMeshAndGlMesh) {
         Mesh meshData = std::get<0>(mesh);
         GLMesh meshGl = std::get<1>(mesh);
 
         GLuint framebuffer;
-        GLuint* drawBuffers = setupFrameBuffer(framebuffer, resolution, resolution);
+        GLuint* drawBuffers = setupFrameBuffer(framebuffer, renderContext.resolutionTarget, renderContext.resolutionTarget);
 
-        glViewport(0, 0, resolution, resolution);
+        glViewport(0, 0, renderContext.resolutionTarget, renderContext.resolutionTarget);
         
         conversion(
-            converterShaderProgram, meshGl.vao,
+            renderContext.shaderPrograms.converterShaderProgram, meshGl.vao,
             framebuffer, meshGl.vertexCount,
-            normalizedUvSpaceWidth, normalizedUvSpaceHeight,
-            textureTypeMap, meshData.material, resolution, gaussianStd
+            renderContext.normalizedUvSpaceWidth, renderContext.normalizedUvSpaceHeight,
+            renderContext.textureTypeMap, meshData.material, renderContext.resolutionTarget, renderContext.gaussianStd
         );
 
         //Need to do this to free memory, this means we need to rebind the gaussianBuffer in later stages
-        if (gaussianBuffer != 0) {
-            glDeleteBuffers(1, &gaussianBuffer);
+        if (renderContext.gaussianBuffer != 0) {
+            glDeleteBuffers(1, &(renderContext.gaussianBuffer));
         }
 
-        setupGaussianBufferSsbo(resolution, resolution, &gaussianBuffer);
+        setupGaussianBufferSsbo(renderContext.resolutionTarget, renderContext.resolutionTarget, &(renderContext.gaussianBuffer));
         
-        if (drawIndirectBuffer != 0) {
-            glDeleteBuffers(1, &drawIndirectBuffer);
+        if (renderContext.drawIndirectBuffer != 0) {
+            glDeleteBuffers(1, &(renderContext.drawIndirectBuffer));
         }
 
         //TODO: ideally this should not be necessary, and we should directly atomically append into the SSBO from the fragment shader
         // not doing so results in wasted work (wherever texture map has no data), but need to handle fragment syncronization. For now this is ok.
             
-        aggregation(computeShaderProgram, drawBuffers, gaussianBuffer, drawIndirectBuffer, resolution);
+        aggregation(renderContext.shaderPrograms.computeShaderProgram, drawBuffers, renderContext.gaussianBuffer, renderContext.drawIndirectBuffer, renderContext.resolutionTarget);
 
         const int numberOfTextures = 5;
         glDeleteTextures(numberOfTextures, drawBuffers); 

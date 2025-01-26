@@ -7,7 +7,8 @@ ImGuiUI::ImGuiUI(float defaultResolutionIndex, int defaultFormat, float defaultG
       quality(defaultMesh2SPlatQuality),
       runConversionFlag(false),
       loadNewMesh(false),
-      savePly(false)
+      savePly(false),
+      hasMeshBeenLoaded(false)
 {
     //TODO: remove this and add a different debug default folder
     strcpy(filePathBuffer, "C:\\Users\\sscolari\\Desktop\\dataset\\scifiHelmet\\scifiHelmet.glb");
@@ -95,9 +96,11 @@ void ImGuiUI::postframe()
 
 bool ImGuiUI::shouldRunConversion() { return runConversionFlag; };
 bool ImGuiUI::shouldLoadNewMesh() { return loadNewMesh; };
+bool ImGuiUI::wasMeshLoaded() { return hasMeshBeenLoaded; };
 bool ImGuiUI::shouldSavePly() { return savePly; };
 
 void ImGuiUI::setLoadNewMesh(bool shouldLoadNewMesh) { loadNewMesh = shouldLoadNewMesh; };
+void ImGuiUI::setMeshLoaded(bool loaded) { hasMeshBeenLoaded = loaded; };
 void ImGuiUI::setRunConversion(bool shouldRunConversionFlag) { runConversionFlag = shouldRunConversionFlag; };
 void ImGuiUI::setShouldSavePly(bool shouldSavePly) { savePly = shouldSavePly; };
 

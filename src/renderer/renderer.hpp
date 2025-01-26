@@ -6,46 +6,43 @@
 #include "../parsers.hpp"
 #include "../utils/shaderUtils.hpp"
 #include "../radixSort/RadixSort.hpp"
+#include "renderPasses/RenderContext.hpp"
+#include "RenderPasses.hpp"
+
 
 #define MAX_GAUSSIANS_TO_SORT 5000000 
 
 class Renderer
 {
 public:
-	Renderer();
+	Renderer(GLFWwindow* window);
 	~Renderer();
 
-	void initializeOpenGLState();
-	static glm::vec3 computeCameraPosition(float yaw, float pitch, float distance);
-	void run3dgsRenderingPass(GLFWwindow* window, GLuint pointsVAO, GLuint gaussianBuffer, GLuint drawIndirectBuffer, GLuint renderShaderProgram, float std_gauss, int resolutionTarget);
-	void renderLoop(GLFWwindow* window, ImGuiUI& gui);
+	void initialize();
+    void renderFrame();        // Execute all enabled render passes
+	void clearingPrePass(glm::vec4 clearColor); //TODO: hmmm
+	
+	void updateTransformations();
+	static glm::vec3 computeCameraPosition();
 	//TODO: For now not using this, will implement a render-pass based structure and change how the render-loop is implemented
-	void recordRenderPass(); 
 	bool updateShadersIfNeeded(bool forceReload=false);
 	unsigned int getGaussianCountFromIndirectBuffer();
+	void setLastShaderCheckTime(double lastShaderCheckedTime);
+	double getLastShaderCheckTime();
+	RenderContext* getRenderContext();
+	void enableRenderPass(std::string renderPassName);
+	void setViewportResolutionForConversion(int resolutionTarget);
+	void setStdDevFromImGui(float stdDev);
+	void resetRendererViewportResolution();
+
 private:
-	void clearingPrePass(glm::vec4 clearColor);
-	Mesh2splatConverterHandler mesh2SplatConversionHandler;
-	int normalizedUvSpaceWidth, normalizedUvSpaceHeight;
-    std::vector<std::pair<Mesh, GLMesh>> dataMeshAndGlMesh;
-    std::vector<Gaussian3D> gaussians_3D_list;
-    std::map<std::string, TextureDataGl> textureTypeMap;
+	
+    std::map<std::string, std::unique_ptr<RenderPass>> renderPasses;
+    std::vector<std::string> renderPassesOrder;
 
-	GLuint pointsVAO = 0;
-	GLuint converterShaderProgram;
-	GLuint renderShaderProgram;
-	GLuint computeShaderProgram;
-	GLuint radixSortPrepassProgram;
-	GLuint radixSortGatherProgram;
+	GLFWwindow* rendererGlfwWindow;
 
-	GLuint gaussianBuffer;
-	GLuint drawIndirectBuffer;
-
-	GLuint keysBuffer;
-	GLuint valuesBuffer;
-
-	GLuint gaussianBufferSorted;
-
+	RenderContext renderContext;
 	
 	std::unordered_map<std::string, ShaderFileInfo> shaderFiles;
 	//Todo make this into a map and store name->shaderInfo map
