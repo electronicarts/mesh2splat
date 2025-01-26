@@ -1,4 +1,5 @@
 ﻿#include "utils/utils.hpp"
+#include "utils/normalizedUvUnwrapping.hpp"
 #include "renderer/renderer.hpp"
 #include "glewGlfwHandlers/glewGlfwHandler.hpp"
 

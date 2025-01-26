@@ -2,7 +2,6 @@
 #include "../utils/utils.hpp"
 #include "ioHandler.hpp"
 #include "../imGuiUi/ImGuiUi.hpp"
-#include "mesh2SplatHandler.hpp"
 #include "../parsers.hpp"
 #include "../utils/shaderUtils.hpp"
 #include "../radixSort/RadixSort.hpp"
