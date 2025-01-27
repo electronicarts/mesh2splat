@@ -49,4 +49,8 @@ void GuiRendererConcreteMediator::update()
     if (imguiUI.wasMeshLoaded()) {
         notify(EventType::EnableGaussianRendering);
     }
+
+
+    double gpuFrameTime = renderer.getTotalGpuFrameTimeMs(); // Retrieve GPU frame time
+    imguiUI.setFrameMetrics(gpuFrameTime);
 }

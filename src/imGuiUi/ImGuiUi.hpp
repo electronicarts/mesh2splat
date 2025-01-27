@@ -33,7 +33,8 @@ public:
     void setMeshLoaded(bool loaded);
     void setRunConversion(bool shouldRunConversionFlag);
     void setShouldSavePly(bool shouldSavePly);
-
+    void setFrameMetrics(double gpuFrameTime);
+    void renderGpuFrametime();
 
 
 private:
@@ -60,6 +61,13 @@ private:
     const float maxStd = 3.0f;
     const int maxRes = 2048;
     const int minRes = 16;
+
+    //Gpu timing data
+    std::vector<float> frameTimeHistory = {0.0f};
+    static constexpr size_t MAX_FRAME_HISTORY = 100;
+    double gpuFrameTime = 0;
+    float maxPlotTimeMs = 100.0f; 
+    float targetFrameTimeThreshold = 16.6f; 
 
     glm::vec4 sceneBackgroundColor = { 0,0,0,1 };
 };

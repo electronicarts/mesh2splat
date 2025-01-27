@@ -17,14 +17,13 @@ public:
 	explicit Renderer(GLFWwindow* window);
 	~Renderer();
 
-
 	void initialize();
-    void renderFrame();        // Execute all enabled render passes
+	void renderFrame();        // Execute all enabled render passes
 	void clearingPrePass(glm::vec4 clearColor); //TODO: hmmm
 	void updateTransformations();
 	static glm::vec3 computeCameraPosition();
 	//TODO: For now not using this, will implement a render-pass based structure and change how the render-loop is implemented
-	bool updateShadersIfNeeded(bool forceReload=false);
+	bool updateShadersIfNeeded(bool forceReload = false);
 	unsigned int getGaussianCountFromIndirectBuffer();
 	void setLastShaderCheckTime(double lastShaderCheckedTime);
 	double getLastShaderCheckTime();
@@ -34,17 +33,18 @@ public:
 	void setStdDevFromImGui(float stdDev);
 	void resetRendererViewportResolution();
 	SceneManager& getSceneManager();
+	double getTotalGpuFrameTimeMs() const;
+
 
 private:
-	
-    std::map<std::string, std::unique_ptr<IRenderPass>> renderPasses;
-    std::vector<std::string> renderPassesOrder;
+	std::map<std::string, std::unique_ptr<IRenderPass>> renderPasses;
+	std::vector<std::string> renderPassesOrder;
 
 	GLFWwindow* rendererGlfwWindow;
 
 	std::unique_ptr<SceneManager> sceneManager;
 	RenderContext renderContext;
-	
+
 	std::unordered_map<std::string, glUtils::ShaderFileInfo> shaderFiles;
 	//Todo make this into a map and store name->shaderInfo map
 	std::vector<std::pair<std::string, GLenum>> converterShadersInfo;
@@ -54,5 +54,6 @@ private:
 	std::vector<std::pair<std::string, GLenum>> rendering3dgsShadersInfo;
 	double lastShaderCheckTime;
 
-};
+	double gpuFrameTimeMs;
 
+};

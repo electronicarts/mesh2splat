@@ -46,4 +46,6 @@ struct RenderContext {
     std::vector<std::pair<Mesh, GLMesh>> dataMeshAndGlMesh;
     std::map<std::string, TextureDataGl> textureTypeMap;
     MaterialGltf material;
+    
+    std::deque<GLuint> queryPool;
 };

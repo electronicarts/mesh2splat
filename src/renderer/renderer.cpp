@@ -52,6 +52,12 @@ Renderer::Renderer(GLFWwindow* window)
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
+    for (size_t i = 0; i < 10; ++i) {
+        GLuint query;
+        glGenQueries(1, &query);
+        renderContext.queryPool.push_back(query);
+    }
+
 }
 
 Renderer::~Renderer()
@@ -69,6 +75,10 @@ Renderer::~Renderer()
     glDeleteBuffers(1, &(renderContext.keysBuffer));
     glDeleteBuffers(1, &(renderContext.valuesBuffer));
     glDeleteBuffers(1, &(renderContext.gaussianBufferSorted));
+
+    for (auto& query : renderContext.queryPool) {
+        glDeleteQueries(1, &query);
+    }
 }
 
 void Renderer::initialize() {
@@ -89,6 +99,11 @@ void Renderer::initialize() {
 
 void Renderer::renderFrame()
 {
+    if (!renderContext.queryPool.empty()) {
+        GLuint currentQuery = renderContext.queryPool.front();
+        glBeginQuery(GL_TIME_ELAPSED, currentQuery);
+    }
+
     for (auto& renderPassName : renderPassesOrder)
     {
         auto& passPtr = renderPasses[renderPassName];
@@ -97,6 +112,21 @@ void Renderer::renderFrame()
             passPtr->execute(renderContext);
             passPtr->setIsEnabled(false); //Default to false for next render pass
         }
+    }
+
+    if (!renderContext.queryPool.empty()) {
+        GLuint currentQuery = renderContext.queryPool.front();
+        glEndQuery(GL_TIME_ELAPSED);
+
+        renderContext.queryPool.pop_front();
+        renderContext.queryPool.push_back(currentQuery);
+    }
+
+    if (renderContext.queryPool.size() > 1) {
+        GLuint completedQuery = renderContext.queryPool.front();
+        GLuint64 elapsedTime = 0;
+        glGetQueryObjectui64v(completedQuery, GL_QUERY_RESULT, &elapsedTime);
+        this->gpuFrameTimeMs = static_cast<double>(elapsedTime) / 1e6; // ns to ms
     }
 };        
 
@@ -195,6 +225,8 @@ SceneManager& Renderer::getSceneManager()
 {
     return *sceneManager;
 }
+
+double Renderer::getTotalGpuFrameTimeMs() const { return gpuFrameTimeMs; }
 
 
 bool Renderer::updateShadersIfNeeded(bool forceReload) {

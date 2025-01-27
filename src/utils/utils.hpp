@@ -5,6 +5,7 @@
 
 #include <string>
 #include <vector>
+#include <deque>
 #include <glm.hpp>
 #include <gtc/type_ptr.hpp>
 
