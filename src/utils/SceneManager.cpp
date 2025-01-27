@@ -26,7 +26,7 @@ bool SceneManager::loadModel(const std::string& filePath, const std::string& par
     for (auto& mesh : renderContext.dataMeshAndGlMesh) {
         Mesh meshData = mesh.first;
         GLMesh meshGl = mesh.second;
-        loadAllTextureMapImagesIntoMap(meshData.material, renderContext.textureTypeMap);
+        parsers::loadAllTextureMapImagesIntoMap(meshData.material, renderContext.textureTypeMap);
         glUtils::generateTextures(meshData.material, renderContext.textureTypeMap);
     }
 
@@ -382,7 +382,7 @@ void SceneManager::loadTextures(const std::vector<Mesh>& meshes)
     //BASECOLOR ALBEDO TEXTURE LOAD
     if (renderContext.material.baseColorTexture.path != EMPTY_TEXTURE)
     {
-        renderContext.textureTypeMap.emplace(BASE_COLOR_TEXTURE, loadImageAndBpp(renderContext.material.baseColorTexture.path, renderContext.material.baseColorTexture.width, renderContext.material.baseColorTexture.height));
+        renderContext.textureTypeMap.emplace(BASE_COLOR_TEXTURE, parsers::loadImageAndBpp(renderContext.material.baseColorTexture.path, renderContext.material.baseColorTexture.width, renderContext.material.baseColorTexture.height));
     }
     else {
         renderContext.material.baseColorTexture.width = MAX_RESOLUTION_TARGET;
@@ -394,14 +394,14 @@ void SceneManager::loadTextures(const std::vector<Mesh>& meshes)
     {
         std::string metallicPath, roughnessPath, folderPath;
         //In case Metallic and Roughness are separate we need to combine them in the appropriate RGB channels
-        if (extractImageNames(renderContext.material.metallicRoughnessTexture.path, folderPath, metallicPath, roughnessPath))
+        if (parsers::extractImageNames(renderContext.material.metallicRoughnessTexture.path, folderPath, metallicPath, roughnessPath))
         {
             int channels;
-            unsigned char* metallicRoughnessTextureData = combineMetallicRoughness(metallicPath.c_str(), roughnessPath.c_str(), renderContext.material.metallicRoughnessTexture.width, renderContext.material.metallicRoughnessTexture.height, channels); 
+            unsigned char* metallicRoughnessTextureData = parsers::combineMetallicRoughness(metallicPath.c_str(), roughnessPath.c_str(), renderContext.material.metallicRoughnessTexture.width, renderContext.material.metallicRoughnessTexture.height, channels); 
             renderContext.textureTypeMap.emplace(METALLIC_ROUGHNESS_TEXTURE, TextureDataGl(metallicRoughnessTextureData, channels));
         }
         else {
-            renderContext.textureTypeMap.emplace(METALLIC_ROUGHNESS_TEXTURE, loadImageAndBpp(renderContext.material.metallicRoughnessTexture.path, renderContext.material.metallicRoughnessTexture.width, renderContext.material.metallicRoughnessTexture.height));
+            renderContext.textureTypeMap.emplace(METALLIC_ROUGHNESS_TEXTURE, parsers::loadImageAndBpp(renderContext.material.metallicRoughnessTexture.path, renderContext.material.metallicRoughnessTexture.width, renderContext.material.metallicRoughnessTexture.height));
         }
     }
     else {
@@ -412,7 +412,7 @@ void SceneManager::loadTextures(const std::vector<Mesh>& meshes)
     //NORMAL TEXTURE LOAD
     if (renderContext.material.normalTexture.path != EMPTY_TEXTURE)
     {
-        renderContext.textureTypeMap.emplace(NORMAL_TEXTURE, loadImageAndBpp(renderContext.material.normalTexture.path, renderContext.material.normalTexture.width, renderContext.material.normalTexture.height));
+        renderContext.textureTypeMap.emplace(NORMAL_TEXTURE, parsers::loadImageAndBpp(renderContext.material.normalTexture.path, renderContext.material.normalTexture.width, renderContext.material.normalTexture.height));
     }
     else {
         renderContext.material.normalTexture.width = MAX_RESOLUTION_TARGET;
@@ -422,7 +422,7 @@ void SceneManager::loadTextures(const std::vector<Mesh>& meshes)
     //OCCLUSION TEXTURE LOAD
     if (renderContext.material.occlusionTexture.path != EMPTY_TEXTURE)
     {
-        renderContext.textureTypeMap.emplace(AO_TEXTURE, loadImageAndBpp(renderContext.material.occlusionTexture.path, renderContext.material.occlusionTexture.width, renderContext.material.occlusionTexture.height));
+        renderContext.textureTypeMap.emplace(AO_TEXTURE, parsers::loadImageAndBpp(renderContext.material.occlusionTexture.path, renderContext.material.occlusionTexture.width, renderContext.material.occlusionTexture.height));
     }
     else {
         renderContext.material.occlusionTexture.width = MAX_RESOLUTION_TARGET;
@@ -432,7 +432,7 @@ void SceneManager::loadTextures(const std::vector<Mesh>& meshes)
     //EMISSIVE TEXTURE LOAD
     if (renderContext.material.emissiveTexture.path != EMPTY_TEXTURE)
     {
-        renderContext.textureTypeMap.emplace(EMISSIVE_TEXTURE, loadImageAndBpp(renderContext.material.emissiveTexture.path, renderContext.material.emissiveTexture.width, renderContext.material.emissiveTexture.height));
+        renderContext.textureTypeMap.emplace(EMISSIVE_TEXTURE, parsers::loadImageAndBpp(renderContext.material.emissiveTexture.path, renderContext.material.emissiveTexture.width, renderContext.material.emissiveTexture.height));
     }
     else {
         renderContext.material.emissiveTexture.width = MAX_RESOLUTION_TARGET;
