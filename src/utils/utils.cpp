@@ -108,6 +108,7 @@ std::pair<glm::vec2, glm::vec2> computeUVBoundingBox(const glm::vec2* triangleUV
     return { glm::vec2(minU, minV), glm::vec2(maxU, maxV) };
 }
 
+
 //https://www.nayuki.io/res/srgb-transform-library/srgb-transform.c
 //Assumes 0,...,1 range 
 float linear_to_srgb_float(float x) {

@@ -17,23 +17,36 @@ public:
     void displayGaussianCount(unsigned int gaussianCount=0);
     void postframe();
 
-    bool shouldRunConversion();
-    bool shouldLoadNewMesh();
-    bool shouldSavePly();
-    bool wasMeshLoaded();
-    std::string getFilePath();
-    std::string getFilePathParentFolder();
-    std::string getFullFilePathDestination();
-    float getGaussianStd();
-    int getResolutionTarget();
-    int getFormatOption();
-    glm::vec4 getSceneBackgroundColor();
+    bool shouldRunConversion() const;
+    bool shouldLoadNewMesh() const;
+    bool shouldSavePly() const;
+    bool wasMeshLoaded() const;
+    bool shouldLoadPly() const;
+    bool wasPlyLoaded() const;
+
+    std::string getMeshFilePath() const;
+    std::string getMeshFilePathParentFolder() const;
+    std::string getMeshFullFilePathDestination() const;
+    std::string getPlyFilePathParentFolder() const;
+    std::string getPlyFilePath() const;
+
+
+
+    float getGaussianStd() const;
+    int getResolutionTarget() const;
+    int getFormatOption() const;
+
+    glm::vec4 getSceneBackgroundColor() const;
 
     void setLoadNewMesh(bool shouldLoadNewMesh);
     void setMeshLoaded(bool loaded);
     void setRunConversion(bool shouldRunConversionFlag);
     void setShouldSavePly(bool shouldSavePly);
     void setFrameMetrics(double gpuFrameTime);
+    void setLoadNewPly(bool loadedPly);
+    void setPlyLoaded(bool loadedPly);
+
+
     void renderGpuFrametime();
 
 
@@ -50,11 +63,19 @@ private:
     float quality;
     bool runConversionFlag;
     bool loadNewMesh;
+    bool loadNewPly;
+
+    bool hasPlyBeenLoaded;
     bool hasMeshBeenLoaded;
+    
     bool savePly;
 
-    char filePathBuffer[256];
-    std::string parent_folder;
+    char meshFilePathBuffer[256];
+    std::string meshParentFolder;
+
+    char plyFilePathBuffer[256];
+    std::string plyParentFolder;
+
     char destinationFilePathBuffer[256];
 
     const float minStd = 0.1f;

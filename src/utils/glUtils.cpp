@@ -567,4 +567,16 @@ void generateTextures(MaterialGltf material, std::map<std::string, TextureDataGl
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     }
 
+    void fillGaussianBufferSsbo(GLuint* gaussianBuffer, std::vector<GaussianDataSSBO>& gaussians)
+    {
+        glGenBuffers(1, &(*gaussianBuffer));
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, *gaussianBuffer);
+        //TODO: I will categorize this hardcoding issue of the number of output float4 params from the SSBO as: ISSUE6
+        GLsizeiptr bufferSize = gaussians.size() * sizeof(glm::vec4) * 6;
+        glBufferData(GL_SHADER_STORAGE_BUFFER, bufferSize, gaussians.data(), GL_DYNAMIC_DRAW);
+        unsigned int bindingPos = 5; //TODO: SSBO binding pos, should not hardcode it and should depend on how many drawbuffers from the framebuffer I want to read from
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindingPos, *gaussianBuffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    }
+
 }

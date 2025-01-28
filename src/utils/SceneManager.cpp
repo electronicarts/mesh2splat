@@ -27,6 +27,13 @@ bool SceneManager::loadModel(const std::string& filePath, const std::string& par
     return true;
 }
 
+bool SceneManager::loadPly(const std::string& filePath) {
+    std::vector<GaussianDataSSBO> gaussians;
+    parsers::loadPlyFile(filePath, gaussians);
+    glUtils::fillGaussianBufferSsbo(&(renderContext.gaussianBuffer), gaussians);
+    return true;
+}
+
 template <typename T>
 const T* SceneManager::getBufferData(const tinygltf::Model& model, int accessorIndex) {
 

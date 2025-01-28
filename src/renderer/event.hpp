@@ -2,6 +2,7 @@
 
 enum class EventType {
     LoadModel,
+    LoadPly,
     RunConversion,
     SavePLY,
     EnableGaussianRendering,

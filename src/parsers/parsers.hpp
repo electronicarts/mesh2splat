@@ -3,6 +3,7 @@
 #include "../../thirdParty/stb_image.h"   
 #include "../../thirdParty/stb_image_resize.h"
 #include "../../thirdParty/stb_image_write.h"
+#include "../../thirdParty/happly.h"
 #include "../utils/utils.hpp"
 
 namespace parsers
@@ -17,6 +18,8 @@ namespace parsers
 
 	void writeBinaryPlyStandardFormat(const std::string& filename, const std::vector<Gaussian3D>& gaussians);
 	void writeBinaryPlyStandardFormatFromSSBO(const std::string& filename, GaussianDataSSBO* gaussians, unsigned int gaussianCount);
+
+	void loadPlyFile(std::string plyFileLocation, std::vector<GaussianDataSSBO>& gaussians);
 
 	void savePlyVector(std::string outputFileLocation, std::vector<Gaussian3D> gaussians_3D_list, unsigned int format);
 

@@ -220,4 +220,6 @@ void computeAndLoadTextureInformation(
 
 bool shouldSkip(const GaussianDataSSBO& g);
 
+inline float sigmoid(float opacity) { return 1.0 / (1.0 + std::exp(-opacity)); };
+
 std::string formatWithCommas(int value);

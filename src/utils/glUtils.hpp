@@ -42,6 +42,7 @@ namespace glUtils
     void read3dgsDataFromSsboBuffer(GLuint& indirectDrawCommandBuffer, GLuint& gaussianBuffer, GaussianDataSSBO*& gaussians, unsigned int& gaussianCount);
 
     void setupGaussianBufferSsbo(unsigned int width, unsigned int height, GLuint* gaussianBuffer);
+    void fillGaussianBufferSsbo(GLuint* gaussianBuffer, std::vector<GaussianDataSSBO>& gaussians);
 
     template<typename T>
     void resizeAndBindToPosSSBO(unsigned int size, GLuint buffer, unsigned int bindingPos)

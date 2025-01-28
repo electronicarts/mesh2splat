@@ -11,6 +11,8 @@ public:
     ~SceneManager();
 
     bool loadModel(const std::string& filePath, const std::string& parentFolder);
+    bool loadPly(const std::string& filePath);
+
     void updateMeshes();
     void cleanup();
 

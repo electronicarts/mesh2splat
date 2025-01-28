@@ -11,7 +11,7 @@ ImGuiUI::ImGuiUI(float defaultResolutionIndex, int defaultFormat, float defaultG
       hasMeshBeenLoaded(false)
 {
     //TODO: remove this and add a different debug default folder
-    strcpy(filePathBuffer, "C:\\Users\\sscolari\\Desktop\\dataset\\scifiHelmet\\scifiHelmet.glb");
+    strcpy(meshFilePathBuffer, "C:\\Users\\sscolari\\Desktop\\dataset\\scifiHelmet\\scifiHelmet.glb");
     destinationFilePathBuffer[0] = '\0';  // empty destination path initially
 }
 
@@ -36,29 +36,45 @@ void ImGuiUI::renderUI()
 {
     ImGui::Begin("File Selector");
 
-    ImGui::InputText("Mesh File", filePathBuffer, sizeof(filePathBuffer));
+    ImGui::InputText("Mesh File", meshFilePathBuffer, sizeof(meshFilePathBuffer));
     if (ImGui::Button("Load Mesh")) {
         loadNewMesh = true;
-        std::string filePath(filePathBuffer);
+        std::string filePath(meshFilePathBuffer);
         if (!filePath.empty()) {
             size_t lastSlashPos = filePath.find_last_of("/\\");
             if (lastSlashPos != std::string::npos) {
-                parent_folder = filePath.substr(0, lastSlashPos + 1);
+                meshParentFolder = filePath.substr(0, lastSlashPos + 1);
             }
             else {
-                parent_folder = "";
+                meshParentFolder = "";
             }
         }
     }
 
-    ImGui::ColorEdit4("Background Color", &sceneBackgroundColor.x);
+    ImGui::InputText("Ply File", plyFilePathBuffer, sizeof(plyFilePathBuffer));
+    if (ImGui::Button("Load Ply")) {
+        loadNewPly = true;
+        std::string filePath(plyFilePathBuffer);
+        if (!filePath.empty()) {
+            size_t lastSlashPos = filePath.find_last_of("/\\");
+            if (lastSlashPos != std::string::npos) {
+                plyParentFolder = filePath.substr(0, lastSlashPos + 1);
+            }
+            else {
+                plyParentFolder = "";
+            }
+        }
+    }
 
+
+    ImGui::ColorEdit4("Background Color", &sceneBackgroundColor.x);
 
     //TODO: right now std_dev is not updated in the actual gaussianBuffer, just during rendering. Need to consider this when exporting
     if (ImGui::SliderFloat("Gaussian Std Dev", &gaussian_std, minStd, maxStd, "%.2f"));
     //{
     //    runConversionFlag = true;
     //};
+
     if (ImGui::SliderFloat("Mesh2Splat quality", &quality, 0.0f, 1.0f, "%.2f")) {
         runConversionFlag = true;
     }
@@ -141,15 +157,35 @@ void ImGuiUI::postframe()
 }
 
 
-bool ImGuiUI::shouldRunConversion() { return runConversionFlag; };
-bool ImGuiUI::shouldLoadNewMesh() { return loadNewMesh; };
-bool ImGuiUI::wasMeshLoaded() { return hasMeshBeenLoaded; };
-bool ImGuiUI::shouldSavePly() { return savePly; };
+bool ImGuiUI::shouldRunConversion() const { return runConversionFlag; } ;
+bool ImGuiUI::shouldLoadNewMesh() const { return loadNewMesh; } ;
+bool ImGuiUI::wasMeshLoaded() const { return hasMeshBeenLoaded; } ;
+bool ImGuiUI::shouldLoadPly() const { return loadNewPly; } ;
+bool ImGuiUI::wasPlyLoaded() const { return hasPlyBeenLoaded; };
+
+bool ImGuiUI::shouldSavePly() const { return savePly; } ;
+std::string ImGuiUI::getMeshFilePath() const { return std::string(meshFilePathBuffer); };
+std::string ImGuiUI::getMeshFilePathParentFolder() const {return meshParentFolder;};
+std::string ImGuiUI::getMeshFullFilePathDestination() const { return std::string(destinationFilePathBuffer); };
+
+std::string ImGuiUI::getPlyFilePath() const { return std::string(plyFilePathBuffer); };
+std::string ImGuiUI::getPlyFilePathParentFolder() const { return plyParentFolder; };
+
+int ImGuiUI::getFormatOption() const { return formatOptions[formatIndex]; };
+glm::vec4 ImGuiUI::getSceneBackgroundColor() const { return sceneBackgroundColor; };
+float ImGuiUI::getGaussianStd() const { return gaussian_std; };
+int ImGuiUI::getResolutionTarget() const { return static_cast<int>(minRes + quality * (maxRes - minRes)); };
+
 
 void ImGuiUI::setLoadNewMesh(bool shouldLoadNewMesh) { loadNewMesh = shouldLoadNewMesh; };
 void ImGuiUI::setMeshLoaded(bool loaded) { hasMeshBeenLoaded = loaded; };
+
+void ImGuiUI::setLoadNewPly(bool loadPly) { loadNewPly = loadPly; };
+void ImGuiUI::setPlyLoaded(bool loadedPly) { hasPlyBeenLoaded = loadedPly; };
+
 void ImGuiUI::setRunConversion(bool shouldRunConversionFlag) { runConversionFlag = shouldRunConversionFlag; };
 void ImGuiUI::setShouldSavePly(bool shouldSavePly) { savePly = shouldSavePly; };
+
 void ImGuiUI::setFrameMetrics(double gpuFrameTime) {
     this->gpuFrameTime = static_cast<float>(gpuFrameTime);
     
@@ -161,14 +197,8 @@ void ImGuiUI::setFrameMetrics(double gpuFrameTime) {
     frameTimeHistory.push_back(this->gpuFrameTime);
 }
 
-std::string ImGuiUI::getFilePath() { return std::string(filePathBuffer); };
-std::string ImGuiUI::getFilePathParentFolder(){return parent_folder;};
-std::string ImGuiUI::getFullFilePathDestination() { return std::string(destinationFilePathBuffer); };
-int ImGuiUI::getFormatOption() { return formatOptions[formatIndex]; };
-glm::vec4 ImGuiUI::getSceneBackgroundColor() { return sceneBackgroundColor; };
 
 
-float ImGuiUI::getGaussianStd() { return gaussian_std; };
-int ImGuiUI::getResolutionTarget() { return static_cast<int>(minRes + quality * (maxRes - minRes)); };
+
 
 
