@@ -9,9 +9,6 @@
 #include "RenderPasses.hpp"
 #include "../utils/SceneManager.hpp"
 
-
-#define MAX_GAUSSIANS_TO_SORT 5000000 
-
 class Renderer {
 public:
 	explicit Renderer(GLFWwindow* window);

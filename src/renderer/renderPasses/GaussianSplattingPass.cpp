@@ -105,7 +105,7 @@ void GaussianSplattingPass::computePrepass(RenderContext& renderContext)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, renderContext.gaussianBufferSorted);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, renderContext.gaussianBufferSorted);
 
-    if(validCount > 5000000) glUtils::resizeAndBindToPosSSBO<glm::vec4>(validCount * 3, renderContext.perQuadTransformationsBuffer, 1);
+    if(validCount > MAX_GAUSSIANS_TO_SORT) glUtils::resizeAndBindToPosSSBO<glm::vec4>(validCount * 3, renderContext.perQuadTransformationsBuffer, 1);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, renderContext.perQuadTransformationsBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, renderContext.perQuadTransformationsBuffer);

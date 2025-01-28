@@ -1,6 +1,8 @@
 #pragma once
 #include "RenderContext.hpp"
 
+#define MAX_GAUSSIANS_TO_SORT 5000000 
+
 class IRenderPass {
 public:
     virtual ~IRenderPass() = default;
