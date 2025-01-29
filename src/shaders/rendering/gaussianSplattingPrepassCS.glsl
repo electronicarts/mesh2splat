@@ -83,13 +83,14 @@ void main() {
 
     if (gid >= gaussianBuffer.gaussians.length()) return;
 
-	GaussianVertex guassian = gaussianBuffer.gaussians[gid];
+	GaussianVertex gaussian = gaussianBuffer.gaussians[gid];
 	
 	mat3 cov3d;
+	float multiplier = gaussian.pbr.w == 1 ? u_stdDev : 1;
 
-	computeCov3D(guassian.rotation, exp(guassian.scale.xyz) * GAUSSIAN_CUTOFF_SCALE, cov3d);
+	computeCov3D(gaussian.rotation, exp(gaussian.scale.xyz) * GAUSSIAN_CUTOFF_SCALE * multiplier, cov3d);
 
-	vec4 gaussian_vs = u_worldToView * vec4(guassian.position.xyz, 1);
+	vec4 gaussian_vs = u_worldToView * vec4(gaussian.position.xyz, 1);
 
 	vec4 pos2d = u_viewToClip * gaussian_vs;
 	
@@ -98,7 +99,7 @@ void main() {
 	if (pos2d.z < -clip || pos2d.x < -clip || pos2d.x > clip || pos2d.y < -clip || pos2d.y > clip) {
 		perQuadTransformations.ndcTransformations[gid].gaussianMean2dNdc	= pos2d;
 		perQuadTransformations.ndcTransformations[gid].quadScaleNdc			= vec4(0,0,0,0);
-		perQuadTransformations.ndcTransformations[gid].color				= vec4(guassian.color.rgb, 0);
+		perQuadTransformations.ndcTransformations[gid].color				= vec4(gaussian.color.rgb, 0);
 		return;
     }
 
@@ -111,7 +112,7 @@ void main() {
 	float limy = 1.3 * u_hfov_focal.y;
 
 
-	vec3 t = mat3(u_worldToView) * (guassian.position.xyz - u_camPos);
+	vec3 t = mat3(u_worldToView) * (gaussian.position.xyz - u_camPos);
 
 	//projected screen-space coordinates
 	float txtz = t.x / t.z;
@@ -154,7 +155,7 @@ void main() {
 
 	perQuadTransformations.ndcTransformations[gid].gaussianMean2dNdc	= pos2d;
 	perQuadTransformations.ndcTransformations[gid].quadScaleNdc			= vec4(majorAxisMultiplier, minorAxisMultiplier);
-	perQuadTransformations.ndcTransformations[gid].color				= guassian.color;
+	perQuadTransformations.ndcTransformations[gid].color				= gaussian.color;
 
 }
 

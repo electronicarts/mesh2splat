@@ -60,5 +60,5 @@ void main() {
     gaussianBuffer.vertices[index].scale        = scale; 
     gaussianBuffer.vertices[index].normal       = normal; 
     gaussianBuffer.vertices[index].rotation     = quaternion; 
-    gaussianBuffer.vertices[index].pbr          = vec4(pbrAndScaleY.xy, 0 , 1); //last one is the validity flag
+    gaussianBuffer.vertices[index].pbr          = vec4(pbrAndScaleY.xy, 0 , 1); //last one is a flag to check wheter it was read from mesh or standard ply (1: mesh)
 }
