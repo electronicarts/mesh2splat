@@ -146,6 +146,8 @@ void Renderer::updateTransformations()
     float htanx = htany / height * width;
     float focal_z = height / (2 * htany);
     renderContext.hfov_focal = glm::vec3(htanx, htany, focal_z);
+
+    renderContext.camPos = camera.GetPosition();
 }
 
 void Renderer::clearingPrePass(glm::vec4 clearColor)

@@ -1,5 +1,8 @@
 #version 460 core
 
+#define ALPHA_CUTOFF (1.0f/256.0f)
+#define GAUSSIAN_CUTOFF_SCALE (sqrt(log(1.0f / ALPHA_CUTOFF)))
+
 struct GaussianVertex {
     vec4 position;
     vec4 color;
@@ -19,6 +22,8 @@ uniform float u_stdDev;
 uniform vec3 u_hfov_focal;
 uniform mat4 u_worldToView;
 uniform mat4 u_viewToClip;
+uniform vec2 u_resolution;
+uniform vec3 u_camPos;
 
 layout(std430, binding = 0) readonly buffer GaussianBuffer {
     GaussianVertex gaussians[];
@@ -61,7 +66,7 @@ void computeCov3D(vec4 quat, vec3 scales, out mat3 sigma3d) {
 	mat3 scaleMatrix = mat3(
 		scales.x , 0, 0, 
 		0, scales.y , 0,
-		0, 0, scales.z 
+		0, 0, scales.z
 	);
 
 	mat3 rotMatrix;
@@ -82,10 +87,18 @@ void main() {
 	
 	mat3 cov3d;
 
-	computeCov3D(guassian.rotation.wxyz, exp(guassian.scale.xyz), cov3d);
+	computeCov3D(guassian.rotation, exp(guassian.scale.xyz) * GAUSSIAN_CUTOFF_SCALE, cov3d);
 	vec4 gaussian_vs = u_worldToView * vec4(guassian.position.xyz, 1);
 
 	vec4 pos2d = u_viewToClip * gaussian_vs;
+	
+	float clip = 1.2 * pos2d.w;
+
+	//if (pos2d.z < -clip || pos2d.x < -clip || pos2d.x > clip || pos2d.y < -clip || pos2d.y > clip) {
+    //    gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
+    //    return;
+    //}
+
 	pos2d.xyz = pos2d.xyz / pos2d.w;
 	pos2d.w = 1.f;
 
@@ -93,39 +106,59 @@ void main() {
 	float limx = 1.3 * u_hfov_focal.x;
 	float limy = 1.3 * u_hfov_focal.y;
 
+
+	vec3 t = mat3(u_worldToView) * (guassian.position.xyz - u_camPos);
+
 	//projected screen-space coordinates
-	float txtz = gaussian_vs.x / gaussian_vs.z;
-	float tytz = gaussian_vs.y / gaussian_vs.z;
+	float txtz = t.x / t.z;
+	float tytz = t.y / t.z;
 
-	float tx = min(limx, max(-limx, txtz)) * gaussian_vs.z;
-	float ty = min(limy, max(-limy, tytz)) * gaussian_vs.z; 
+	t.x = clamp(txtz, -limx, limx) * t.z;
+    t.y = clamp(tytz, -limy, limy) * t.z;
 
-	//Jacobian of affine approximation of projective transformation
+	// Jacobian for the Taylor approximation of the nonlinear projective transformation
 	//We just care about how z affects, u_hfov_focal.xy is already baked into the projection mat
-	mat3 J = mat3(
-	  u_hfov_focal.z / gaussian_vs.z, 0., 0,
-	  -(u_hfov_focal.x * tx) / (gaussian_vs.z * gaussian_vs.z), u_hfov_focal.z / gaussian_vs.z, 0,
-	  0., -(u_hfov_focal.y * ty) / (gaussian_vs.z * gaussian_vs.z), 0.
-	);
-	
-	mat3 T = transpose(mat3(u_worldToView)) * J;
+	float tzSq = gaussian_vs.z * gaussian_vs.z;
+	vec2 focal = vec2(u_viewToClip[0][0], u_viewToClip[1][1]);
+    
+	mat3 J_T = mat3(
+        u_hfov_focal.z/gaussian_vs.z, 0., -u_hfov_focal.z*t.x/tzSq,
+        0., u_hfov_focal.z/gaussian_vs.z , -u_hfov_focal.z*t.y/tzSq,
+        0., 0., 0.
+    );
 
-	mat3 cov2d = transpose(T) * transpose(cov3d) * T;
+	mat3 T = transpose(mat3(u_worldToView)) * J_T;
+
+	mat3 cov2d = transpose(T) * cov3d * T;
+
+    // covariance matrix in ray space
 
 	//Just care about applying low pass filter to 2x2 upper matrix
 	cov2d[0][0] += 0.3f;
 	cov2d[1][1] += 0.3f; 
 
-	float det = determinant(mat2(cov2d));
-	if (abs(det) < 1e-6) return;
-	float det_inv = 1.f / det;
+	float mid = 0.5*(cov2d[0][0] + cov2d[1][1]);
+    float radius = length(vec2(0.5*(cov2d[0][0] - cov2d[1][1]), cov2d[0][1]));
+    float lambda1 = mid + radius, lambda2 = mid - radius;
+	if (lambda2 < 0.0) return;
+    vec2 diagonalVector = normalize(vec2(cov2d[0][1], lambda1 - cov2d[0][0]));
+    vec2 majorAxis = min(sqrt(3.0*lambda1), 1024.0) * diagonalVector;
+    vec2 minorAxis = min(sqrt(3.0*lambda2), 1024.0) * vec2(diagonalVector.y, -diagonalVector.x);
 
-	vec2 quadwh_scr = vec2(3.f * sqrt(cov2d[0][0]), 3.f * sqrt(cov2d[1][1]));
-	//from screen to NDC, inverse
-	vec2 quadwh_ndc = (quadwh_scr / wh) * 2;
+
+	vec2 majorAxisMultiplier = majorAxis / u_resolution;
+	vec2 minorAxisMultiplier = minorAxis / u_resolution;
+
+	//float det = determinant(mat2(cov2d));
+	//if (abs(det) < 1e-6) return;
+	//float det_inv = 1.f / det;
+	//
+	//vec2 quadwh_scr = vec2(3.f * sqrt(cov2d[0][0]), 3.f * sqrt(cov2d[1][1]));
+	////from screen to NDC, inverse
+	//vec2 quadwh_ndc = (quadwh_scr / wh) * 2;
 
 	perQuadTransformations.ndcTransformations[gid].gaussianMean2dNdc	= pos2d;
-	perQuadTransformations.ndcTransformations[gid].quadScaleNdc			= vec4(quadwh_ndc, 0, 0);
+	perQuadTransformations.ndcTransformations[gid].quadScaleNdc			= vec4(majorAxisMultiplier, minorAxisMultiplier);
 	perQuadTransformations.ndcTransformations[gid].color				= guassian.color;
 
 }

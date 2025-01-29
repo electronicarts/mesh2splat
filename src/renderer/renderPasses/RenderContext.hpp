@@ -26,6 +26,7 @@ struct RenderContext {
     glm::mat4 projMat;
     glm::mat4 MVP; //TODO: yeah, assumes we will render with one single model mat
     glm::vec3 hfov_focal;
+    glm::vec3 camPos;
     GLFWwindow* rendererGlfwWindow; //TODO: I also need to store this here for now, as I need to reset the viewport DURING the rendering pass as it may ha
 
     struct ShaderPrograms

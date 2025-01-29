@@ -102,6 +102,10 @@ void GaussianSplattingPass::computePrepass(RenderContext& renderContext)
     glUtils::setUniform3f(renderContext.shaderPrograms.computeShaderGaussianPrepassProgram, "u_hfov_focal", renderContext.hfov_focal);
     glUtils::setUniformMat4(renderContext.shaderPrograms.computeShaderGaussianPrepassProgram, "u_worldToView", renderContext.viewMat);
     glUtils::setUniformMat4(renderContext.shaderPrograms.computeShaderGaussianPrepassProgram, "u_viewToClip", renderContext.projMat);
+    glUtils::setUniform2f(renderContext.shaderPrograms.computeShaderGaussianPrepassProgram, "u_resolution", renderContext.rendererResolution);
+    glUtils::setUniform3f(renderContext.shaderPrograms.computeShaderGaussianPrepassProgram, "u_camPos", renderContext.camPos);
+
+
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, renderContext.gaussianBufferSorted);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, renderContext.gaussianBufferSorted);
