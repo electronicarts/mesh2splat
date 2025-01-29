@@ -4,18 +4,19 @@
 layout(location = 0) in vec3 vertexPos;
 
 // Per-instance (quad) attributes
-layout(location = 1) in vec4 gaussianMean2Ndc; //model space  
+layout(location = 1) in vec4 gaussianMean2Ndc; 
 layout(location = 2) in vec4 quadScaleNdc;
 layout(location = 3) in vec4 color;
 
-// You can add more per-instance attributes at locations 3, 4, 5 as needed.
 out vec3 out_color;
 out vec2 out_uv;
 out float out_opacity;
 
 void main() {
 	vec4 pos2dNdc = gaussianMean2Ndc;
-	pos2dNdc.xy = gaussianMean2Ndc.xy + vertexPos.xy * quadScaleNdc.xy;
+
+	pos2dNdc.xy = pos2dNdc.xy + vertexPos.xy * quadScaleNdc.xy;
+	pos2dNdc.w = 1;
 
 	gl_Position = pos2dNdc;
 	//TODO: Should actually use the conic to compute varying density

@@ -660,11 +660,12 @@ namespace parsers
                 gaussian.normal.y = vertex_ny[i];
                 gaussian.normal.z = vertex_nz[i];
                 gaussian.normal.w = 0.0f;
-
-                gaussian.rotation.x = vertex_rot_0[i];
-                gaussian.rotation.y = vertex_rot_1[i];
-                gaussian.rotation.z = vertex_rot_2[i];
-                gaussian.rotation.w = vertex_rot_3[i];
+                glm::quat rot = glm::quat(vertex_rot_0[i], vertex_rot_1[i], vertex_rot_2[i], vertex_rot_3[i]);
+                rot = glm::normalize(rot);
+                gaussian.rotation.x = rot.w;
+                gaussian.rotation.y = rot.x;
+                gaussian.rotation.z = rot.y;
+                gaussian.rotation.w = rot.z;
 
                 gaussian.pbr = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 

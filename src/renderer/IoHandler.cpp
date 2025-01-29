@@ -1,91 +1,88 @@
 #include "IoHandler.hpp"
-#include "renderer.hpp"
+#include <imgui.h>
 
-//TODO: yeah, these are globals for now :D
-float yaw = -90.0f, pitch = 0.0f;
-double lastMouseX = 320.0f, lastMouseY = 240.0f;  
-bool firstMouse = true;
-float cameraRadius = 5.0f; 
-float distance = 5.0f;
-bool mouseDraggingForRotation;
-bool mouseDraggingForPanning;
-float panSpeed = 0.01;
-glm::vec3 cameraTarget = glm::vec3(0,0,0);
+bool IoHandler::mouseDragging = false;
+bool IoHandler::firstMouse = true;
+double IoHandler::lastX = 0.0;
+double IoHandler::lastY = 0.0;
+bool IoHandler::keys[1024] = { false };
 
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+IoHandler::IoHandler(GLFWwindow* window, Camera& cameraInstance)
+    : window(window), camera(&cameraInstance) {
+    setupCallbacks();
+}
+
+void IoHandler::setupCallbacks() {
+    glfwSetWindowUserPointer(window, this);
+    glfwSetMouseButtonCallback(window, IoHandler::mouseButtonCallback);
+    glfwSetCursorPosCallback(window, IoHandler::cursorPositionCallback);
+    glfwSetScrollCallback(window, IoHandler::scrollCallback);
+    glfwSetKeyCallback(window, IoHandler::keyCallback);
+}
+
+void IoHandler::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+    IoHandler* handler = static_cast<IoHandler*>(glfwGetWindowUserPointer(window));
+
     ImGuiIO& io = ImGui::GetIO();
     if (!io.WantCaptureMouse) {
-        if (button == GLFW_MOUSE_BUTTON_LEFT) {
-            if (action == GLFW_PRESS) {
-                mouseDraggingForRotation = true;
-                glfwGetCursorPos(window, &lastMouseX, &lastMouseY);
-            } else if (action == GLFW_RELEASE) {
-                mouseDraggingForRotation = false;
-            }
-        }
         if (button == GLFW_MOUSE_BUTTON_RIGHT) {
             if (action == GLFW_PRESS) {
-                mouseDraggingForPanning = true;
-                glfwGetCursorPos(window, &lastMouseX, &lastMouseY);
-            } else if (action == GLFW_RELEASE) {
-                mouseDraggingForPanning = false;
+                mouseDragging = true;
+                glfwGetCursorPos(window, &lastX, &lastY);
+            }
+            else if (action == GLFW_RELEASE) {
+                mouseDragging = false;
+                firstMouse = true;
             }
         }
     }
 }
 
-// Cursor position callback to update yaw and pitch during dragging
-void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
+void IoHandler::cursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
+    IoHandler* handler = static_cast<IoHandler*>(glfwGetWindowUserPointer(window));
+
     ImGuiIO& io = ImGui::GetIO();
-    if (!io.WantCaptureMouse) {
-        if (mouseDraggingForRotation) {
-            double dx = xpos - lastMouseX;
-            double dy = ypos - lastMouseY;
-
-            // Sensitivity factors for smoother control
-            float sensitivity = 0.1f;
-            yaw += static_cast<float>(dx) * sensitivity;
-            pitch += static_cast<float>(dy) * sensitivity;
-
-            // Clamp pitch to avoid flipping the camera
-            if (pitch > 89.0f)  pitch = 89.0f;
-            if (pitch < -89.0f) pitch = -89.0f;
-
-            lastMouseX = xpos;
-            lastMouseY = ypos;
+    if (!io.WantCaptureMouse && mouseDragging) {
+        if (firstMouse) {
+            lastX = xpos;
+            lastY = ypos;
+            firstMouse = false;
         }
 
-        if (mouseDraggingForPanning)
-        {
-            double currentRightMouseX = xpos;
-            double currentRightMouseY = ypos;
+        float xoffset = static_cast<float>(xpos - lastX);
+        float yoffset = static_cast<float>(lastY - ypos); 
 
+        lastX = xpos;
+        lastY = ypos;
 
-            double dx = currentRightMouseX - lastMouseX;
-            double dy = currentRightMouseY - lastMouseY;
-
-            // Calculate camera axes for panning
-            glm::vec3 camPos = Renderer::computeCameraPosition();
-            glm::vec3 front = glm::normalize(cameraTarget - camPos);
-            glm::vec3 worldUp(0.0f, 1.0f, 0.0f);
-            glm::vec3 cameraRight = glm::normalize(glm::cross(front, worldUp));
-            glm::vec3 cameraUp = glm::normalize(glm::cross(cameraRight, front));
-
-            cameraTarget += -static_cast<float>(dx) * panSpeed * cameraRight
-                + static_cast<float>(dy) * panSpeed * cameraUp;
-
-            lastMouseX = currentRightMouseX;
-            lastMouseY = currentRightMouseY;
-        }
+        handler->camera->ProcessMouseMovement(xoffset, yoffset);
     }
 }
 
-// Scroll callback to adjust camera distance (zoom)
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-    float zoomSpeed = 0.15f;
-    distance -= static_cast<float>(yoffset) * zoomSpeed;
-    
-    // Clamp distance to avoid extreme zoom
-    if(distance < 0.1f)  distance = 0.1f;
-    if(distance > 250.0f) distance = 250.0f;
+void IoHandler::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+    IoHandler* handler = static_cast<IoHandler*>(glfwGetWindowUserPointer(window));
+
+    ImGuiIO& io = ImGui::GetIO();
+    if (!io.WantCaptureMouse) {
+        handler->camera->ProcessMouseScroll(static_cast<float>(yoffset));
+    }
+}
+
+void IoHandler::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (action == GLFW_PRESS)
+        keys[key] = true;
+    else if (action == GLFW_RELEASE)
+        keys[key] = false;
+}
+
+void IoHandler::processInput(float deltaTime) {
+
+    bool forward = keys[GLFW_KEY_W];
+    bool backward = keys[GLFW_KEY_S];
+    bool left = keys[GLFW_KEY_A];
+    bool right = keys[GLFW_KEY_D];
+    bool upMove = keys[GLFW_KEY_E];
+    bool downMove = keys[GLFW_KEY_Q];
+
+    camera->ProcessKeyboard(deltaTime, forward, backward, left, right, upMove, downMove);
 }

@@ -2,7 +2,7 @@
 
 //TODO: create a separete camera class, avoid it bloating and getting too messy
 
-Renderer::Renderer(GLFWwindow* window)
+Renderer::Renderer(GLFWwindow* window, Camera& cameraInstance) : camera(cameraInstance)
 {
     sceneManager = std::make_unique<SceneManager>(renderContext);
 
@@ -128,20 +128,17 @@ void Renderer::updateTransformations()
     int width, height;
     glfwGetFramebufferSize(rendererGlfwWindow, &width, &height);
 
-    float fov = 90.0f;
+    float fov = camera.GetFOV();
     float closePlane = 0.01f;
     float farPlane = 100.0f;
     renderContext.projMat = glm::perspective(glm::radians(fov),
                                             (float)width / (float)height,
                                             closePlane, farPlane);
-    //TODO: dont think i need this
+    // Set viewport
     glViewport(0, 0, width, height);
 
-    //TODO: refactor, should not be here. Create a separate transformations/camera class
-    glm::vec3 cameraPos = computeCameraPosition();
-    glm::vec3 target(0.0f);
-    glm::vec3 up(0.0f, 1.0f, 0.0f);
-    renderContext.viewMat = glm::lookAt(cameraPos, target, up);
+    // Use Camera's view matrix
+    renderContext.viewMat = camera.GetViewMatrix();
     glm::mat4 model = glm::mat4(1.0);
     renderContext.MVP = renderContext.projMat * renderContext.viewMat * model;
 
@@ -149,20 +146,6 @@ void Renderer::updateTransformations()
     float htanx = htany / height * width;
     float focal_z = height / (2 * htany);
     renderContext.hfov_focal = glm::vec3(htanx, htany, focal_z);
-}
-
-
-glm::vec3 Renderer::computeCameraPosition() {
-    // Convert angles to radians
-    float yawRadians   = glm::radians(yaw);
-    float pitchRadians = glm::radians(pitch);
-
-    // Calculate the new camera position in Cartesian coordinates
-    float x = distance * cos(pitchRadians) * cos(yawRadians);
-    float y = distance * sin(pitchRadians);
-    float z = distance * cos(pitchRadians) * sin(yawRadians);
-    
-    return glm::vec3(x, y, z);
 }
 
 void Renderer::clearingPrePass(glm::vec4 clearColor)

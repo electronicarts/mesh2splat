@@ -20,9 +20,9 @@ GlewGlfwHandler::GlewGlfwHandler(glm::ivec2 windowDimensions, std::string window
 int GlewGlfwHandler::init()
 {
     glfwMakeContextCurrent(this->window);
-    glfwSetMouseButtonCallback(this->window, mouse_button_callback);
-    glfwSetCursorPosCallback(this->window, cursor_position_callback);
-    glfwSetScrollCallback(this->window, scroll_callback);
+    //glfwSetMouseButtonCallback(this->window, mouse_button_callback);
+    //glfwSetCursorPosCallback(this->window, cursor_position_callback);
+    //glfwSetScrollCallback(this->window, scroll_callback);
 
     // Initialize GLEW
     glewExperimental = GL_TRUE;  // Enable modern OpenGL features

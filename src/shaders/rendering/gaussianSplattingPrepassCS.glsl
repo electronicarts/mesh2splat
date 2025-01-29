@@ -82,7 +82,7 @@ void main() {
 	
 	mat3 cov3d;
 
-	computeCov3D(guassian.rotation, exp(guassian.scale.xyz), cov3d);
+	computeCov3D(guassian.rotation.wxyz, exp(guassian.scale.xyz), cov3d);
 	vec4 gaussian_vs = u_worldToView * vec4(guassian.position.xyz, 1);
 
 	vec4 pos2d = u_viewToClip * gaussian_vs;
@@ -108,8 +108,9 @@ void main() {
 	  0., -(u_hfov_focal.y * ty) / (gaussian_vs.z * gaussian_vs.z), 0.
 	);
 	
-	mat3 JW = J * mat3(u_worldToView);
-	mat3 cov2d = JW * cov3d * transpose(JW);
+	mat3 T = transpose(mat3(u_worldToView)) * J;
+
+	mat3 cov2d = transpose(T) * transpose(cov3d) * T;
 
 	//Just care about applying low pass filter to 2x2 upper matrix
 	cov2d[0][0] += 0.3f;
@@ -124,7 +125,7 @@ void main() {
 	vec2 quadwh_ndc = (quadwh_scr / wh) * 2;
 
 	perQuadTransformations.ndcTransformations[gid].gaussianMean2dNdc	= pos2d;
-	perQuadTransformations.ndcTransformations[gid].quadScaleNdc			= vec4(quadwh_ndc,0,0);
+	perQuadTransformations.ndcTransformations[gid].quadScaleNdc			= vec4(quadwh_ndc, 0, 0);
 	perQuadTransformations.ndcTransformations[gid].color				= guassian.color;
 
 }

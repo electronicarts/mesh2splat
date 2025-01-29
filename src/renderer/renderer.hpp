@@ -11,14 +11,15 @@
 
 class Renderer {
 public:
-	explicit Renderer(GLFWwindow* window);
+	Renderer(GLFWwindow* window, Camera& cameraInstance);
+
 	~Renderer();
 
 	void initialize();
 	void renderFrame();        // Execute all enabled render passes
 	void clearingPrePass(glm::vec4 clearColor); //TODO: hmmm
 	void updateTransformations();
-	static glm::vec3 computeCameraPosition();
+
 	//TODO: For now not using this, will implement a render-pass based structure and change how the render-loop is implemented
 	bool updateShadersIfNeeded(bool forceReload = false);
 	unsigned int getGaussianCountFromIndirectBuffer();
@@ -31,7 +32,6 @@ public:
 	void resetRendererViewportResolution();
 	SceneManager& getSceneManager();
 	double getTotalGpuFrameTimeMs() const;
-
 
 private:
 	std::map<std::string, std::unique_ptr<IRenderPass>> renderPasses;
@@ -54,5 +54,8 @@ private:
 	double lastShaderCheckTime;
 
 	double gpuFrameTimeMs;
+
+	Camera& camera;
+
 
 };

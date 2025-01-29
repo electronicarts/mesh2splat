@@ -1,5 +1,4 @@
 #include "../renderer/IoHandler.hpp"
-
 #include "../utils/utils.hpp"  
 
 class GlewGlfwHandler

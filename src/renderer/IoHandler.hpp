@@ -1,18 +1,25 @@
 #pragma once
-#include "../utils/utils.hpp"
+#include "../utils/Camera.hpp"
 
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+class IoHandler {
+public:
+    IoHandler(GLFWwindow* window, Camera& camera);
+    void setupCallbacks();
+    void processInput(float deltaTime);
 
-void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
+private:
+    static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
+    static void cursorPositionCallback(GLFWwindow* window, double xpos, double ypos);
+    static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+    static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+    Camera* camera; 
+    GLFWwindow* window;
 
-extern float yaw, pitch;
-extern double lastMouseX, lastMouseY;  
-extern bool firstMouse;
-extern float cameraRadius; 
-extern float distance;
-extern bool mouseDraggingForRotation;
-extern bool mouseDraggingForPanning;
-extern float panSpeed;
-extern glm::vec3 cameraTarget;
+    // Internal state
+    static bool mouseDragging;
+    static bool firstMouse;
+    static double lastX;
+    static double lastY;
+    static bool keys[1024];
+};

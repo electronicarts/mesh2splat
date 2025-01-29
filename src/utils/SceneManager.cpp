@@ -31,6 +31,7 @@ bool SceneManager::loadPly(const std::string& filePath) {
     std::vector<GaussianDataSSBO> gaussians;
     parsers::loadPlyFile(filePath, gaussians);
 
+    //TODO: bad, very bad
     glGenBuffers(1, &(renderContext.drawIndirectBuffer));
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, renderContext.drawIndirectBuffer);
     glBufferData(GL_DRAW_INDIRECT_BUFFER,
