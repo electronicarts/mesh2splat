@@ -11,12 +11,12 @@ Renderer::Renderer(GLFWwindow* window, Camera& cameraInstance) : camera(cameraIn
     renderContext = {};
     glGenVertexArrays(1, &(renderContext.vao));
     //TODO: these should be set to 0 not -1...
-    renderContext.gaussianBuffer                = -1;
-    renderContext.gaussianBufferPostFiltering    = -1;
-    renderContext.drawIndirectBuffer            = -1;
-    renderContext.keysBuffer                    = -1;
-	renderContext.valuesBuffer                  = -1;
-    renderContext.perQuadTransformationBufferSorted          = -1;
+    renderContext.gaussianBuffer                = 0;
+    renderContext.gaussianBufferPostFiltering   = 0;
+    renderContext.drawIndirectBuffer            = 0;
+    renderContext.keysBuffer                    = 0;
+	renderContext.valuesBuffer                  = 0;
+    renderContext.perQuadTransformationBufferSorted = 0;
     renderContext.perQuadTransformationsBuffer  = 0;
     renderContext.normalizedUvSpaceWidth        = 0;
     renderContext.normalizedUvSpaceHeight       = 0;
@@ -266,7 +266,7 @@ bool Renderer::updateShadersIfNeeded(bool forceReload) {
 
 unsigned int Renderer::getGaussianCountFromIndirectBuffer()
 {
-    if (this->renderContext.drawIndirectBuffer != static_cast<GLuint>(-1))
+    if (this->renderContext.drawIndirectBuffer)
     {
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->renderContext.drawIndirectBuffer);
 

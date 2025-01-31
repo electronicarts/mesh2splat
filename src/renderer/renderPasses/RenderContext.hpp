@@ -55,7 +55,11 @@ struct RenderContext {
     GLuint perQuadTransformationsBuffer;
     GLuint valuesBuffer;
     GLuint perQuadTransformationBufferSorted;
+
     GLuint drawIndirectBuffer;
+    //GLuint drawIndirectBuffers[2];
+    //GLsync fences[2] = {nullptr, nullptr};
+    //int currentBufferIndex = 0;
 
     // Data Structures
     std::vector<std::pair<Mesh, GLMesh>> dataMeshAndGlMesh;
