@@ -6,6 +6,7 @@ void GuiRendererConcreteMediator::notify(EventType event)
         case EventType::LoadModel: {
             renderer.getSceneManager().loadModel(imguiUI.getMeshFilePath(), imguiUI.getMeshFilePathParentFolder());
             renderer.gaussianBufferFromSize(imguiUI.getResolutionTarget() * imguiUI.getResolutionTarget());
+            renderer.setFormatType(0); //TODO: use an enum
             renderer.setViewportResolutionForConversion(imguiUI.getResolutionTarget());
             renderer.enableRenderPass(conversionPassName);
             renderer.enableRenderPass(gaussiansPrePassName);
@@ -21,6 +22,7 @@ void GuiRendererConcreteMediator::notify(EventType event)
             if (renderer.getSceneManager().loadPly(imguiUI.getPlyFilePath()))
             {
                 renderer.updateGaussianBuffer();
+                renderer.setFormatType(1); //TODO: use an enum
                 renderer.enableRenderPass(gaussiansPrePassName);
                 renderer.enableRenderPass(radixSortPassName);
                 renderer.enableRenderPass(gaussianSplattingPassName);

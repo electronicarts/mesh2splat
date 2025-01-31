@@ -18,7 +18,7 @@ void main() {
 	pos2dNdc.xy = pos2dNdc.xy + vertexPos.xy * quadScaleNdc.xy;
 	//pos2dNdc.w = 1;
 
-	gl_Position = vec4(gaussianMean2Ndc.xy + (vertexPos.x*quadScaleNdc.xy + vertexPos.y*quadScaleNdc.zw), 0, 1);
+	gl_Position = vec4(gaussianMean2Ndc.xy + (vertexPos.x * quadScaleNdc.xy + vertexPos.y * quadScaleNdc.zw), 0, 1);
 	//TODO: Should actually use the conic to compute varying density
 	//out_conic = vec3(cov2d[1][1] * det_inv, -cov2d[0][1] * det_inv, cov2d[0][0] * det_inv);
 	out_color = color.rgb * color.a;

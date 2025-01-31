@@ -25,6 +25,7 @@ uniform mat4 u_viewToClip;
 uniform vec2 u_resolution;
 uniform vec3 u_camPos;
 uniform int u_renderMode;
+uniform unsigned int u_format;
 
 
 layout(std430, binding = 0) readonly buffer GaussianBuffer {
@@ -104,14 +105,20 @@ void main() {
 		return;
     }
 
-	mat3 cov3d;
 	//float multiplier = gaussian.pbr.w == 1 ? u_stdDev : 1;
 	//if(gaussian.pbr.w == 1)
 	//computeCov3D(gaussian.rotation, exp(scaleFiltered) * GAUSSIAN_CUTOFF_SCALE, cov3d);
 	//else
 	//vec3 scale = exp(gaussian.scale.xyz);
-	computeCov3D(gaussian.rotation, exp(gaussian.scale.xyz + vec3(1e-7)) * GAUSSIAN_CUTOFF_SCALE, cov3d);
-		
+	vec3 scale = vec3(0, 0, 0);
+	if (u_format == 0)
+		scale = gaussian.scale.xyz * GAUSSIAN_CUTOFF_SCALE;
+	else if(u_format == 1)
+		scale = exp(gaussian.scale.xyz) * GAUSSIAN_CUTOFF_SCALE;
+
+	mat3 cov3d;
+	computeCov3D(gaussian.rotation, scale, cov3d);
+
 	//TODO: probably better with shader permutation (?)
 	vec4 outputColor = vec4(0, 0, 0, 0);
 	if (u_renderMode == 0)
@@ -131,6 +138,7 @@ void main() {
 	
 	pos2d.xyz = pos2d.xyz / pos2d.w;
 	pos2d.w = 1.f;
+	
 
 	vec2 wh = 2 * u_hfov_focal.xy * (u_hfov_focal.z);
 	float limx = 1.3 * u_hfov_focal.x;
@@ -183,7 +191,7 @@ void main() {
 	perQuadTransformations.ndcTransformations[gaussianIndex].gaussianMean2dNdc	= pos2d;
 	perQuadTransformations.ndcTransformations[gaussianIndex].quadScaleNdc		= vec4(majorAxisMultiplier, minorAxisMultiplier);
 
-	perQuadTransformations.ndcTransformations[gaussianIndex].color				= outputColor;
+	perQuadTransformations.ndcTransformations[gaussianIndex].color				= gaussian.color;
 
 	//TODO: I would just need the view space depth here tbh, not the whole gaussian. This would probably make it faster
 	gaussianBufferOutPostFilter.gaussians[gaussianIndex] = gaussian;

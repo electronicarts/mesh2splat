@@ -28,6 +28,8 @@ public:
 	RenderContext* getRenderContext();
 	void enableRenderPass(std::string renderPassName);
 	void setViewportResolutionForConversion(int resolutionTarget);
+	void setFormatType(unsigned int format);
+
 	void setStdDevFromImGui(float stdDev);
 	void resetRendererViewportResolution();
 	SceneManager& getSceneManager();

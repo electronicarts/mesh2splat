@@ -433,10 +433,10 @@ void main() {
     float gaussian_scale_x = length(Ju) * u_sigma_x;
     float gaussian_scale_y = length(Jv) * u_sigma_y;
 
-    //So we dont need to permute our later rendering stages to adapt to the input format, keep scale packed for consistency
-    float packed_s_x    = log(clamp(gaussian_scale_x, 0, 1) + 1e-7);
-    float packed_s_y    = log(clamp(gaussian_scale_y, 0, 1) + 1e-7);
-    float packed_s_z    = log(1e-7);
+    //Due to numerical error, I cannot pack this into log
+    float packed_s_x    = gaussian_scale_x;
+    float packed_s_y    = gaussian_scale_y;
+    float packed_s_z    = 1e-7;
 
     Scale = vec3(packed_s_x, packed_s_y, packed_s_z);
 

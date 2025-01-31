@@ -216,6 +216,12 @@ void Renderer::setViewportResolutionForConversion(int resolutionTarget)
     renderContext.resolutionTarget = resolutionTarget;
 }
 
+            
+void Renderer::setFormatType(unsigned int format)
+{
+    renderContext.format = format;
+};
+
 void Renderer::resetRendererViewportResolution()
 {
     int width, height;

@@ -43,6 +43,7 @@ struct RenderContext {
     int normalizedUvSpaceHeight;
     unsigned int referenceResolution;
     unsigned int resolutionTarget; //TODO: confusing with already the
+    unsigned int format; //0: from mesh2splat, 1: classic .ply 3dgs
 
     // Resources
     GLuint vao;
