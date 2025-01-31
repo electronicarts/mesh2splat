@@ -13,19 +13,9 @@ unsigned int RadixSortPass::computeKeyValuesPre(RenderContext& renderContext)
 #ifdef  _DEBUG
     glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, PassesDebugIDs::RADIX_SORT_KEYSVALUE, -1, "RADIX_SORT_KEYSVALUE");
 #endif 
-    glFinish();
-    unsigned int validCount = 0;
-    //Assume that if not 0 then we loaded a ply file
-    //TODO: i am setting/reading this indirect buffer way too many times from the cpu
-    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, renderContext.drawIndirectBuffer);
-
-    DrawElementsIndirectCommand* cmd = (DrawElementsIndirectCommand*)glMapBufferRange(
-        GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawElementsIndirectCommand), GL_MAP_READ_BIT
-    );
-
-    validCount = cmd->instanceCount;
-    glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER);
-
+    uint32_t validCount = 0;
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, renderContext.atomicCounterBuffer);
+    glGetBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(uint32_t), &validCount);
 
     // Transform Gaussian positions to view space and apply global sort
     glUseProgram(renderContext.shaderPrograms.radixSortPrepassProgram);
@@ -36,7 +26,7 @@ unsigned int RadixSortPass::computeKeyValuesPre(RenderContext& renderContext)
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, renderContext.keysBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, renderContext.valuesBuffer);
 
-
+    //TODO:could be dispatchIndirect
     unsigned int threadGroup_xy = (validCount + 255) / 256;
     glDispatchCompute(threadGroup_xy, 1, 1);
 

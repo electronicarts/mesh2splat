@@ -18,6 +18,8 @@ Renderer::Renderer(GLFWwindow* window, Camera& cameraInstance) : camera(cameraIn
 	renderContext.valuesBuffer                  = 0;
     renderContext.perQuadTransformationBufferSorted = 0;
     renderContext.perQuadTransformationsBuffer  = 0;
+    renderContext.atomicCounterBuffer = 0;
+
     renderContext.normalizedUvSpaceWidth        = 0;
     renderContext.normalizedUvSpaceHeight       = 0;
     renderContext.rendererGlfwWindow            = window; //TODO: this double reference is ugly, refactor
@@ -40,7 +42,6 @@ Renderer::Renderer(GLFWwindow* window, Camera& cameraInstance) : camera(cameraIn
     glGenBuffers(1, &(renderContext.gaussianBufferPostFiltering));
 
 
-
     glUtils::resizeAndBindToPosSSBO<unsigned int>(MAX_GAUSSIANS_TO_SORT, renderContext.keysBuffer, 1);
     glUtils::resizeAndBindToPosSSBO<unsigned int>(MAX_GAUSSIANS_TO_SORT, renderContext.valuesBuffer, 2);
     glUtils::resizeAndBindToPosSSBO<glm::vec4>(MAX_GAUSSIANS_TO_SORT * 3, renderContext.perQuadTransformationBufferSorted, 3);
@@ -54,6 +55,11 @@ Renderer::Renderer(GLFWwindow* window, Camera& cameraInstance) : camera(cameraIn
         glGenQueries(1, &query);
         renderContext.queryPool.push_back(query);
     }
+
+    glGenBuffers(1, &renderContext.atomicCounterBuffer);
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, renderContext.atomicCounterBuffer);
+    glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
 }
 

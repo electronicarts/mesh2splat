@@ -47,6 +47,7 @@ layout(std430, binding = 3) writeonly buffer DrawElementsIndirectCommand {
     unsigned int baseInstance;
 } drawElementsCommand;
 
+layout(binding = 4) uniform atomic_uint g_validCounter;
 
 void castQuatToMat3(vec4 quat, out mat3 rotMatrix)
 {
@@ -189,7 +190,7 @@ void main() {
 	vec2 majorAxisMultiplier = majorAxis / u_resolution;
 	vec2 minorAxisMultiplier = minorAxis / u_resolution;
 
-	unsigned int gaussianIndex = atomicAdd(drawElementsCommand.instanceCount, 1);
+	uint gaussianIndex = atomicCounterIncrement(g_validCounter);
 
 	perQuadTransformations.ndcTransformations[gaussianIndex].gaussianMean2dNdc	= pos2d;
 	perQuadTransformations.ndcTransformations[gaussianIndex].quadScaleNdc		= vec4(majorAxisMultiplier, minorAxisMultiplier);

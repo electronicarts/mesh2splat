@@ -21,12 +21,16 @@ void GaussiansPrepass::execute(RenderContext& renderContext)
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, renderContext.perQuadTransformationsBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, renderContext.drawIndirectBuffer);
     
-    //Technically should happen on all of them, right unless some Temporal solution is used?
+    glUtils::resetAtomicCounter(renderContext.atomicCounterBuffer);
+    glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 4, renderContext.atomicCounterBuffer);
+    
+    //Technically should happen on all of them, unless some Temporal solution is used?
     GLint size = 0;
     glBindBuffer          (GL_SHADER_STORAGE_BUFFER, renderContext.gaussianBuffer);
     glGetBufferParameteriv(GL_SHADER_STORAGE_BUFFER, GL_BUFFER_SIZE, &size);
 
     unsigned int threadGroup_xy = int(size / (sizeof(glm::vec4) * 6));
+
     glDispatchCompute(threadGroup_xy, 1, 1);
     glMemoryBarrier(GL_COMMAND_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 

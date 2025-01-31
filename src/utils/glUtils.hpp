@@ -44,6 +44,8 @@ namespace glUtils
     void setupGaussianBufferSsbo(unsigned int width, unsigned int height, GLuint* gaussianBuffer);
     void fillGaussianBufferSsbo(GLuint* gaussianBuffer, std::vector<GaussianDataSSBO>& gaussians);
 
+    void resetAtomicCounter(GLuint atomicCounterBuffer);
+
     template<typename T>
     void resizeAndBindToPosSSBO(unsigned int size, GLuint buffer, unsigned int bindingPos)
     {

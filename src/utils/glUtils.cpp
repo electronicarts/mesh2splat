@@ -612,4 +612,11 @@ void generateTextures(MaterialGltf material, std::map<std::string, TextureDataGl
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     }
 
+    void resetAtomicCounter(GLuint atomicCounterBuffer)
+    {
+        uint32_t zeroVal = 0;
+        glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicCounterBuffer);
+        glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(uint32_t), &zeroVal);
+    }
+
 }
