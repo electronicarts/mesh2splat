@@ -13,6 +13,7 @@ unsigned int RadixSortPass::computeKeyValuesPre(RenderContext& renderContext)
 #ifdef  _DEBUG
     glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, PassesDebugIDs::RADIX_SORT_KEYSVALUE, -1, "RADIX_SORT_KEYSVALUE");
 #endif 
+    glFinish();
     unsigned int validCount = 0;
     //Assume that if not 0 then we loaded a ply file
     //TODO: i am setting/reading this indirect buffer way too many times from the cpu

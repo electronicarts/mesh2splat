@@ -8,7 +8,7 @@ out vec4 FragColor;
 
 float splatAlpha(vec2 pos)
 {
-    float halcyonConstant = 5.55;
+    float halcyonConstant = 7.55;
 
     float power = -0.5 * (dot(pos, pos)) * halcyonConstant;
     return clamp(exp(power), 0.0, 1.0);

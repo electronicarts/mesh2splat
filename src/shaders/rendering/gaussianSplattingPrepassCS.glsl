@@ -97,6 +97,14 @@ void main() {
 
     if (gid >= gaussianBuffer.gaussians.length()) return;
 
+	if (gl_GlobalInvocationID.x == 0) {
+        drawElementsCommand.count = 6u;
+        drawElementsCommand.instanceCount = 1u;
+    }
+
+    // Make sure all other threads see the updated value:
+    barrier();
+
 	GaussianVertex gaussian = gaussianBuffer.gaussians[gid];
 	
 	mat3 cov3d;

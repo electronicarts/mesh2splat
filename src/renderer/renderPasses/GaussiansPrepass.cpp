@@ -6,18 +6,6 @@ void GaussiansPrepass::execute(RenderContext& renderContext)
 #ifdef  _DEBUG
     glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, PassesDebugIDs::GAUSSIAN_SPLATTING_PREPASS, -1, "GAUSSIAN_SPLATTING_PREPASS");
 #endif 
-
-    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, renderContext.drawIndirectBuffer);
-
-    DrawElementsIndirectCommand* cmd = (DrawElementsIndirectCommand*)glMapBufferRange(
-        GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawElementsIndirectCommand), GL_MAP_WRITE_BIT 
-    );
-
-    unsigned int validCount = cmd->instanceCount;
-    cmd->instanceCount = 0;
-    glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER);
-
-    // Transform Gaussian positions to view space and apply global sort
     glUseProgram(renderContext.shaderPrograms.computeShaderGaussianPrepassProgram);
 
     glUtils::setUniform1f(renderContext.shaderPrograms.computeShaderGaussianPrepassProgram,     "u_stdDev", renderContext.gaussianStd / (float(renderContext.resolutionTarget)));
@@ -34,7 +22,11 @@ void GaussiansPrepass::execute(RenderContext& renderContext)
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, renderContext.drawIndirectBuffer);
     
     //Technically should happen on all of them, right unless some Temporal solution is used?
-    unsigned int threadGroup_xy = (renderContext.readGaussians.size() + 255) / 256;
+    GLint size = 0;
+    glBindBuffer          (GL_SHADER_STORAGE_BUFFER, renderContext.gaussianBuffer);
+    glGetBufferParameteriv(GL_SHADER_STORAGE_BUFFER, GL_BUFFER_SIZE, &size);
+
+    unsigned int threadGroup_xy = int(size / (sizeof(glm::vec4) * 6));
     glDispatchCompute(threadGroup_xy, 1, 1);
     glMemoryBarrier(GL_COMMAND_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 
