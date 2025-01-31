@@ -6,5 +6,4 @@ public:
     ~GaussianSplattingPass() = default;
     void execute(RenderContext& renderContext);
 private:
-    void computePrepass(RenderContext& renderContext);
 };
