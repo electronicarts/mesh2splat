@@ -356,10 +356,10 @@ void generateTextures(MaterialGltf material, std::map<std::string, TextureDataGl
         glGenTextures(numberOfTextures, textures);
 
         for (int i = 0; i < numberOfTextures; ++i) {
-            glBindTexture(GL_TEXTURE_2D, textures[i]);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, textures[i], 0);
+          glBindTexture(GL_TEXTURE_2D, textures[i]);
+          glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+          glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+          glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[i], 0);
         }
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
@@ -368,9 +368,7 @@ void generateTextures(MaterialGltf material, std::map<std::string, TextureDataGl
         }
 
         GLenum drawBuffers[numberOfTextures] = {
-            GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, 
-            GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, 
-            GL_COLOR_ATTACHMENT4
+            GL_COLOR_ATTACHMENT0
         };
         glDrawBuffers(numberOfTextures, drawBuffers);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

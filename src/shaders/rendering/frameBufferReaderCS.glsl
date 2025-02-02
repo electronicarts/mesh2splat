@@ -51,10 +51,10 @@ void main() {
     //if (any(isinf(scale)) || any(isnan(scale)) || any(scale == 0) || any(greaterThan(vec4_value, vec4(10.0))) || any(lessThan(vec4_value, vec4(-6)))) return;
 
     //TODO: I could save at least one vec4 by packing the pbr properties i the .w of position and .w of color
-    gaussianBuffer.vertices[gaussianIndex].position     = position;
-    gaussianBuffer.vertices[gaussianIndex].color        = colorData; 
-    gaussianBuffer.vertices[gaussianIndex].scale        = scale; 
-    gaussianBuffer.vertices[gaussianIndex].normal       = normal; 
-    gaussianBuffer.vertices[gaussianIndex].rotation     = quaternion; 
-    gaussianBuffer.vertices[gaussianIndex].pbr          = vec4(pbrAndScaleY.xy, 0 , 1); //last one is a flag to check wheter it was read from mesh or standard ply (1: mesh)
+    //gaussianBuffer.vertices[gaussianIndex].position     = position;
+    //gaussianBuffer.vertices[gaussianIndex].color        = colorData; 
+    //gaussianBuffer.vertices[gaussianIndex].scale        = scale; 
+    //gaussianBuffer.vertices[gaussianIndex].normal       = normal; 
+    //gaussianBuffer.vertices[gaussianIndex].rotation     = quaternion; 
+    //gaussianBuffer.vertices[gaussianIndex].pbr          = vec4(pbrAndScaleY.xy, 0 , 1); //last one is a flag to check wheter it was read from mesh or standard ply (1: mesh)
 }

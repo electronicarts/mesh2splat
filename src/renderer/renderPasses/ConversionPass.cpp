@@ -17,12 +17,7 @@ void ConversionPass::execute(RenderContext &renderContext)
 
         glViewport(0, 0, renderContext.resolutionTarget, renderContext.resolutionTarget);
         
-        conversion(
-            renderContext.shaderPrograms.converterShaderProgram, meshGl.vao,
-            framebuffer, meshGl.vertexCount,
-            renderContext.normalizedUvSpaceWidth, renderContext.normalizedUvSpaceHeight,
-            renderContext.textureTypeMap, meshData.material, renderContext.resolutionTarget, renderContext.gaussianStd
-        );
+
 
         //Need to do this to free memory, this means we need to rebind the gaussianBuffer in later stages
         if (renderContext.gaussianBuffer == 0) {
@@ -42,6 +37,14 @@ void ConversionPass::execute(RenderContext &renderContext)
         //glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindingPos, *gaussianBuffer);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
+        conversion(
+            renderContext.shaderPrograms.converterShaderProgram, meshGl.vao,
+            framebuffer, meshGl.vertexCount,
+            renderContext.normalizedUvSpaceWidth, renderContext.normalizedUvSpaceHeight,
+            renderContext.textureTypeMap, meshData.material, renderContext.resolutionTarget, renderContext.gaussianStd,
+            renderContext.gaussianBuffer, renderContext.atomicCounterBuffer
+        );
+        glFinish();
         //glUtils::setupGaussianBufferSsbo(renderContext.resolutionTarget, renderContext.resolutionTarget, &(renderContext.gaussianBuffer));
         
         //if (renderContext.drawIndirectBuffer != 0) {
@@ -51,7 +54,7 @@ void ConversionPass::execute(RenderContext &renderContext)
         //TODO: ideally this should not be necessary, and we should directly atomically append into the SSBO from the fragment shader
         // not doing so results in wasted work (wherever texture map has no data), but need to handle fragment syncronization. For now this is ok.
             
-        aggregation(renderContext.shaderPrograms.computeShaderProgram, drawBuffers, renderContext.gaussianBuffer, renderContext.drawIndirectBuffer, renderContext.atomicCounterBuffer, renderContext.resolutionTarget);
+        //aggregation(renderContext.shaderPrograms.computeShaderProgram, drawBuffers, renderContext.gaussianBuffer, renderContext.drawIndirectBuffer, renderContext.atomicCounterBuffer, renderContext.resolutionTarget);
 
         const int numberOfTextures = 5;
         glDeleteTextures(numberOfTextures, drawBuffers); 
@@ -65,7 +68,8 @@ void ConversionPass::conversion(
         GLuint shaderProgram, GLuint vao,
         GLuint framebuffer, size_t vertexCount,
         int normalizedUVSpaceWidth, int normalizedUVSpaceHeight,
-        const std::map<std::string, TextureDataGl>& textureTypeMap, MaterialGltf material, unsigned int referenceResolution, float GAUSSIAN_STD
+        const std::map<std::string, TextureDataGl>& textureTypeMap, MaterialGltf material, unsigned int referenceResolution, float GAUSSIAN_STD,
+        GLuint gaussianBuffer, GLuint atomicCounter
     ) 
 {
 #ifdef  _DEBUG
@@ -104,7 +108,12 @@ void ConversionPass::conversion(
     {
         glUtils::setTexture2D(shaderProgram, "emissiveTexture", textureTypeMap.at(EMISSIVE_TEXTURE).glTextureID,     4);
     }
-
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gaussianBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, gaussianBuffer);
+    
+    glUtils::resetAtomicCounter(atomicCounter);
+    glFinish();
+    glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 1, atomicCounter);
     glBindVertexArray(vao);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 

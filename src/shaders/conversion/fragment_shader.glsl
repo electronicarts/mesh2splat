@@ -1,12 +1,6 @@
 #version 460 core
 
 //change layout and use different outs
-layout(location = 0) out vec4 FragColor0;
-layout(location = 1) out vec4 FragColor1;
-layout(location = 2) out vec4 FragColor2;
-layout(location = 3) out vec4 FragColor3;
-layout(location = 4) out vec4 FragColor4;
-
 uniform sampler2D albedoTexture;
 uniform sampler2D normalTexture;
 uniform sampler2D metallicRoughnessTexture;
@@ -17,6 +11,20 @@ uniform int hasAlbedoMap;
 uniform int hasNormalMap;
 uniform int hasMetallicRoughnessMap;
 
+struct GaussianVertex {
+    vec4 position;
+    vec4 color;
+    vec4 scale;
+    vec4 normal;
+    vec4 rotation;
+    vec4 pbr;
+};
+
+layout(std430, binding = 0) buffer GaussianBuffer {
+    GaussianVertex vertices[];
+} gaussianBuffer;
+
+layout(binding = 1) uniform atomic_uint g_validCounter;
 
 // Inputs from the geometry shader
 in vec3 V1;
@@ -35,6 +43,8 @@ void main() {
     //vec3 v = dFdy(GaussianPosition);
     //vec3 n = normalize(cross(u, v));
     
+    uint index = atomicCounterIncrement(g_validCounter);
+
     vec4 out_Color = vec4(0,0,0,1);
 
     if (hasAlbedoMap == 1)
@@ -72,9 +82,11 @@ void main() {
 
     vec3 pos = V1 * Barycentric.x + V2 * Barycentric.y + V3 * Barycentric.z;
     // Pack Gaussian parameters into the output fragments
-    FragColor0 = vec4(pos.x, pos.y, pos.z, Scale.x);
-    FragColor1 = vec4(Scale.z, out_Normal.x, out_Normal.y, out_Normal.z);
-    FragColor2 = vec4(Quaternion.x, Quaternion.y, Quaternion.z, Quaternion.w); 
-    FragColor3 = out_Color;
-    FragColor4 = vec4(MetallicRoughness, Scale.y, 0.0f);
+
+    gaussianBuffer.vertices[index].position = vec4(pos, 1);
+    gaussianBuffer.vertices[index].color = vec4(out_Color.rgb, 1);
+    gaussianBuffer.vertices[index].scale = vec4(Scale, 0.0);
+    gaussianBuffer.vertices[index].normal = vec4(out_Normal, 0.0);
+    gaussianBuffer.vertices[index].rotation = Quaternion;
+    gaussianBuffer.vertices[index].pbr = vec4(MetallicRoughness, 0, 1);
 }
