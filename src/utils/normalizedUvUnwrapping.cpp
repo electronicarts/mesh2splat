@@ -180,7 +180,6 @@ namespace uvUnwrapping
 
 		xatlas::Generate(atlas, chartOptions, packOptions);
 
-		xatlas::Generate(atlas);
 		uvSpaceWidth = atlas->width;
 		uvSpaceHeight = atlas->height;
 
