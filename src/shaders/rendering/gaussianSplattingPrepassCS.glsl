@@ -26,7 +26,7 @@ uniform vec2 u_resolution;
 uniform vec3 u_camPos;
 uniform int u_renderMode;
 uniform unsigned int u_format;
-
+uniform int u_gaussianCount;
 
 layout(std430, binding = 0) readonly buffer GaussianBuffer {
     GaussianVertex gaussians[];
@@ -90,7 +90,7 @@ layout(local_size_x = 256) in;
 void main() {
 	uint gid = gl_GlobalInvocationID.x;
 
-    if (gid >= gaussianBuffer.gaussians.length()) return;
+    if (gid >= u_gaussianCount) return;
 
 	GaussianVertex gaussian = gaussianBuffer.gaussians[gid];
 	

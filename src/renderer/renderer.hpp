@@ -22,7 +22,7 @@ public:
 
 	//TODO: For now not using this, will implement a render-pass based structure and change how the render-loop is implemented
 	bool updateShadersIfNeeded(bool forceReload = false);
-	unsigned int getGaussianCountFromIndirectBuffer();
+	unsigned int getVisibleGaussianCount();
 	void setLastShaderCheckTime(double lastShaderCheckedTime);
 	double getLastShaderCheckTime();
 	RenderContext* getRenderContext();

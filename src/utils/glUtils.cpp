@@ -346,33 +346,29 @@ void generateTextures(MaterialGltf material, std::map<std::string, TextureDataGl
 
     }
 
-    GLuint* setupFrameBuffer(GLuint& framebuffer, unsigned int width, unsigned int height)
+    GLuint setupFrameBuffer(GLuint& framebuffer, unsigned int width, unsigned int height)
     {
         glGenFramebuffers(1, &framebuffer);
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-        const int numberOfTextures = 5;
-    
-        GLuint* textures = new GLuint[numberOfTextures];
-        glGenTextures(numberOfTextures, textures);
 
-        for (int i = 0; i < numberOfTextures; ++i) {
-          glBindTexture(GL_TEXTURE_2D, textures[i]);
-          glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
-          glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-          glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[i], 0);
-        }
+        GLuint dummyRenderbuffer;
+        glGenRenderbuffers(1, &dummyRenderbuffer);
+        glBindRenderbuffer(GL_RENDERBUFFER, dummyRenderbuffer);
 
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA32F, width, height);
+
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, dummyRenderbuffer);
+
+        // Check that the framebuffer is complete.
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-            std::cerr << "Incomplete framebuffer status" << std::endl;
+            std::cerr << "Dummy framebuffer is not complete!" << std::endl;
             exit(1);
         }
 
-        GLenum drawBuffers[numberOfTextures] = {
-            GL_COLOR_ATTACHMENT0
-        };
-        glDrawBuffers(numberOfTextures, drawBuffers);
+        // Unbind the framebuffer (optional).
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        return textures; 
+
+        return dummyRenderbuffer;
     }
 
 

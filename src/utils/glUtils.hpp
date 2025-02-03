@@ -37,7 +37,7 @@ namespace glUtils
 
     void setupTransformFeedback(size_t bufferSize, GLuint& feedbackBuffer, GLuint& feedbackVAO, GLuint& acBuffer, unsigned int totalStride);
 
-    GLuint* setupFrameBuffer(GLuint& framebuffer, unsigned int width, unsigned int height);
+    GLuint setupFrameBuffer(GLuint& framebuffer, unsigned int width, unsigned int height);
     //GLuint setupFrameBuffer(GLuint& framebuffer, unsigned int width, unsigned int height);
 
     void read3dgsDataFromSsboBuffer(GLuint& indirectDrawCommandBuffer, GLuint& gaussianBuffer, GaussianDataSSBO*& gaussians, unsigned int& gaussianCount);

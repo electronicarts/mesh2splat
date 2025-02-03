@@ -18,6 +18,7 @@ Renderer::Renderer(GLFWwindow* window, Camera& cameraInstance) : camera(cameraIn
     renderContext.perQuadTransformationBufferSorted = 0;
     renderContext.perQuadTransformationsBuffer  = 0;
     renderContext.atomicCounterBuffer = 0;
+    renderContext.atomicCounterBufferConversionPass = 0;
 
     renderContext.normalizedUvSpaceWidth        = 0;
     renderContext.normalizedUvSpaceHeight       = 0;
@@ -39,6 +40,7 @@ Renderer::Renderer(GLFWwindow* window, Camera& cameraInstance) : camera(cameraIn
     glGenBuffers(1, &(renderContext.valuesBuffer));
     glGenBuffers(1, &(renderContext.perQuadTransformationBufferSorted));
     glGenBuffers(1, &(renderContext.gaussianBufferPostFiltering));
+    glGenBuffers(1, &(renderContext.gaussianBuffer));
 
 
     glUtils::resizeAndBindToPosSSBO<unsigned int>(MAX_GAUSSIANS_TO_SORT, renderContext.keysBuffer, 1);
@@ -55,10 +57,20 @@ Renderer::Renderer(GLFWwindow* window, Camera& cameraInstance) : camera(cameraIn
         renderContext.queryPool.push_back(query);
     }
 
-    //Atomic counter buff
+    // First atomic counter
     glGenBuffers(1, &renderContext.atomicCounterBuffer);
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, renderContext.atomicCounterBuffer);
     glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
+
+    GLuint zeroVal = 0;
+    glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &zeroVal);
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
+
+    // Second atomic counter
+    glGenBuffers(1, &renderContext.atomicCounterBufferConversionPass);
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, renderContext.atomicCounterBufferConversionPass);
+    glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
+    glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &zeroVal);
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
     //Indirect buff
@@ -250,6 +262,11 @@ double Renderer::getTotalGpuFrameTimeMs() const { return gpuFrameTimeMs; }
 void Renderer::updateGaussianBuffer()
 {
     glUtils::fillGaussianBufferSsbo(renderContext.gaussianBuffer, renderContext.readGaussians);
+    int buffSize = 0;
+    glBindBuffer          (GL_SHADER_STORAGE_BUFFER, renderContext.gaussianBuffer);
+    glGetBufferParameteriv(GL_SHADER_STORAGE_BUFFER, GL_BUFFER_SIZE, &buffSize);
+    renderContext.numberOfGaussians = buffSize / sizeof(GaussianDataSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 void Renderer::gaussianBufferFromSize(unsigned int size)
@@ -282,13 +299,14 @@ bool Renderer::updateShadersIfNeeded(bool forceReload) {
     return false;
 }
 
-unsigned int Renderer::getGaussianCountFromIndirectBuffer()
+unsigned int Renderer::getVisibleGaussianCount()
 {
     if (this->renderContext.atomicCounterBuffer)
     {
         uint32_t validCount = 0;
         glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, renderContext.atomicCounterBuffer);
         glGetBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(uint32_t), &validCount);
+        
         return validCount;
     }
     return 0;

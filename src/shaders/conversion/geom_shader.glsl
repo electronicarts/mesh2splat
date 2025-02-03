@@ -4,8 +4,8 @@ layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
 
 uniform vec2 metallicRoughnessFactors;
-uniform float u_sigma_x;
-uniform float u_sigma_y;
+//uniform float u_sigma_x;
+//uniform float u_sigma_y;
 
 // Match this struct with the VS_OUT struct from the vertex shader
 in VS_OUT{

@@ -16,6 +16,7 @@ void GuiRendererConcreteMediator::notify(EventType event)
             imguiUI.setLoadNewMesh(false);
             imguiUI.setMeshLoaded(true);
             
+            imguiUI.setPlyLoaded(false); //need to reset this
             break;
         }
         case EventType::LoadPly: {
@@ -30,6 +31,8 @@ void GuiRendererConcreteMediator::notify(EventType event)
 
                 imguiUI.setLoadNewPly(false);
                 imguiUI.setPlyLoaded(true);
+
+                imguiUI.setMeshLoaded(false); //need to reset this
             }
             break;
         }
@@ -74,14 +77,15 @@ void GuiRendererConcreteMediator::update()
     if (imguiUI.shouldLoadPly() && !imguiUI.getPlyFilePath().empty()) {
         notify(EventType::LoadPly);
     }
-
-    if (imguiUI.shouldRunConversion()) {
-        notify(EventType::RunConversion);
-    }
-
+    
     if (imguiUI.wasMeshLoaded() || imguiUI.wasPlyLoaded()) {
         notify(EventType::EnableGaussianRendering);
     }
+
+    if (imguiUI.shouldRunConversion() && imguiUI.wasMeshLoaded()) {
+        notify(EventType::RunConversion);
+    }
+
 
     double gpuFrameTime = renderer.getTotalGpuFrameTimeMs(); // Retrieve GPU frame time
     imguiUI.setFrameMetrics(gpuFrameTime);

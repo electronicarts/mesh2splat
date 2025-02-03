@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
         
         renderer.renderFrame();
 
-        ImGuiUI.displayGaussianCount(renderer.getGaussianCountFromIndirectBuffer());
+        ImGuiUI.displayGaussianCount(renderer.getVisibleGaussianCount());
         ImGuiUI.postframe();
 
         glfwSwapBuffers(glewGlfwHandler.getWindow());

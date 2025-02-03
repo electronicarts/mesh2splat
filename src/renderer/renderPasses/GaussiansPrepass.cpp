@@ -18,13 +18,8 @@ void GaussiansPrepass::execute(RenderContext& renderContext)
     glUtils::setUniform3f(renderContext.shaderPrograms.computeShaderGaussianPrepassProgram,     "u_camPos", renderContext.camPos);
     glUtils::setUniform1i(renderContext.shaderPrograms.computeShaderGaussianPrepassProgram,     "u_renderMode", renderContext.renderMode);
     glUtils::setUniform1ui(renderContext.shaderPrograms.computeShaderGaussianPrepassProgram,     "u_format", renderContext.format);
-        
-
-    GLint size = 0;
-    glBindBuffer          (GL_SHADER_STORAGE_BUFFER, renderContext.gaussianBuffer);
-    glGetBufferParameteriv(GL_SHADER_STORAGE_BUFFER, GL_BUFFER_SIZE, &size);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
+    glUtils::setUniform1i(renderContext.shaderPrograms.computeShaderGaussianPrepassProgram,     "u_gaussianCount", renderContext.numberOfGaussians);
+       
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, renderContext.gaussianBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, renderContext.gaussianBufferPostFiltering);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, renderContext.perQuadTransformationsBuffer);
@@ -32,7 +27,7 @@ void GaussiansPrepass::execute(RenderContext& renderContext)
     glUtils::resetAtomicCounter(renderContext.atomicCounterBuffer);
     glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 3, renderContext.atomicCounterBuffer);
     
-    unsigned int threadGroup_xy = int(size / (sizeof(glm::vec4) * 6));
+    unsigned int threadGroup_xy = int(renderContext.numberOfGaussians / (sizeof(glm::vec4) * 6));
 
     glDispatchCompute(threadGroup_xy, 1, 1);
 
