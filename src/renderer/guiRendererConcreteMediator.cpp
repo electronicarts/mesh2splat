@@ -82,7 +82,7 @@ void GuiRendererConcreteMediator::update()
         notify(EventType::EnableGaussianRendering);
     }
 
-    if (imguiUI.shouldRunConversion() && imguiUI.wasMeshLoaded()) {
+    if (true/*imguiUI.shouldRunConversion() && imguiUI.wasMeshLoaded()*/) {
         notify(EventType::RunConversion);
     }
 

@@ -291,7 +291,7 @@ bool SceneManager::parseGltfFile(const std::string& filePath, const std::string&
 // Generate Normalized UV Coordinates
 void SceneManager::generateNormalizedUvCoordinates(std::vector<Mesh>& meshes)
 {
-    uvUnwrapping::generateNormalizedUvCoordinatesPerMesh(renderContext.normalizedUvSpaceHeight, renderContext.normalizedUvSpaceHeight, meshes);
+    uvUnwrapping::generateNormalizedUvCoordinatesPerMesh(renderContext.normalizedUvSpaceWidth, renderContext.normalizedUvSpaceHeight, meshes);
 }
 
 // Setup Mesh Buffers

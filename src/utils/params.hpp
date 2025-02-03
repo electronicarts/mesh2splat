@@ -12,7 +12,7 @@
 #define SH_COEFF0								0.28209479177387814f
 
 //-------------------- FLAGS --------------------------------------------------------------------------------------------------------------------
-#define DRAW_UV_MAPPING							0		//Set to 1 to produce a .tga with the normalized UV mapping produced by XATLAS
+#define DRAW_UV_MAPPING							1		//Set to 1 to produce a .tga with the normalized UV mapping produced by XATLAS
 #define VOLUMETRIC								0
 
 //-------------------- INPUT DATA ---------------------------------------------------------------------------------------------------------------

@@ -173,6 +173,13 @@ namespace uvUnwrapping
 			exit(1);
 		}
 
+		xatlas::PackOptions packOptions;
+		packOptions.bruteForce = false; 
+		packOptions.maxChartSize = 2048; // or some other upper bound
+		xatlas::ChartOptions chartOptions;
+
+		xatlas::Generate(atlas, chartOptions, packOptions);
+
 		xatlas::Generate(atlas);
 		uvSpaceWidth = atlas->width;
 		uvSpaceHeight = atlas->height;
@@ -192,6 +199,10 @@ namespace uvUnwrapping
 
 				if (faceIndex < inputMesh.faces.size()) {
 					inputMesh.faces[faceIndex].normalizedUvs[vertexIndex] = glm::vec2(vertex.uv[0] / (float)uvSpaceWidth, vertex.uv[1] / (float)uvSpaceHeight);
+					if (inputMesh.faces[faceIndex].normalizedUvs[vertexIndex].x > 1.0 || inputMesh.faces[faceIndex].normalizedUvs[vertexIndex].y > 1.0)
+					{
+						std::cerr << "This should not be possible, the normalized UV coord is larger than 1.0..." << std::endl;
+					}
 				}
 				else {
 					std::cerr << "Warning: faceIndex " << faceIndex << " out of bounds." << std::endl;
