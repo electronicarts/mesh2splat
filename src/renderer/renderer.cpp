@@ -46,8 +46,8 @@ Renderer::Renderer(GLFWwindow* window, Camera& cameraInstance) : camera(cameraIn
 
     glUtils::resizeAndBindToPosSSBO<unsigned int>(MAX_GAUSSIANS_TO_SORT, renderContext.keysBuffer, 1);
     glUtils::resizeAndBindToPosSSBO<unsigned int>(MAX_GAUSSIANS_TO_SORT, renderContext.valuesBuffer, 2);
-    glUtils::resizeAndBindToPosSSBO<glm::vec4>(MAX_GAUSSIANS_TO_SORT * 3, renderContext.perQuadTransformationBufferSorted, 3);
-    glUtils::resizeAndBindToPosSSBO<glm::vec4>(MAX_GAUSSIANS_TO_SORT * 3, renderContext.perQuadTransformationsBuffer, 4);
+    glUtils::resizeAndBindToPosSSBO<glm::vec4>(MAX_GAUSSIANS_TO_SORT * 4, renderContext.perQuadTransformationBufferSorted, 3);
+    glUtils::resizeAndBindToPosSSBO<glm::vec4>(MAX_GAUSSIANS_TO_SORT * 4, renderContext.perQuadTransformationsBuffer, 4);
     glUtils::resizeAndBindToPosSSBO<GaussianDataSSBO>(MAX_GAUSSIANS_TO_SORT, renderContext.gaussianBufferPostFiltering, 5);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);

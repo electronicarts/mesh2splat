@@ -499,7 +499,7 @@ void generateTextures(MaterialGltf material, std::map<std::string, TextureDataGl
         glUniform2f(uniformLocation, uniformValue[0], uniformValue[1]);
     }
 
-    void setUniform2i(GLuint shaderProgram, std::string uniformName, glm::vec2 uniformValue)
+    void setUniform2i(GLuint shaderProgram, std::string uniformName, glm::ivec2 uniformValue)
     {
         GLint uniformLocation = glGetUniformLocation(shaderProgram, uniformName.c_str());
 

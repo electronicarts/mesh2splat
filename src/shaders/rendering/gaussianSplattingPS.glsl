@@ -1,20 +1,24 @@
-#version 430 core
+#version 460 core
+
+
+#define EXP_CONSTANT 8 // <--- this should not be needed, I my be doing something wrong earlier in the prepass
 
 in vec3 out_color;
 in float out_opacity;
-in vec2 out_uv;
+in vec2 out_screen;
+in vec3 out_conic;
+
+uniform vec2 u_resolution;
 
 out vec4 FragColor;
 
-float splatAlpha(vec2 pos)
-{
-    //TODO: change to use the conic rather than this magic const
-    float halcyonConstant = 5.55;
+void main() {	
+    vec2 d = (out_screen - gl_FragCoord.xy);
 
-    float power = -0.5 * (dot(pos, pos)) * halcyonConstant;
-    return clamp(exp(power), 0.0, 1.0);
-}
+    float alpha = -0.5 * (d.x * d.x * out_conic.x + d.y * d.y * out_conic.z) - d.x * d.y * out_conic.y;
+    
+    float g = exp(alpha);
 
-void main() {			
-    FragColor = vec4(out_color, out_opacity) * splatAlpha(out_uv);
+    //FragColor = vec4(out_color, out_opacity) * g;
+    FragColor = vec4(out_color, out_opacity) * g;
 }

@@ -39,6 +39,8 @@ void GaussianSplattingPass::execute(RenderContext& renderContext)
 	
     glUseProgram(renderContext.shaderPrograms.renderShaderProgram);
 
+    glUtils::setUniform2f(renderContext.shaderPrograms.renderShaderProgram,     "u_resolution", renderContext.rendererResolution);
+
     //TODO: this will work once sorting is working
 	glEnable(GL_BLEND);
     glDisable(GL_CULL_FACE);
@@ -49,15 +51,14 @@ void GaussianSplattingPass::execute(RenderContext& renderContext)
 
     glBindVertexArray(renderContext.vao);
 
+    //per-instance (per quad) data
     glBindBuffer(GL_ARRAY_BUFFER, renderContext.perQuadTransformationBufferSorted);
-
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, renderContext.perQuadTransformationBufferSorted);
 
     //We need to redo this vertex attrib binding as the buffer could have been deleted if the compute/conversion pass was run, and we need to free the data to avoid
     // memory leak. Should structure renderer architecture
-    unsigned int stride = sizeof(glm::vec4) * 3;
+    unsigned int stride = sizeof(glm::vec4) * 4; //This is the ndc stride
     
-    for (int i = 1; i <= 3; ++i) {
+    for (int i = 1; i <= 4; ++i) {
         glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(glm::vec4) * (i - 1)));
         glEnableVertexAttribArray(i);
         glVertexAttribDivisor(i, 1);

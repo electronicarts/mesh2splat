@@ -95,7 +95,7 @@ namespace glUtils
     void setUniform1ui(GLuint shaderProgram, std::string uniformName, unsigned int uniformValue);
     void setUniform3f(GLuint shaderProgram, std::string uniformName, glm::vec3 uniformValue);
     void setUniform2f(GLuint shaderProgram, std::string uniformName, glm::vec2 uniformValue);
-    void setUniform2i(GLuint shaderProgram, std::string uniformName, glm::vec2 uniformValue);
+    void setUniform2i(GLuint shaderProgram, std::string uniformName, glm::ivec2 uniformValue);
     void setUniformMat4(GLuint shaderProgram, std::string uniformName, glm::mat4 matrix);
     void setTexture2D(GLuint shaderProgram, std::string textureUniformName, GLuint texture, unsigned int textureUnitNumber);
 }
