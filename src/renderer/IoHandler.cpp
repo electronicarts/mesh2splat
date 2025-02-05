@@ -7,6 +7,7 @@ double IoHandler::lastX = 0.0;
 double IoHandler::lastY = 0.0;
 bool IoHandler::keys[1024] = { false };
 
+
 IoHandler::IoHandler(GLFWwindow* window, Camera& cameraInstance)
     : window(window), camera(&cameraInstance) {
     setupCallbacks();

@@ -96,9 +96,9 @@ mat2 inverseMat2(mat2 m)
 	else
 		inv = mat2(0.0);
 
-
     return inv;
 }
+
 
 layout(local_size_x = 16, local_size_y = 16) in;  
 void main() {

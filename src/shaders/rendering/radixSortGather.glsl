@@ -21,9 +21,10 @@ layout(std430, binding = 3) writeonly buffer DrawCommand {
 
 uniform uint u_count;
 
-layout(local_size_x = 256) in;
+layout(local_size_x = 16, local_size_y = 16) in;
 void main() {
-    uint gid = gl_GlobalInvocationID.x;
+    uint globalWidth = gl_NumWorkGroups.x * gl_WorkGroupSize.x;
+    uint gid = gl_GlobalInvocationID.y * globalWidth + gl_GlobalInvocationID.x;
 
     if (gid >= u_count) return;
 

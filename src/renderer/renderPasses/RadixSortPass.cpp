@@ -26,9 +26,11 @@ unsigned int RadixSortPass::computeKeyValuesPre(RenderContext& renderContext)
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, renderContext.keysBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, renderContext.valuesBuffer);
 
-    //TODO:could be dispatchIndirect
-    unsigned int threadGroup_xy = (validCount + 255) / 256;
-    glDispatchCompute(threadGroup_xy, 1, 1);
+    unsigned int threadsPerGroup = 16 * 16; 
+    unsigned int totalGroupsNeeded = (validCount + threadsPerGroup - 1) / threadsPerGroup;
+    unsigned int groupsX = (unsigned int)ceil(sqrt((float)totalGroupsNeeded));
+    unsigned int groupsY = (totalGroupsNeeded + groupsX - 1) / groupsX; 
+    glDispatchCompute(groupsX, groupsY, 1);
 
     glMemoryBarrier(GL_COMMAND_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 #ifdef  _DEBUG
@@ -65,8 +67,12 @@ void RadixSortPass::gatherPost(RenderContext& renderContext, unsigned int validC
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, renderContext.valuesBuffer);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, renderContext.drawIndirectBuffer);
 
-    unsigned int threadGroup_xy = (validCount + 255) / 256;
-    glDispatchCompute(threadGroup_xy, 1, 1);
+    //Abstract this
+    unsigned int threadsPerGroup = 16 * 16; 
+    unsigned int totalGroupsNeeded = (validCount + threadsPerGroup - 1) / threadsPerGroup;
+    unsigned int groupsX = (unsigned int)ceil(sqrt((float)totalGroupsNeeded));
+    unsigned int groupsY = (totalGroupsNeeded + groupsX - 1) / groupsX; 
+    glDispatchCompute(groupsX, groupsY, 1);
 
     glMemoryBarrier(GL_COMMAND_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 
