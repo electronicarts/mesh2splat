@@ -371,9 +371,122 @@ namespace parsers
         file.close();
     }
 
+    //https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/ adapted from hlsl
+    //Should do it in shader...
+    inline glm::vec2 OctWrap(const glm::vec2& v)
+    {
+        glm::vec2 vecOne(1.0);
+        return (vecOne - glm::abs(glm::vec2(v.y, v.x))) * (v.x >= 0 && v.y >= 0 ? vecOne : glm::vec2(-1));
+    }
+
+    inline glm::vec2 EncodeOcta(const glm::vec3& normal)
+    {
+        glm::vec3 n = normal / (glm::abs(normal.x) + glm::abs(normal.y) + glm::abs(normal.z) + 1e-8f);
+        glm::vec2 resN;
+
+        resN = n.z >= 0.0f ? glm::vec2(n.x, n.y) : OctWrap(glm::vec2(n.x, n.y));
+
+        resN.x = resN.x * 0.5f + 0.5f;
+        resN.y = resN.y * 0.5f + 0.5f;
+
+        return glm::vec2(resN.x, resN.y);
+    }
+
+    void writeCompressedPbrPLY(const std::string& filename, std::vector<utils::GaussianDataSSBO>& gaussians, float scaleMultiplier) {
+        std::ofstream file(filename, std::ios::binary | std::ios::out);
+
+        file << "ply\n";
+        file << "format binary_little_endian 1.0\n";
+        file << "element vertex " << gaussians.size() << "\n";
+
+        file << "property float x\n";
+        file << "property float y\n";
+        file << "property float z\n";
+
+        file << "property uint8 red\n";  
+        file << "property uint8 green\n";
+        file << "property uint8 blue\n"; 
+        file << "property uint8 opacity\n";
+
+        file << "property float rot_0\n";           
+        file << "property float rot_1\n";           
+        file << "property float rot_2\n";           
+        file << "property float rot_3\n";           
+
+        file << "property float scale_0\n";         
+        file << "property float scale_1\n";         
+        file << "property float scale_2\n";   
+
+        file << "property uint8 octa_nx\n";      
+        file << "property uint8 octa_ny\n";      
+
+        file << "property uint8 roughness\n";  
+        file << "property uint8 metallic\n";        
+
+        file << "end_header\n";
+
+        auto toByte = [](float v)
+        {
+            float clamped = glm::clamp(v, 0.0f, 1.0f);
+            float rounded = std::round(clamped * 255.0f);
+            return static_cast<uint8_t>(rounded);
+        };
+        
+        // Write vertex data in binary
+        for (auto& gaussian : gaussians) {
+            //POSITION
+            file.write(reinterpret_cast<const char*>(&gaussian.position.x), sizeof(float));
+            file.write(reinterpret_cast<const char*>(&gaussian.position.y), sizeof(float));
+            file.write(reinterpret_cast<const char*>(&gaussian.position.z), sizeof(float));
+            
+            //COLOR
+            uint8_t r = toByte(gaussian.color.r);
+            uint8_t g = toByte(gaussian.color.g);
+            uint8_t b = toByte(gaussian.color.b);
+            uint8_t a = toByte(gaussian.color.a);
+            file.write(reinterpret_cast<const char*>(&r), sizeof(uint8_t));
+            file.write(reinterpret_cast<const char*>(&g), sizeof(uint8_t));
+            file.write(reinterpret_cast<const char*>(&b), sizeof(uint8_t));
+            file.write(reinterpret_cast<const char*>(&a), sizeof(uint8_t));
+
+            //ROTATION
+            file.write(reinterpret_cast<const char*>(&gaussian.rotation.x), sizeof(float));
+            file.write(reinterpret_cast<const char*>(&gaussian.rotation.y), sizeof(float));
+            file.write(reinterpret_cast<const char*>(&gaussian.rotation.z), sizeof(float));
+            file.write(reinterpret_cast<const char*>(&gaussian.rotation.w), sizeof(float));
+
+            //SCALE
+            float minXY = std::min(gaussian.scale.x, gaussian.scale.y);
+            gaussian.scale.x = std::log(gaussian.scale.x * scaleMultiplier);
+            gaussian.scale.y = std::log(gaussian.scale.y * scaleMultiplier);
+            gaussian.scale.z = std::log(minXY * scaleMultiplier);           
+
+            file.write(reinterpret_cast<const char*>(&gaussian.scale.x), sizeof(float));
+            file.write(reinterpret_cast<const char*>(&gaussian.scale.y), sizeof(float));
+            file.write(reinterpret_cast<const char*>(&gaussian.scale.z), sizeof(float));
+
+            //NORMAL COMPRESSED
+            glm::vec2 mapped = EncodeOcta(gaussian.normal);
+            uint8_t nx = static_cast<uint8_t>(glm::clamp(std::roundf(mapped.x * 255.0f), 0.0f, 255.0f));
+            uint8_t ny = static_cast<uint8_t>(glm::clamp(std::roundf(mapped.y * 255.0f), 0.0f, 255.0f));
+            file.write(reinterpret_cast<const char*>(&nx), sizeof(uint8_t));
+            file.write(reinterpret_cast<const char*>(&ny), sizeof(uint8_t));
+
+            //PBR PROPS
+            uint8_t roughness = toByte(gaussian.pbr.y); // I assume [0,1] -> [0,255]
+            uint8_t metallic  = toByte(gaussian.pbr.x);  
+
+            file.write(reinterpret_cast<const char*>(&roughness), sizeof(uint8_t));
+            file.write(reinterpret_cast<const char*>(&metallic),  sizeof(uint8_t));
+
+        }
+        file.close();
+    }
+
+
     void writeBinaryPlyStandardFormat(const std::string& filename, std::vector<utils::GaussianDataSSBO>& gaussians) {
         std::ofstream file(filename, std::ios::binary | std::ios::out);
-        //TODO: abstract this header writer away so can be common to all writers
+        //TODO: abstract this somehow
         // Write header in ASCII
         file << "ply\n";
         file << "format binary_little_endian 1.0\n";
@@ -550,6 +663,10 @@ namespace parsers
     
             case 1:
                 writeBinaryPlyStandardFormat(outputFileLocation, gaussians_3D_list);
+                break;
+
+            case 2:
+                writeCompressedPbrPLY(outputFileLocation, gaussians_3D_list, scaleMultiplier);
                 break;
     
             default:

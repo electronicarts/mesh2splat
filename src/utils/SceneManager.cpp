@@ -460,7 +460,7 @@ void SceneManager::loadTextures(const std::vector<utils::Mesh>& meshes)
     
 }
 
-void SceneManager::exportPly(const std::string outputFile)
+void SceneManager::exportPly(const std::string outputFile, unsigned int exportFormat)
 {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, renderContext.gaussianBuffer);
 
@@ -476,7 +476,7 @@ void SceneManager::exportPly(const std::string outputFile)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     
     float scaleMultiplier = renderContext.gaussianStd / static_cast<float>(renderContext.resolutionTarget);
-    auto format           = renderContext.format;  
+    auto format           = exportFormat;  
 
     std::thread(
         [=, data = std::move(cpuData)]() mutable 

@@ -79,7 +79,7 @@ void ImGuiUI::renderUI()
     if (ImGui::SliderFloat("Mesh2Splat quality", &quality, 0.0f, 1.0f, "%.2f")) {
         runConversionFlag = true;
     }
-    ImGui::Combo("Format", &formatIndex, formatLabels, IM_ARRAYSIZE(formatLabels));
+    ImGui::Combo("Export Format", &formatIndex, formatLabels, IM_ARRAYSIZE(formatLabels));
 
     ImGui::InputText("Save .PLY destination", destinationFilePathBuffer, sizeof(destinationFilePathBuffer));
     if (ImGui::Button("Save splat")) {
@@ -173,7 +173,7 @@ std::string ImGuiUI::getMeshFullFilePathDestination() const { return std::string
 std::string ImGuiUI::getPlyFilePath() const { return std::string(plyFilePathBuffer); };
 std::string ImGuiUI::getPlyFilePathParentFolder() const { return plyParentFolder; };
 
-int ImGuiUI::getFormatOption() const { return formatOptions[formatIndex]; };
+unsigned int ImGuiUI::getFormatOption() const { return formatOptions[formatIndex]; };
 glm::vec4 ImGuiUI::getSceneBackgroundColor() const { return sceneBackgroundColor; };
 float ImGuiUI::getGaussianStd() const { return gaussian_std; };
 int ImGuiUI::getResolutionTarget() const { return static_cast<int>(minRes + quality * (maxRes - minRes)); };

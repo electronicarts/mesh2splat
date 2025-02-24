@@ -60,7 +60,7 @@ void GuiRendererConcreteMediator::notify(EventType event)
             break;
         }
         case EventType::SavePLY: {
-            renderer.getSceneManager().exportPly(imguiUI.getMeshFullFilePathDestination());
+            renderer.getSceneManager().exportPly(imguiUI.getMeshFullFilePathDestination(), imguiUI.getFormatOption());
             imguiUI.setShouldSavePly(false);
             break;
         }

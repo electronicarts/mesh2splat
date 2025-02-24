@@ -34,7 +34,7 @@ public:
 
     float getGaussianStd() const;
     int getResolutionTarget() const;
-    int getFormatOption() const;
+    unsigned int getFormatOption() const;
 
     glm::vec4 getSceneBackgroundColor() const;
 
@@ -65,8 +65,8 @@ private:
     const char* resolutionLabels[4] = { "256", "512", "1024", "2048" };
     
     int formatIndex;
-    const int formatOptions[2] = { 1, 2 };
-    const char* formatLabels[2] = { "PLY Standard Format", "Pbr PLY" };
+    const unsigned int formatOptions[3] = { 0, 1, 2 };
+    const char* formatLabels[3] = { "PLY Standard Format", "PLY PBR", "PLY Compressed PBR"};
 
     int renderIndex;
     const ImGuiUI::VisualizationOption renderOptions[4] = {

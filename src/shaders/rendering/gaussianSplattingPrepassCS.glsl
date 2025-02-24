@@ -129,7 +129,7 @@ void main() {
 		return;
     }
 
-	float multiplier = u_format == 0 ? u_stdDev : 1.0;
+	float multiplier = (u_format == 0 || u_format == 3)  ? u_stdDev : 1.0;
 	vec3 scale = gaussian.scale.xyz * multiplier ;
 
 	mat3 cov3d;
@@ -153,13 +153,19 @@ void main() {
 	}
 	else if (u_renderMode == 2) //Normal
 	{
-		if (u_format == 0)
+		if (u_format == 0 || u_format == 3)
 		{
-			outputColor = vec4((gaussian.normal.xyz / 2.0) + 0.5, gaussian.color.a);
+			outputColor = vec4((gaussian.normal.xyz * .5) + .5, gaussian.color.a);
 		}
 		else if (u_format == 1)
 		{
-			outputColor = vec4((rotMatrix[2] / 2.0) + 0.5, gaussian.color.a);
+			//Cool trick for min index: https://computergraphics.stackexchange.com/questions/13662/glsl-get-min-max-index-of-vec3
+			uint minCompIndex = uint((gaussian.scale.y < gaussian.scale.z) && (gaussian.scale.y < gaussian.scale.x)) + (uint((gaussian.scale.z < gaussian.scale.y) && (gaussian.scale.z < gaussian.scale.x)) * 2);
+			//Shortest axis direction normal observation made at page 4 of https://arxiv.org/pdf/2311.17977
+			float d = dot(rotMatrix[minCompIndex].xyz, gaussian.position.xyz - normalize(u_viewToClip[3].xyz));
+			vec3 n = d > 0 ? rotMatrix[minCompIndex].xyz : -rotMatrix[minCompIndex].xyz;
+			vec3 rgbN = ((n * .5) + .5);
+			outputColor = vec4(rgbN, gaussian.color.a);  
 		}
 	}
 	if (u_renderMode == 3)

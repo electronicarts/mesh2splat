@@ -377,12 +377,6 @@ float polynomial(float x) {
 }
 
 void main() {
-    //vec4 quaternion = gramSchmidtOrthonormalization();//vec4(q.w, q.x, q.y, q.z);
-
-    //vec3 edge1 = normalize(gs_in[1].position - gs_in[0].position);
-    //vec3 edge2 = normalize(gs_in[2].position - gs_in[0].position);
-
-    
     vec3 edge1 = gs_in[1].position - gs_in[0].position;
     vec3 edge2 = gs_in[2].position - gs_in[0].position;
     vec3 edge3 = gs_in[2].position - gs_in[1].position;
