@@ -381,7 +381,6 @@ void main() {
     vec3 edge2 = gs_in[2].position - gs_in[0].position;
     vec3 edge3 = gs_in[2].position - gs_in[1].position;
 
-    // Determine the longest edge to use as the major axis (xAxis)
     if (length(edge2) > length(edge1) && length(edge2) > length(edge3)) {
         vec3 temp = edge1;
         edge1 = edge2;

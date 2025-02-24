@@ -37,6 +37,9 @@ public:
 	void updateGaussianBuffer();
 	void gaussianBufferFromSize(unsigned int size);
 	void setRenderMode(ImGuiUI::VisualizationOption renderMode);
+	void resetModelMatrices();
+
+
 
 private:
 	std::map<std::string, std::unique_ptr<IRenderPass>> renderPasses;

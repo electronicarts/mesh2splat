@@ -5,6 +5,7 @@
 #include <imgui_impl_opengl3.h>
 #include <glm.hpp>
 #include "../utils/utils.hpp"
+#include "../../thirdParty/imguizmo/Imguizmo.hpp"
 
 class ImGuiUI {
 public:
@@ -45,6 +46,8 @@ public:
     void setFrameMetrics(double gpuFrameTime);
     void setLoadNewPly(bool loadedPly);
     void setPlyLoaded(bool loadedPly);
+
+    void renderGizmoUi(glm::mat4& glmViewMat, glm::mat4& glmProjMat, glm::mat4& glmModelMat);
 
     void renderGpuFrametime();
 

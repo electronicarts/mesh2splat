@@ -35,16 +35,24 @@ int main(int argc, char** argv) {
         lastFrame = currentFrame;
 
         glfwPollEvents();
+
         ioHandler.processInput(deltaTime);
 
-        renderer.updateTransformations();
         renderer.clearingPrePass(ImGuiUI.getSceneBackgroundColor());
 
         ImGuiUI.preframe();
         ImGuiUI.renderUI();
         
         guiRendererMediator.update();
-        
+
+        ImGuiUI.renderGizmoUi(
+            renderer.getRenderContext()->viewMat,
+            renderer.getRenderContext()->projMat,
+            renderer.getRenderContext()->modelMat
+        );
+
+        renderer.updateTransformations();
+
         renderer.renderFrame();
 
         ImGuiUI.displayGaussianCount(renderer.getVisibleGaussianCount());

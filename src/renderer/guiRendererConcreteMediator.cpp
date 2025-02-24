@@ -4,6 +4,7 @@ void GuiRendererConcreteMediator::notify(EventType event)
 {
     switch (event) {
         case EventType::LoadModel: {
+            renderer.resetModelMatrices();
             renderer.getSceneManager().loadModel(imguiUI.getMeshFilePath(), imguiUI.getMeshFilePathParentFolder());
             renderer.gaussianBufferFromSize(imguiUI.getResolutionTarget() * imguiUI.getResolutionTarget());
             renderer.setFormatType(0); //TODO: use an enum
@@ -22,6 +23,7 @@ void GuiRendererConcreteMediator::notify(EventType event)
         case EventType::LoadPly: {
             if (renderer.getSceneManager().loadPly(imguiUI.getPlyFilePath()))
             {
+                renderer.resetModelMatrices();
                 renderer.updateGaussianBuffer();
                 renderer.setFormatType(1); //TODO: use an enum
                 renderer.enableRenderPass(gaussiansPrePassName);
@@ -31,6 +33,7 @@ void GuiRendererConcreteMediator::notify(EventType event)
 
                 imguiUI.setLoadNewPly(false);
                 imguiUI.setPlyLoaded(true);
+                
 
                 imguiUI.setMeshLoaded(false); //need to reset this
             }
@@ -50,7 +53,7 @@ void GuiRendererConcreteMediator::notify(EventType event)
             renderer.enableRenderPass(gaussiansPrePassName);
             renderer.enableRenderPass(radixSortPassName);
             renderer.enableRenderPass(gaussianSplattingPassName);
-            
+
             break;
         }
         case EventType::CheckShaderUpdate: {
@@ -93,7 +96,7 @@ void GuiRendererConcreteMediator::update()
     if (imguiUI.shouldSavePly()) {
         notify(EventType::SavePLY);
     }
-
+    
     double gpuFrameTime = renderer.getTotalGpuFrameTimeMs(); // Retrieve GPU frame time
     imguiUI.setFrameMetrics(gpuFrameTime);
 }

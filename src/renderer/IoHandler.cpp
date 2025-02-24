@@ -3,8 +3,6 @@
 
 bool IoHandler::mouseDragging = false;
 bool IoHandler::firstMouse = true;
-double IoHandler::lastX = 0.0;
-double IoHandler::lastY = 0.0;
 bool IoHandler::keys[1024] = { false };
 
 
@@ -15,78 +13,45 @@ IoHandler::IoHandler(GLFWwindow* window, Camera& cameraInstance)
 
 void IoHandler::setupCallbacks() {
     glfwSetWindowUserPointer(window, this);
-    glfwSetMouseButtonCallback(window, IoHandler::mouseButtonCallback);
-    glfwSetCursorPosCallback(window, IoHandler::cursorPositionCallback);
-    glfwSetScrollCallback(window, IoHandler::scrollCallback);
-    glfwSetKeyCallback(window, IoHandler::keyCallback);
 }
 
-void IoHandler::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-    IoHandler* handler = static_cast<IoHandler*>(glfwGetWindowUserPointer(window));
+
+void IoHandler::processInput(float deltaTime)
+{
+    bool forward = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
+    bool backward = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
+    bool left = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
+    bool right = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
+    bool upMove = glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS;
+    bool downMove = glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS;
+    bool rotateLeftFrontVect = glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS;
+    bool rotateRightFrontVect = glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS;
 
     ImGuiIO& io = ImGui::GetIO();
-    if (!io.WantCaptureMouse) {
-        if (button == GLFW_MOUSE_BUTTON_RIGHT) {
-            if (action == GLFW_PRESS) {
-                mouseDragging = true;
-                glfwGetCursorPos(window, &lastX, &lastY);
-            }
-            else if (action == GLFW_RELEASE) {
-                mouseDragging = false;
-                firstMouse = true;
-            }
-        }
+    if (!io.WantCaptureKeyboard)
+    {
+        camera->ProcessKeyboard(deltaTime, forward, backward, left, right,
+                               upMove, downMove,
+                               rotateLeftFrontVect, rotateRightFrontVect);
     }
-}
 
-void IoHandler::cursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
-    IoHandler* handler = static_cast<IoHandler*>(glfwGetWindowUserPointer(window));
+    if (!io.WantCaptureMouse)
+    {
+        bool rightMouseDown = io.MouseDown[1];
+        if (rightMouseDown)
+        {
+            float xoffset = io.MouseDelta.x;
+            float yoffset = -io.MouseDelta.y; // invert if you prefer typical "FPS" style
 
-    ImGuiIO& io = ImGui::GetIO();
-    if (!io.WantCaptureMouse && mouseDragging) {
-        if (firstMouse) {
-            lastX = xpos;
-            lastY = ypos;
-            firstMouse = false;
+            camera->ProcessMouseMovement(xoffset, yoffset);
         }
 
-        float xoffset = static_cast<float>(xpos - lastX);
-        float yoffset = static_cast<float>(lastY - ypos); 
-
-        lastX = xpos;
-        lastY = ypos;
-
-        handler->camera->ProcessMouseMovement(xoffset, yoffset);
+        float scrollY = io.MouseWheel;
+        if (scrollY != 0.0f)
+        {
+            camera->ProcessMouseScroll(scrollY);
+        }
     }
+
 }
 
-void IoHandler::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
-    IoHandler* handler = static_cast<IoHandler*>(glfwGetWindowUserPointer(window));
-
-    ImGuiIO& io = ImGui::GetIO();
-    if (!io.WantCaptureMouse) {
-        handler->camera->ProcessMouseScroll(static_cast<float>(yoffset));
-    }
-}
-
-void IoHandler::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (action == GLFW_PRESS)
-        keys[key] = true;
-    else if (action == GLFW_RELEASE)
-        keys[key] = false;
-}
-
-void IoHandler::processInput(float deltaTime) {
-
-    bool forward = keys[GLFW_KEY_W];
-    bool backward = keys[GLFW_KEY_S];
-    bool left = keys[GLFW_KEY_A];
-    bool right = keys[GLFW_KEY_D];
-    bool upMove = keys[GLFW_KEY_E];
-    bool downMove = keys[GLFW_KEY_Q];
-    bool rotateLeftFrontVect = keys[GLFW_KEY_T];
-    bool rotateRightFrontVect = keys[GLFW_KEY_R];
-
-
-    camera->ProcessKeyboard(deltaTime, forward, backward, left, right, upMove, downMove, rotateLeftFrontVect, rotateRightFrontVect);
-}

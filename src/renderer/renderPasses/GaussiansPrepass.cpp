@@ -18,6 +18,7 @@ void GaussiansPrepass::execute(RenderContext& renderContext)
     //glUtils::setUniform3f(renderContext.shaderPrograms.computeShaderGaussianPrepassProgram,     "u_camPos", renderContext.camPos);
     glUtils::setUniform1i(renderContext.shaderPrograms.computeShaderGaussianPrepassProgram,     "u_renderMode", renderContext.renderMode);
     glUtils::setUniform1ui(renderContext.shaderPrograms.computeShaderGaussianPrepassProgram,     "u_format", renderContext.format);
+    glUtils::setUniformMat4(renderContext.shaderPrograms.computeShaderGaussianPrepassProgram,     "u_modelToWorld", renderContext.modelMat);
     glUtils::setUniform1i(renderContext.shaderPrograms.computeShaderGaussianPrepassProgram,     "u_gaussianCount", renderContext.numberOfGaussians);
     glUtils::setUniform2f(renderContext.shaderPrograms.computeShaderGaussianPrepassProgram,     "u_nearFar", glm::vec2(renderContext.nearPlane, renderContext.farPlane));
 

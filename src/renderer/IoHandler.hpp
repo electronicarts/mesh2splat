@@ -19,7 +19,5 @@ private:
     // Internal state
     static bool mouseDragging;
     static bool firstMouse;
-    static double lastX;
-    static double lastY;
     static bool keys[1024];
 };

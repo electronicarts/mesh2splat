@@ -19,8 +19,10 @@ struct QuadNdcTransformation {
 uniform float u_stdDev;
 uniform mat4 u_worldToView;
 uniform mat4 u_viewToClip;
+uniform mat4 u_modelToWorld;
 uniform vec2 u_resolution;
 uniform vec2 u_nearFar;
+
 
 uniform int u_renderMode;
 uniform unsigned int u_format;
@@ -118,7 +120,9 @@ void main() {
 
 	GaussianVertex gaussian = gaussianBuffer.gaussians[gid];
 	
-	vec4 gaussian_vs = u_worldToView * vec4(gaussian.position.xyz, 1);
+	vec4 gaussianWs =  u_modelToWorld * vec4(gaussian.position.xyz, 1);
+
+	vec4 gaussian_vs = u_worldToView * vec4(gaussianWs.xyz, 1);
 
 	vec4 pos2d = u_viewToClip * gaussian_vs;
 	

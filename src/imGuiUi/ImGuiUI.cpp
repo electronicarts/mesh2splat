@@ -90,7 +90,59 @@ void ImGuiUI::renderUI()
     ImGui::End();
 
     renderGpuFrametime();
+}
 
+void ImGuiUI::renderGizmoUi(glm::mat4& glmViewMat, glm::mat4& glmProjMat, glm::mat4& glmModelMat)
+{
+
+    ImGui::Begin("Gizmo Control");
+
+    static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
+    static ImGuizmo::MODE currentMode = ImGuizmo::LOCAL;
+
+    if (ImGui::RadioButton("Translate", currentOperation == ImGuizmo::TRANSLATE))
+        currentOperation = ImGuizmo::TRANSLATE;
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Rotate", currentOperation == ImGuizmo::ROTATE))
+        currentOperation = ImGuizmo::ROTATE;
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Scale", currentOperation == ImGuizmo::SCALE))
+        currentOperation = ImGuizmo::SCALE;
+
+    if (currentOperation != ImGuizmo::SCALE)
+    {
+        if (ImGui::RadioButton("Local", currentMode == ImGuizmo::LOCAL))
+            currentMode = ImGuizmo::LOCAL;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("World", currentMode == ImGuizmo::WORLD))
+            currentMode = ImGuizmo::WORLD;
+    }
+
+    ImGui::End();
+
+    ImGuizmo::BeginFrame();
+    ImGuizmo::SetOrthographic(false);
+    ImGuizmo::SetDrawlist(ImGui::GetBackgroundDrawList());
+
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+
+    float view[16], proj[16], model[16];
+
+    std::memcpy(view,   glm::value_ptr(glmViewMat),     16 * sizeof(float));
+    std::memcpy(proj,   glm::value_ptr(glmProjMat),     16 * sizeof(float));
+    std::memcpy(model,  glm::value_ptr(glmModelMat),    16 * sizeof(float));
+
+    bool manipulated = ImGuizmo::Manipulate(view, proj, currentOperation, currentMode, model);
+    if (manipulated)
+    {
+        glmModelMat = glm::make_mat4(model);
+    }
+
+    if (ImGuizmo::IsOver())
+        std::cout << "Gizmo is hovered this frame!\n";
+    else
+        std::cout << "Gizmo NOT hovered.\n";
 }
 
 void ImGuiUI::renderGpuFrametime()

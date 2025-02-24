@@ -167,6 +167,7 @@ void Renderer::renderFrame()
 
 void Renderer::updateTransformations()
 {
+
     int width, height;
     glfwGetFramebufferSize(rendererGlfwWindow, &width, &height);
 
@@ -183,8 +184,8 @@ void Renderer::updateTransformations()
 
     // Use Camera's view matrix
     renderContext.viewMat = camera.GetViewMatrix();
-    glm::mat4 model = glm::mat4(1.0);
-    renderContext.MVP = renderContext.projMat * renderContext.viewMat * model;
+
+    renderContext.MVP = renderContext.projMat * renderContext.viewMat * renderContext.modelMat;
 
     float htany = tan(glm::radians(fov) / 2);
     float htanx = htany / height * width;
@@ -261,6 +262,12 @@ SceneManager& Renderer::getSceneManager()
 }
 
 double Renderer::getTotalGpuFrameTimeMs() const { return gpuFrameTimeMs; }
+
+void Renderer::resetModelMatrices()
+{
+    renderContext.modelMat = glm::mat4(1.0f);
+}
+
 
 void Renderer::updateGaussianBuffer()
 {
