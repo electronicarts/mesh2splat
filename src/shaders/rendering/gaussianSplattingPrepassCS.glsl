@@ -246,7 +246,7 @@ void main() {
 	perQuadTransformations.ndcTransformations[gaussianIndex].color				= outputColor;
 
 	mat2 conic = inverseMat2(cov2d);
-	perQuadTransformations.ndcTransformations[gaussianIndex].conic				= vec4(conic[0][0], conic[0][1], conic[1][1], pos2d.z ); //I embed the depth here, easier (for now) and cheaper
+	perQuadTransformations.ndcTransformations[gaussianIndex].conic				= vec4(conic[0][0], conic[0][1], conic[1][1], -gaussian_vs.z ); //I embed the depth here, easier (for now) and cheaper
 
 	perQuadTransformations.ndcTransformations[gaussianIndex].normal				= vec4(computedNormal_Ws.xyz, gaussian.pbr.x);
 	perQuadTransformations.ndcTransformations[gaussianIndex].wsPos				= vec4(gaussianWs.xyz, gaussian.pbr.y);

@@ -26,13 +26,17 @@ void IoHandler::processInput(float deltaTime)
     bool downMove = glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS;
     bool rotateLeftFrontVect = glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS;
     bool rotateRightFrontVect = glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS;
+    bool boostSpeed = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
+    bool slowSpeed = glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
+
 
     ImGuiIO& io = ImGui::GetIO();
     if (!io.WantCaptureKeyboard)
     {
         camera->ProcessKeyboard(deltaTime, forward, backward, left, right,
                                upMove, downMove,
-                               rotateLeftFrontVect, rotateRightFrontVect);
+                               rotateLeftFrontVect, rotateRightFrontVect, boostSpeed, slowSpeed
+        );
     }
 
     if (!io.WantCaptureMouse)

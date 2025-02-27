@@ -18,8 +18,11 @@ glm::mat4 Camera::GetViewMatrix() const {
     return glm::lookAt(Position, Position + Front, Up);
 }
 
-void Camera::ProcessKeyboard(float deltaTime, bool forward, bool backward, bool left, bool right, bool upMove, bool downMove, bool rotateLeftFrontVect, bool rotateRightFrontVect) {
-    float velocity = MovementSpeed * deltaTime;
+void Camera::ProcessKeyboard(float deltaTime, bool forward, bool backward, bool left, bool right, bool upMove, bool downMove, bool rotateLeftFrontVect, bool rotateRightFrontVect, bool boostSpeed, bool slowSpeed) {
+    float speedMultiplier = (boostSpeed ? FAST_SPEED_MOVEMENT : DEFAULT_SPEED_MOVEMENT);
+    speedMultiplier = (slowSpeed ? SLOW_SPEED_MOVEMENT : speedMultiplier);
+
+    float velocity = MovementSpeed * deltaTime * speedMultiplier;
     if (forward)
         Position += Front * velocity;
     if (backward)

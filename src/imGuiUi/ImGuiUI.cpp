@@ -70,7 +70,6 @@ void ImGuiUI::renderUI()
         }
     }
 
-    ImGui::Checkbox("Select Light", &lightSelected);
 
     ImGui::ColorEdit4("Background Color", &sceneBackgroundColor.x);
     ImGui::Combo("Render Mode", &renderIndex, renderLabels, IM_ARRAYSIZE(renderLabels));
@@ -92,6 +91,7 @@ void ImGuiUI::renderUI()
     ImGui::End();
 
     renderGpuFrametime();
+    renderLightingSettings();
 }
 
 void ImGuiUI::renderGizmoUi(glm::mat4& glmViewMat, glm::mat4& glmProjMat, glm::mat4& glmModelMat)
@@ -110,7 +110,7 @@ void ImGuiUI::renderGizmoUi(glm::mat4& glmViewMat, glm::mat4& glmProjMat, glm::m
     ImGui::SameLine();
     if (ImGui::RadioButton("Scale", currentOperation == ImGuizmo::SCALE))
         currentOperation = ImGuizmo::SCALE;
-
+        
     if (currentOperation != ImGuizmo::SCALE)
     {
         if (ImGui::RadioButton("Local", currentMode == ImGuizmo::LOCAL))
@@ -189,6 +189,22 @@ void ImGuiUI::renderGpuFrametime()
     ImGui::End();
 }
 
+void ImGuiUI::renderLightingSettings()
+{
+
+    ImGui::Begin("Lighting");
+
+    ImGui::Checkbox("Enable lighting", &lightingEnabled);
+    
+    if (lightingEnabled)
+        ImGui::Checkbox("Select Light", &lightSelected);
+    else
+        lightSelected = false;
+
+    ImGui::End();
+}
+
+
 void ImGuiUI::preframe()
 {
     ImGui_ImplOpenGL3_NewFrame();
@@ -254,6 +270,7 @@ void ImGuiUI::setFrameMetrics(double gpuFrameTime) {
 }
 
 bool ImGuiUI::isLightSelected() const { return lightSelected; };
+bool ImGuiUI::isLightingEnabled() const { return lightingEnabled; };
 
 
 

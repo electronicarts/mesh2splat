@@ -287,37 +287,38 @@ void Renderer::createGBuffer()
     glGenTextures(1, &renderContext.gPosition);
     glBindTexture(GL_TEXTURE_2D, renderContext.gPosition);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, renderContext.rendererResolution.x, renderContext.rendererResolution.y, 0, GL_RGBA, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderContext.gPosition, 0);
 
+    //I need to blend this so I need the alpha
     glGenTextures(1, &renderContext.gNormal);
     glBindTexture(GL_TEXTURE_2D, renderContext.gNormal);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, renderContext.rendererResolution.x, renderContext.rendererResolution.y, 0, GL_RGBA, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, renderContext.gNormal, 0);
 
     glGenTextures(1, &renderContext.gAlbedo);
     glBindTexture(GL_TEXTURE_2D, renderContext.gAlbedo);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, renderContext.rendererResolution.x, renderContext.rendererResolution.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, renderContext.gAlbedo, 0);
 
     //I need to use my own blending function for depth
     glGenTextures(1, &renderContext.gDepth);
     glBindTexture(GL_TEXTURE_2D, renderContext.gDepth);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, renderContext.rendererResolution.x, renderContext.rendererResolution.y, 0, GL_RGBA, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, renderContext.gDepth, 0);
 
     glGenTextures(1, &renderContext.gMetallicRoughness);
     glBindTexture(GL_TEXTURE_2D, renderContext.gMetallicRoughness);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, renderContext.rendererResolution.x, renderContext.rendererResolution.y, 0, GL_RGBA, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, renderContext.rendererResolution.x, renderContext.rendererResolution.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, renderContext.gMetallicRoughness, 0);
     
 
@@ -345,13 +346,20 @@ void Renderer::deleteGBuffer()
     glDeleteTextures(1, &renderContext.gPosition);
     glDeleteTextures(1, &renderContext.gNormal);
     glDeleteTextures(1, &renderContext.gAlbedo);
-    glDeleteRenderbuffers(1, &renderContext.gDepth);
+    glDeleteTextures(1, &renderContext.gDepth);
+    glDeleteTextures(1, &renderContext.gMetallicRoughness);
 
-    renderContext.gBufferFBO = 0;
-    renderContext.gPosition   = 0;
-    renderContext.gNormal     = 0;
-    renderContext.gAlbedo     = 0;
-    renderContext.gDepth    = 0;
+    renderContext.gBufferFBO    = 0;
+    renderContext.gPosition     = 0;
+    renderContext.gNormal       = 0;
+    renderContext.gAlbedo       = 0;
+    renderContext.gDepth        = 0;
+}
+
+	
+void Renderer::setLightingEnabled(bool isEnabled)
+{
+    renderContext.lightingEnabled = isEnabled;
 }
 
 bool Renderer::hasWindowSizeChanged()

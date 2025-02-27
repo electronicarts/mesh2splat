@@ -3,10 +3,10 @@
 GaussianSplattingPass::GaussianSplattingPass(RenderContext& renderContext)
 {
     std::vector<float> quadVertices = {
-        -1.0f, -1.0f, 0.0f,
-        -1.0f,  1.0f, 0.0f,
-         1.0f,  1.0f, 0.0f,
-         1.0f, -1.0f, 0.0f 
+        -1.0f, -1.0f, 0.0f,// V0
+        -1.0f,  1.0f, 0.0f,// V1
+         1.0f,  1.0f, 0.0f,// V2
+         1.0f, -1.0f, 0.0f  // V3
     };
 
     std::vector<GLuint> quadIndices = {
@@ -54,6 +54,8 @@ void GaussianSplattingPass::execute(RenderContext& renderContext)
 	glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_ONE);
 
     glBindVertexArray(renderContext.vao);
+
+    //TOOD: as the VS and PS are extremelly simple here, I could think of splitting this into two subpasses
 
     //per-instance (per quad) data
     glBindBuffer(GL_ARRAY_BUFFER, renderContext.perQuadTransformationBufferSorted);

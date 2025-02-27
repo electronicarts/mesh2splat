@@ -1,12 +1,16 @@
 #pragma once
 #include "utils.hpp"
 
+#define FAST_SPEED_MOVEMENT 3.5f
+#define SLOW_SPEED_MOVEMENT .25f
+#define DEFAULT_SPEED_MOVEMENT 1.0f
+
 class Camera {
 public:
     Camera(glm::vec3 position, glm::vec3 up, float yaw, float pitch);
 
     glm::mat4 GetViewMatrix() const;
-    void ProcessKeyboard(float deltaTime, bool forward, bool backward, bool left, bool right, bool upMove, bool downMove, bool rotateLeftFrontVect, bool rotateRightFrontVect);
+    void ProcessKeyboard(float deltaTime, bool forward, bool backward, bool left, bool right, bool upMove, bool downMove, bool rotateLeftFrontVect, bool rotateRightFrontVect, bool boostSpeed, bool slowSpeed);
     void ProcessMouseMovement(float xoffset, float yoffset, bool constrainPitch = true);
     void ProcessMouseScroll(float yoffset);
     float GetFOV() const { return FOV; }

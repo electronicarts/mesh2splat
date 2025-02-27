@@ -23,6 +23,7 @@ public:
     bool shouldSavePly() const;
     bool wasMeshLoaded() const;
     bool shouldLoadPly() const;
+    bool isLightingEnabled() const;
     bool isLightSelected() const;
     bool wasPlyLoaded() const;
 
@@ -50,7 +51,8 @@ public:
     void renderGizmoUi(glm::mat4& glmViewMat, glm::mat4& glmProjMat, glm::mat4& glmModelMat);
 
     void renderGpuFrametime();
-
+    void renderLightingSettings();
+    
     enum class VisualizationOption
     {
         COLOR = 0,
@@ -93,7 +95,8 @@ private:
     bool hasMeshBeenLoaded;
 
     bool lightSelected;
-    
+    bool lightingEnabled;
+
     bool savePly;
 
     char meshFilePathBuffer[256];

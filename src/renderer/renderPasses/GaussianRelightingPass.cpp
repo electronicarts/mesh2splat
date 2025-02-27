@@ -60,6 +60,8 @@ void GaussianRelightingPass::execute(RenderContext& renderContext)
     glUtils::setUniformMat4(renderContext.shaderPrograms.deferredRelightingShaderProgram, "u_worldToView", renderContext.viewMat);
     glUtils::setUniform2i(renderContext.shaderPrograms.deferredRelightingShaderProgram, "u_resolution", renderContext.rendererResolution);
     glUtils::setUniform3f(renderContext.shaderPrograms.deferredRelightingShaderProgram, "u_camPos", renderContext.camPos);
+    glUtils::setUniform1i(renderContext.shaderPrograms.deferredRelightingShaderProgram, "u_isLightingEnalbed", renderContext.lightingEnabled);
+
 
 
     glBindVertexArray(m_fullscreenQuadVAO);

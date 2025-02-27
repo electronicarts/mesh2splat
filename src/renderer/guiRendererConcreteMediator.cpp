@@ -58,7 +58,9 @@ void GuiRendererConcreteMediator::notify(EventType event)
             renderer.enableRenderPass(gaussianSplattingRelightingPassName);
 
             glm::mat4& modelM = imguiUI.isLightSelected() ? renderer.getRenderContext()->pointLightModel : renderer.getRenderContext()->modelMat;
-            
+            renderer.setLightingEnabled(imguiUI.isLightingEnabled());
+
+
             imguiUI.renderGizmoUi(
                 renderer.getRenderContext()->viewMat,
                 renderer.getRenderContext()->projMat,

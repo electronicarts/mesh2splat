@@ -28,6 +28,7 @@ struct RenderContext {
     glm::mat4 MVP; //TODO: yeah, assumes we will render with one single model mat
 
     glm::mat4 pointLightModel = glm::mat4(1.0); //For now supports only one light source
+    bool lightingEnabled;
 
     glm::vec3 hfov_focal;
     glm::vec3 camPos;

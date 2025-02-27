@@ -40,7 +40,7 @@ public:
 	void resetModelMatrices();
 	void createGBuffer();
 	void deleteGBuffer();
-
+	void setLightingEnabled(bool isEnabled);
 	bool hasWindowSizeChanged();
 
 

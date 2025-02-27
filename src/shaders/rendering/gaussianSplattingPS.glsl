@@ -26,8 +26,11 @@ void main() {
     float g = exp(alpha);
 
     gAlbedo             = vec4(out_color, out_opacity) * g;
-    gPosition           = vec4(out_wsPos, 1.0);
-    gNormal             = vec4(out_normal, 1.0) * g;
-    gDepth              = vec4(out_depth, out_depth, out_depth, 1.0f) * g;
+    gPosition           = vec4(out_wsPos, 1.0) * g;
+    gNormal             = vec4(out_normal, out_opacity) * g;
+    
+    float depthPrem     = out_depth * g;
+    gDepth              = vec4(depthPrem, depthPrem, depthPrem, out_opacity * g);
+    
     gMetallicRoughness  = vec4(metallicRoughness, 0, 1.0) * g;
 }
