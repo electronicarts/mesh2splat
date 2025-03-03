@@ -374,7 +374,7 @@ bool Renderer::hasWindowSizeChanged()
 {
     int width, height;
     glfwGetFramebufferSize(rendererGlfwWindow, &width, &height);
-    return renderContext.rendererResolution !=  glm::ivec2(width, height);
+    return renderContext.rendererResolution != glm::ivec2(width, height);
 }
 
 

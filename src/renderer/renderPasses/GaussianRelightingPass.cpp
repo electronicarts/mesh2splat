@@ -67,8 +67,6 @@ void GaussianRelightingPass::execute(RenderContext& renderContext)
     glUtils::setUniform1f(renderContext.shaderPrograms.deferredRelightingShaderProgram, "u_farPlane", renderContext.farPlane);
     glUtils::setUniform1f(renderContext.shaderPrograms.deferredRelightingShaderProgram, "u_lightIntensity", renderContext.lightIntensity);
 
-
-
     glBindVertexArray(m_fullscreenQuadVAO);
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);

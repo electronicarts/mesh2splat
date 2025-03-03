@@ -96,6 +96,11 @@ void GuiRendererConcreteMediator::update()
         notify(EventType::CheckShaderUpdate);
     }
 
+    if (renderer.hasWindowSizeChanged())
+    {
+        notify(EventType::ResizedWindow);
+    }
+
     if (imguiUI.shouldLoadNewMesh() && !imguiUI.getMeshFilePath().empty()) {
         notify(EventType::LoadModel);
     }
@@ -114,11 +119,6 @@ void GuiRendererConcreteMediator::update()
 
     if (imguiUI.shouldSavePly()) {
         notify(EventType::SavePLY);
-    }
-
-    if (renderer.hasWindowSizeChanged())
-    {
-        notify(EventType::ResizedWindow);
     }
 
 

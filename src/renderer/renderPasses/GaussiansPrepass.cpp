@@ -35,7 +35,6 @@ void GaussiansPrepass::execute(RenderContext& renderContext)
     unsigned int groupsY = (totalGroupsNeeded + groupsX - 1) / groupsX; 
     glDispatchCompute(groupsX, groupsY, 1);
 
-
     glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 
 #ifdef  _DEBUG

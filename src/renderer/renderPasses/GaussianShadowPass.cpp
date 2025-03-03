@@ -141,9 +141,10 @@ void GaussianShadowPass::execute(RenderContext& renderContext)
 void GaussianShadowPass::drawToCubeMapFaces(RenderContext& renderContext)
 {
     const int SHADOW_CUBEMAP_SIZE = 1024;
-    #ifdef  _DEBUG
-        glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, PassesDebugIDs::GAUSSIAN_SPLATTING_PREPASS, -1, "GAUSSIAN_SPLATTING_SHADOW_CUBEMAP_PASS");
-    #endif 
+#ifdef  _DEBUG
+    glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, PassesDebugIDs::GAUSSIAN_SPLATTING_PREPASS, -1, "GAUSSIAN_SPLATTING_SHADOW_CUBEMAP_PASS");
+#endif 
+
     for(int face=0; face < 6; face++)
     {
         //I will assume fully opaque gaussians for the sake of simplicity, we would need something like deep-shadow maps for that (I guess?)
@@ -161,8 +162,6 @@ void GaussianShadowPass::drawToCubeMapFaces(RenderContext& renderContext)
 
         glUtils::setUniform3f(renderContext.shaderPrograms.shadowPassCubemapRender,     "u_lightPos", glm::vec3(renderContext.pointLightModel[3]));
         glUtils::setUniform1f(renderContext.shaderPrograms.shadowPassCubemapRender,     "u_farPlane", renderContext.farPlane);
-
-
 
 	    glDisable(GL_BLEND);
         glDisable(GL_CULL_FACE);
@@ -199,8 +198,10 @@ void GaussianShadowPass::drawToCubeMapFaces(RenderContext& renderContext)
         glBindVertexArray(0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
      }
-    #ifdef  _DEBUG
+
+#ifdef  _DEBUG
     glPopDebugGroup();
 #endif 
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
