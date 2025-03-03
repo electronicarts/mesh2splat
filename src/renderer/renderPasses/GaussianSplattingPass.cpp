@@ -53,7 +53,7 @@ void GaussianSplattingPass::execute(RenderContext& renderContext)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     //From deck of Bernard K.: https://3dgstutorial.github.io/3dv_part2.pdf slide 25
-    if(renderContext.renderMode == 5) //overdraw
+    if(renderContext.renderMode == 4) //overdraw
 	    glBlendFunc(GL_ONE, GL_ONE);
     else
 	    glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_ONE);

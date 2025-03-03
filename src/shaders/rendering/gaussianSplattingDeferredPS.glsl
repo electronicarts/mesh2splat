@@ -15,7 +15,7 @@ uniform vec3 u_camPos;
 uniform bool u_isLightingEnalbed;
 uniform float u_farPlane;
 uniform float u_lightIntensity;
-
+uniform int u_renderMode;
 uniform samplerCube u_shadowCubemap;
 
 in vec2 fragUV;
@@ -96,7 +96,12 @@ void main() {
     vec3 albedo         = texture(gAlbedo, fragUV).rgb;
     vec3 depth         = texture(gDepth, fragUV).rgb;
 
-    if (!u_isLightingEnalbed)
+    if(u_renderMode == 5) //PBR props visualization
+    {
+        FragColor = vec4(texture(gMetallicRoughness, fragUV).rg, 0, 1);
+        return;
+    }
+    if (!u_isLightingEnalbed) //change to "albedo", not clear otherwise
     {
         FragColor = vec4(albedo, 1.0f);
         return;
