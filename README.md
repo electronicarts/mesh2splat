@@ -1,16 +1,11 @@
 # Mesh2Splat
-
-## Introduction
-Welcome to **Mesh2Splat**, a novel approach to convert 3D meshes into 3DGS (3D Gaussian Splatting) models.<br>
-3DGS was born to recontruct a photorealistic 3D representation from a series of images. This is possible thanks to an optimization process which relies on a series of reference images which are compared to 3DGS rendered scene obtained via a differentiable renderer that makes it possible to optimize a set of initial scene parameters [1].
-<div align="center"> 
-    <img src="res/seminalTechnique.png" alt="Seminal technique 3dGS" style="width: 80%;">
-</div><br>
-What if we want to represent a synthetic object (3D model) in 3DGS format rather than a real scene? Currently, the only way to do so is to generate a synthetic dataset (camera poses, renders and sparse point cloud) of the 3D model, and feed this into the 3DGS pipeline. This process can take up to 30min-45min.<br>
+**Mesh2Splat** is a UV based surface splatting approach to convert 3D meshes into 3DGS (3D Gaussian Splatting) models.<br>
+3DGS was born to recontruct a photorealistic 3D representation from a series of images. This is possible thanks to an optimization process which relies on a series of reference images which are compared to the 3DGS rendered scene obtained via a differentiable renderer that makes it possible to optimize a set of initial scene parameters.<br>
+What if we want to represent a synthetic object (3D model) in 3DGS format rather than a real scene?<br>
+Currently, the only way to do so is to generate a synthetic dataset (camera poses, renders and sparse point cloud) of the 3D model, and feed this into the 3DGS pipeline. This process can take up to 30min-45min.<br>
 
 **Mesh2Splat** instead, by directly using the geometry, materials and texture information from the 3D model, rather than going through the classical 3DGS pipeline, is able to obtain a 3DGS representation of the input 3D models in seconds.<br>
 This methodology sidesteps the need for greater interoperability between classical 3D mesh representation and the novel 3DGS format.<br>
-
 
 ## Method
 The **pipeline** of Mesh2Splat looks as follows:
@@ -105,23 +100,30 @@ robot/
 
 ## Limitations
 - Volumetric Data such as foliage, grass, hair, clouds, etc. has currently no way of being efficiently and correctly converted to 3DGS.<br>
-*Mesh2Splat* is works great to reconstruct triangle-based surface meshes.
+*Mesh2Splat* works great to reconstruct triangle-based surface meshes.
 
-## Known issues
-- **jpg format**: if using Blender and UV mapping with a ```.jpg``` texture, it will save it's `mimetype` as ```.jpeg```, invalidating some preliminary code I wrote. Just save it as ```.jpeg```, as it is equivalent to ```.jpg```
+# Authors
 
+<div align="center">
+<b>Search for Extraordinary Experiences Division (SEED) - Electronic Arts
+<br>
+<a href="https://seed.ea.com">seed.ea.com</a>
+<br>
+<a href="https://seed.ea.com"><img src="./res/seed-logo.png" width="150px"></a>
+<br>
+SEED is a pioneering group within Electronic Arts, combining creativity with applied research.</b> <br>
+We explore, build, and help determine the future of interactive entertainment.
+</p>
 
-## Roadmap
-- **Explore better sampling strategies**: I want to improve an explore better sampling strategies in order to maximize gaussian coverage while also limiting wasted details. 
-- **View-Dependent Accuracy**: Mesh2Splat is not capable of capturing view-dependant lighting effects. The main goal is to enable relighting. But embedding view-dependant effects in an efficient way without requiring the optimizer wants to be explored.
-- **Volumetric Data**: As previously mentioned, this kind of data is not modelled in any way by Mesh2Splat.
-- **LODs**: Currently, by adjusting the target resolution, lower quality 3DGSs will be produced. These are generated due to lower interpolation in the rasterizer, but an idea is to compute lower LODs directly from the higher quality 3DGSs via Gaussian Mixture Models.
+Mesh2splat is an Electronic Arts project created by [Stefano Scolari](https://www.linkedin.com/in/stefano-scolari/) for his Master's Thesis at [KTH](https://www.kth.se/en) while interning at [SEED](https://www.ea.com/seed) and supervision of Martin Mittring (Principal Rendering Engineer at [SEED](https://www.ea.com/seed)) and Christopher Peters (Professor in HCI & Computer Graphics at [KTH](https://www.kth.se/en)).
 
-## References
+# Contributing
 
-[1] Bernhard Kerbl, Georgios Kopanas, Thomas Leimkühler, & George Drettakis. (2023). 3D Gaussian Splatting for Real-Time Radiance Field Rendering.<br>
-[2] Antoine Guédon, & Vincent Lepetit. (2023). SuGaR: Surface-Aligned Gaussian Splatting for Efficient 3D Mesh Reconstruction and High-Quality Mesh Rendering.<br>
-[3] Joanna Waczyńska, Piotr Borycki, Sławomir Tadeja, Jacek Tabor, & Przemysław Spurek. (2024). GaMeS: Mesh-Based Adapting and Modification of Gaussian Splatting.
+Before you can contribute, EA must have a Contributor License Agreement (CLA) on file that has been signed by each contributor. You can sign [here](https://electronicarts.na1.echosign.com/public/esignWidget?wid=CBFCIBAA3AAABLblqZhByHRvZqmltGtliuExmuV-WNzlaJGPhbSRg2ufuPsM3P0QmILZjLpkGslg24-UJtek*).
+
+# License
+
+The source code is released under an open license as detailed in [LICENSE.md](./LICENSE.md)
 
 
 
