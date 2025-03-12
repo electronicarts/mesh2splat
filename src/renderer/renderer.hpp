@@ -23,6 +23,7 @@ public:
 	//TODO: For now not using this, will implement a render-pass based structure and change how the render-loop is implemented
 	bool updateShadersIfNeeded(bool forceReload = false);
 	unsigned int getVisibleGaussianCount();
+	unsigned int getTotalGaussianCount();
 	void setLastShaderCheckTime(double lastShaderCheckedTime);
 	double getLastShaderCheckTime();
 	RenderContext* getRenderContext();
@@ -42,6 +43,7 @@ public:
 	void deleteGBuffer();
 	void setLightingEnabled(bool isEnabled);
 	void setLightIntensity(float lightIntensity);
+	void setLightColor(glm::vec3 lightColor);
 	bool hasWindowSizeChanged();
 
 

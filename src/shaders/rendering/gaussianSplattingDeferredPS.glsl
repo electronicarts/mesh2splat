@@ -12,6 +12,7 @@ uniform mat4 u_worldToView;
 uniform vec2 u_resolution;
 uniform vec3 u_LightPosition;
 uniform vec3 u_camPos;
+uniform vec3 u_lightColor;
 uniform bool u_isLightingEnalbed;
 uniform float u_farPlane;
 uniform float u_lightIntensity;
@@ -128,7 +129,7 @@ void main() {
 
     float d = length(u_LightPosition.xyz - pos);
     float attenuation = 1.0 / (d * d);
-    vec3 radiance = vec3(1, 1, 1) * u_lightIntensity * attenuation;
+    vec3 radiance = u_lightColor * u_lightIntensity * attenuation;
 
     vec3 F0 = vec3(0.04); 
     F0      = mix(F0, albedo, metallic);

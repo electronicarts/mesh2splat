@@ -262,7 +262,7 @@ void main() {
 
 	localGaussianIndex = atomicAdd(cmds[face].instanceCount, 1u);
 	
-	uint globalIndex = uint(face) * (MAX_GAUSSIANS_PER_FACE / 6) + localGaussianIndex;
+	uint globalIndex = uint(face) * (MAX_GAUSSIANS_PER_FACE) + localGaussianIndex;
 
 	perQuadTransformations.ndcTransformations[globalIndex].gaussianMean2dNdc	= pos2d;
 	perQuadTransformations.ndcTransformations[globalIndex].quadScaleNdc			= vec4(majorAxisMultiplier, minorAxisMultiplier);

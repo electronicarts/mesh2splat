@@ -6,6 +6,8 @@
 #include <glm.hpp>
 #include "../utils/utils.hpp"
 #include "../../thirdParty/imguizmo/Imguizmo.hpp"
+#include "../../thirdParty/ImGuiFileDialog/ImGuiFileDialog.h"
+
 
 class ImGuiUI {
 public:
@@ -15,7 +17,7 @@ public:
     void preframe();
     void initialize(GLFWwindow* window);
     void renderUI();
-    void displayGaussianCount(unsigned int gaussianCount=0);
+    void displayGaussianCounts(unsigned int gaussianCount, unsigned int visibleGaussianCount);
     void postframe();
 
     bool shouldRunConversion() const;
@@ -53,11 +55,12 @@ public:
     void renderGpuFrametime();
     void renderLightingSettings();
     float getLightIntensity() const;
+    glm::vec3 getLightColor() const;
     
 
     enum class VisualizationOption
     {
-        COLOR = 0,
+        ALBEDO = 0,
         DEPTH = 1,
         NORMAL = 2,
         GEOMETRY = 3,
@@ -79,14 +82,14 @@ private:
 
     int renderIndex;
     const ImGuiUI::VisualizationOption renderOptions[6] = {
-        ImGuiUI::VisualizationOption::COLOR,
+        ImGuiUI::VisualizationOption::ALBEDO,
         ImGuiUI::VisualizationOption::DEPTH,
         ImGuiUI::VisualizationOption::NORMAL,
         ImGuiUI::VisualizationOption::GEOMETRY,
         ImGuiUI::VisualizationOption::OVERDRAW,
         ImGuiUI::VisualizationOption::PBR
     };
-    const char* renderLabels[6] = { "Color", "Depth", "Normals", "Geometry", "Overdraw", "PBR (metallic-roughness)"};
+    const char* renderLabels[6] = { "Albedo", "Depth", "Normals", "Geometry", "Overdraw", "PBR (metallic-roughness)"};
 
     float gaussian_std;
     float lightIntensity;
@@ -106,11 +109,13 @@ private:
 
     bool savePly;
 
-    char meshFilePathBuffer[256];
+    std::string meshFilePath;
     std::string meshParentFolder;
 
-    char plyFilePathBuffer[256];
+    std::string plyFilePath;
     std::string plyParentFolder;
+
+    utils::ModelFileExtension currentModelFormat = utils::ModelFileExtension::NONE;
 
     char destinationFilePathBuffer[256];
 
@@ -129,5 +134,5 @@ private:
     float targetFrameTimeThreshold = 16.6f; 
 
     glm::vec4 sceneBackgroundColor = { 0,0,0,1 };
+    glm::vec3 lightColor = { 1,1,1 };
 };
-

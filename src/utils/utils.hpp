@@ -69,10 +69,11 @@ namespace utils
     struct TextureInfo {
         std::string path;
         int texCoordIndex; // Texture coordinate set index used by this texture
-        unsigned char* texture;
+        std::vector<unsigned char> texture;
         int width, height;
+        unsigned int channels;
 
-        TextureInfo(const std::string& path = EMPTY_TEXTURE, int texCoordIndex = 0, unsigned char* texture = nullptr, int width = 0, int height = 0) : path(path), texCoordIndex(texCoordIndex), texture(texture), width(width), height(height) {}
+        TextureInfo(const std::string& path = EMPTY_TEXTURE, int texCoordIndex = 0, std::vector<unsigned char> texture = {}, int width = 0, int height = 0, unsigned int channels = 0) : path(path), texCoordIndex(texCoordIndex), texture(texture), width(width), height(height), channels(channels) {}
     };
 
     struct MaterialGltf {
@@ -158,13 +159,33 @@ namespace utils
     };
 
     struct TextureDataGl {
-        unsigned char* textureData;
-        unsigned int bpp;
-        unsigned int glTextureID;
+        std::vector<unsigned char> textureData;
+        unsigned int channels       = 0;
+        unsigned int glTextureID    = 0;
+        unsigned int width          = 0;
+        unsigned int height         = 0;
 
-        TextureDataGl(unsigned char* textureData, unsigned int bpp, unsigned int glTextureID) : textureData(textureData), bpp(bpp), glTextureID(glTextureID){}
-        TextureDataGl(unsigned char* textureData, unsigned int bpp) : textureData(textureData), bpp(bpp), glTextureID(0){}
+        TextureDataGl(std::vector<unsigned char> textureData, unsigned int channels, unsigned int glTextureID, unsigned int width, unsigned int height) : textureData(textureData), channels(channels), glTextureID(glTextureID), width(width), height(height){}
+        
+        TextureDataGl(std::vector<unsigned char> textureData, unsigned int channels) : textureData(textureData), channels(channels), glTextureID(0){}
+        
+        TextureDataGl(TextureInfo info)
+        {
+            textureData = info.texture;
+            channels = info.channels;
+            glTextureID = 0;
+            width = info.width;
+            height = info.height;
+        }
 
+
+    };
+
+    enum ModelFileExtension
+    {
+        NONE,
+        PLY,
+        GLB,
     };
 
     bool pointInTriangle(const glm::vec2& pt, const glm::vec2& v1, const glm::vec2& v2, const glm::vec2& v3);
@@ -218,5 +239,7 @@ namespace utils
     inline float sigmoid(float opacity) { return 1.0 / (1.0 + std::exp(-opacity)); };
 
     std::string formatWithCommas(int value);
+
+    ModelFileExtension getFileExtension(const std::string& filename);
 
 }

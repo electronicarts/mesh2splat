@@ -21,8 +21,8 @@ private:
     RenderContext& renderContext;
 
     bool parseGltfFile(const std::string& filePath, const std::string& parentFolder, std::vector<utils::Mesh>& meshes);
-    utils::MaterialGltf parseGltfMaterial(const tinygltf::Model& model, int materialIndex, std::string base_folder);
-    utils::TextureInfo parseGltfTextureInfo(const tinygltf::Model& model, const tinygltf::Parameter& textureParameter, std::string base_folder);
+    void parseGltfMaterial(const tinygltf::Model& model, int materialIndex, std::string base_folder, utils::MaterialGltf& materialGltf);
+    void parseGltfTextureInfo(const tinygltf::Model& model, const tinygltf::Parameter& textureParameter, std::string base_folder, std::string name, utils::TextureInfo& info);
     void generateNormalizedUvCoordinates(std::vector<utils::Mesh>& meshes);
     void loadTextures(const std::vector<utils::Mesh>& meshes);
     void setupMeshBuffers(const std::vector<utils::Mesh>& meshes);

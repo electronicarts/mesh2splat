@@ -32,19 +32,18 @@ struct RenderContext {
     glm::mat4 projMat = glm::mat4(1);
     glm::mat4 MVP; //TODO: yeah, assumes we will render with one single model mat
 
-    glm::mat4 pointLightModel = glm::mat4(1.0); //For now supports only one light source
-    bool lightingEnabled;
-
     struct PointLightData
     {
         GLuint gaussianDepthPostFilteringUnified;
         GLuint perQuadTransformationsUnified;
         GLuint atomicCounterBufferPerFace[6];
+        glm::vec3 lightColor;
+        float lightIntensity;
+        GLuint m_shadowCubemap;
+        bool lightingEnabled;
+        glm::mat4 pointLightModel = glm::mat4(1.0); //For now supports only one light source
     } pointLightData;
 
-    float lightIntensity;
-
-    GLuint m_shadowCubemap;
 
     glm::vec3 hfov_focal;
     glm::vec3 camPos;
@@ -98,7 +97,6 @@ struct RenderContext {
     std::deque<GLuint> queryPool;
 
     unsigned int renderMode; //0: color, 1: depth, 2: normal, 3: geometry
-
 
     //Gbuffer
     GLuint gBufferFBO = 0;

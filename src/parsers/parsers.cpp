@@ -49,11 +49,13 @@ namespace parsers
             stbi_image_free(image);
             std::cout << "\nImage: " << resized_texture_name_location << "  width: " << textureWidth << "  height: " << textureHeight << " BPP:" << bpp << "\n" << std::endl;
     
-            return utils::TextureDataGl(resized_data, bpp);
-       
+            //return utils::TextureDataGl(resized_data, bpp);
+            return utils::TextureDataGl({}, bpp);
+            
         }
+        return utils::TextureDataGl({}, bpp);
 
-        return utils::TextureDataGl(image, bpp);
+        //return utils::TextureDataGl(image, bpp);
     }
 
     //Factors taken from: https://gist.github.com/SubhiH/b34e74ffe4fd1aab046bcf62b7f12408
@@ -199,70 +201,6 @@ namespace parsers
         name2 = path + names[1];
 
         return true;
-    }
-
-    void loadAllTextureMapImagesIntoMap(utils::MaterialGltf& material, std::map<std::string, utils::TextureDataGl>& textureTypeMap)
-    {
-    
-        //BASECOLOR ALBEDO TEXTURE LOAD
-        if (material.baseColorTexture.path != EMPTY_TEXTURE)
-        {
-            textureTypeMap.emplace(BASE_COLOR_TEXTURE, loadImageAndBpp(material.baseColorTexture.path, material.baseColorTexture.width, material.baseColorTexture.height));
-        }
-        else {
-            material.baseColorTexture.width = MAX_RESOLUTION_TARGET;
-            material.baseColorTexture.height = MAX_RESOLUTION_TARGET;
-        }
-
-        //METALLIC-ROUGHNESS TEXTURE LOAD
-        if (material.metallicRoughnessTexture.path != EMPTY_TEXTURE)
-        {
-            std::string metallicPath, roughnessPath, folderPath;
-            //In case Metallic and Roughness are separate we need to combine them in the appropriate RGB channels
-            if (extractImageNames(material.metallicRoughnessTexture.path, folderPath, metallicPath, roughnessPath))
-            {
-                int channels;
-                unsigned char* metallicRoughnessTextureData = combineMetallicRoughness(metallicPath.c_str(), roughnessPath.c_str(), material.metallicRoughnessTexture.width, material.metallicRoughnessTexture.height, channels); 
-                textureTypeMap.emplace(METALLIC_ROUGHNESS_TEXTURE, utils::TextureDataGl(metallicRoughnessTextureData, channels));
-            }
-            else {
-                textureTypeMap.emplace(METALLIC_ROUGHNESS_TEXTURE, loadImageAndBpp(material.metallicRoughnessTexture.path, material.metallicRoughnessTexture.width, material.metallicRoughnessTexture.height));
-            }
-        }
-        else {
-            material.metallicRoughnessTexture.width = MAX_RESOLUTION_TARGET;
-            material.metallicRoughnessTexture.height = MAX_RESOLUTION_TARGET;
-        }
-
-        //NORMAL TEXTURE LOAD
-        if (material.normalTexture.path != EMPTY_TEXTURE)
-        {
-            textureTypeMap.emplace(NORMAL_TEXTURE, loadImageAndBpp(material.normalTexture.path, material.normalTexture.width, material.normalTexture.height));
-        }
-        else {
-            material.normalTexture.width = MAX_RESOLUTION_TARGET;
-            material.normalTexture.height = MAX_RESOLUTION_TARGET;
-        }
-
-        //OCCLUSION TEXTURE LOAD
-        if (material.occlusionTexture.path != EMPTY_TEXTURE)
-        {
-            textureTypeMap.emplace(AO_TEXTURE, loadImageAndBpp(material.occlusionTexture.path, material.occlusionTexture.width, material.occlusionTexture.height));
-        }
-        else {
-            material.occlusionTexture.width = MAX_RESOLUTION_TARGET;
-            material.occlusionTexture.height = MAX_RESOLUTION_TARGET;
-        }
-
-        //EMISSIVE TEXTURE LOAD
-        if (material.emissiveTexture.path != EMPTY_TEXTURE)
-        {
-            textureTypeMap.emplace(EMISSIVE_TEXTURE, loadImageAndBpp(material.emissiveTexture.path, material.emissiveTexture.width, material.emissiveTexture.height));
-        }
-        else {
-            material.emissiveTexture.width = MAX_RESOLUTION_TARGET;
-            material.emissiveTexture.height = MAX_RESOLUTION_TARGET;
-        }
     }
 
     glm::vec3 computeNormal(glm::vec3 A, glm::vec3 B, glm::vec3 C) {

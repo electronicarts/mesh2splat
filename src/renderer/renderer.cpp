@@ -362,12 +362,17 @@ void Renderer::deleteGBuffer()
 	
 void Renderer::setLightingEnabled(bool isEnabled)
 {
-    renderContext.lightingEnabled = isEnabled;
+    renderContext.pointLightData.lightingEnabled = isEnabled;
 }
 
 void Renderer::setLightIntensity(float lightIntensity)
 {
-    renderContext.lightIntensity = lightIntensity;
+    renderContext.pointLightData.lightIntensity = lightIntensity;
+}
+
+void Renderer::setLightColor(glm::vec3 lightColor)
+{
+    renderContext.pointLightData.lightColor = lightColor;
 }
 
 bool Renderer::hasWindowSizeChanged()
@@ -435,5 +440,11 @@ unsigned int Renderer::getVisibleGaussianCount()
         return validCount;
     }
     return 0;
+
+}
+
+unsigned int Renderer::getTotalGaussianCount()
+{
+    return this->renderContext.numberOfGaussians;
 
 }

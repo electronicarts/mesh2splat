@@ -10,8 +10,6 @@ namespace parsers
 {
 	utils::TextureDataGl loadImageAndBpp(std::string texturePath, int& textureWidth, int& textureHeight);
 
-	void loadAllTextureMapImagesIntoMap(utils::MaterialGltf& material, std::map<std::string, utils::TextureDataGl>& textureTypeMap);
-
 	void writePbrPLY(const std::string& filename, std::vector<utils::GaussianDataSSBO>& gaussians, float scaleMultiplier);
 
 	void writeBinaryPlyStandardFormat(const std::string& filename, const std::vector<utils::GaussianDataSSBO>& gaussians);

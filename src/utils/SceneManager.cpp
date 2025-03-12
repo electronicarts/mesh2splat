@@ -20,9 +20,8 @@ bool SceneManager::loadModel(const std::string& filePath, const std::string& par
 
     generateNormalizedUvCoordinates(meshes);
     setupMeshBuffers(meshes);
-    //TODO!!!: this for now actually works with only 1 mesh
     loadTextures(meshes);
-    glUtils::generateTextures(renderContext.material, renderContext.textureTypeMap);
+    glUtils::generateTextures(renderContext.textureTypeMap);
 
     return true;
 }
@@ -53,10 +52,10 @@ const T* SceneManager::getBufferData(const tinygltf::Model& model, int accessorI
     return dataPtr;
 }
 
-utils::TextureInfo SceneManager::parseGltfTextureInfo(const tinygltf::Model& model, const tinygltf::Parameter& textureParameter, std::string base_folder) {
-    utils::TextureInfo info;
+void SceneManager::parseGltfTextureInfo(const tinygltf::Model& model, const tinygltf::Parameter& textureParameter, std::string base_folder, std::string name, utils::TextureInfo& info) {
 
     auto it = textureParameter.json_double_value.find("index");
+
     if (it != textureParameter.json_double_value.end()) {
         int textureIndex = static_cast<int>(it->second);
         if (textureIndex >= 0 && textureIndex < model.textures.size()) {
@@ -67,9 +66,14 @@ utils::TextureInfo SceneManager::parseGltfTextureInfo(const tinygltf::Model& mod
                 std::string fileExtension = image.mimeType.substr(image.mimeType.find_last_of('/') + 1);
                 info.path = base_folder + image.name + "." + fileExtension;
 
-                // Dimensions
-                info.width = image.width;
-                info.height = image.height;
+                info.width      = image.width;
+                info.height     = image.height;
+
+                info.texture.resize(image.image.size());
+                std::memcpy(info.texture.data(), image.image.data(), image.image.size());
+                
+                info.path       = name;
+                info.channels   = image.component;
             }
 
             // Handling texCoord index if present
@@ -82,15 +86,12 @@ utils::TextureInfo SceneManager::parseGltfTextureInfo(const tinygltf::Model& mod
             }
         }
     }
-
-    return info;
 }
 
-utils::MaterialGltf SceneManager::parseGltfMaterial(const tinygltf::Model& model, int materialIndex, std::string base_folder) {
-    utils::MaterialGltf materialGltf;
+void SceneManager::parseGltfMaterial(const tinygltf::Model& model, int materialIndex, std::string base_folder, utils::MaterialGltf& materialGltf) {
 
     if (materialIndex < 0 || materialIndex >= model.materials.size()) {
-        return materialGltf;
+        return;
     }
 
     const tinygltf::Material& material = model.materials[materialIndex];
@@ -108,12 +109,11 @@ utils::MaterialGltf SceneManager::parseGltfMaterial(const tinygltf::Model& model
         );
     }
 
-    //Remember that it should be: R=ambient occlusion G=roughness B=metallic for the AO_Roughness_Metallic texture map
-
+    //R=ambient occlusion G=roughness B=metallic for AO_Roughness_Metallic
     // Base Color Texture
     auto baseColorTexIt = material.values.find("baseColorTexture");
     if (baseColorTexIt != material.values.end()) {
-        materialGltf.baseColorTexture = parseGltfTextureInfo(model, baseColorTexIt->second, base_folder);
+         parseGltfTextureInfo(model, baseColorTexIt->second, base_folder, "baseColorTexture", materialGltf.baseColorTexture);
     }
     else {
         materialGltf.baseColorTexture.path = EMPTY_TEXTURE;
@@ -122,7 +122,7 @@ utils::MaterialGltf SceneManager::parseGltfMaterial(const tinygltf::Model& model
     // Normal Texture
     auto normalTexIt = material.additionalValues.find("normalTexture");
     if (normalTexIt != material.additionalValues.end()) {
-        materialGltf.normalTexture = parseGltfTextureInfo(model, normalTexIt->second, base_folder);
+         parseGltfTextureInfo(model, normalTexIt->second, base_folder, "normalTexture", materialGltf.normalTexture);
 
         auto scaleIt = normalTexIt->second.json_double_value.find("scale");
         if (scaleIt != normalTexIt->second.json_double_value.end()) {
@@ -139,13 +139,13 @@ utils::MaterialGltf SceneManager::parseGltfMaterial(const tinygltf::Model& model
     // Metallic-Roughness Texture
     auto metalRoughTexIt = material.values.find("metallicRoughnessTexture");
     if (metalRoughTexIt != material.values.end()) {
-        materialGltf.metallicRoughnessTexture = parseGltfTextureInfo(model, metalRoughTexIt->second, base_folder);
+         parseGltfTextureInfo(model, metalRoughTexIt->second, base_folder, "metallicRoughnessTexture", materialGltf.metallicRoughnessTexture);
     }
 
     // Occlusion Texture
     auto occlusionTexIt = material.additionalValues.find("occlusionTexture");
     if (occlusionTexIt != material.additionalValues.end()) {
-        materialGltf.occlusionTexture = parseGltfTextureInfo(model, occlusionTexIt->second, base_folder);
+        parseGltfTextureInfo(model, occlusionTexIt->second, base_folder, "occlusionTexture", materialGltf.occlusionTexture);
 
         auto scaleIt = occlusionTexIt->second.json_double_value.find("strength");
         if (scaleIt != occlusionTexIt->second.json_double_value.end()) {
@@ -162,7 +162,7 @@ utils::MaterialGltf SceneManager::parseGltfMaterial(const tinygltf::Model& model
     // Emissive Texture
     auto emissiveTexIt = material.additionalValues.find("emissiveTexture");
     if (emissiveTexIt != material.additionalValues.end()) {
-        materialGltf.emissiveTexture = parseGltfTextureInfo(model, emissiveTexIt->second, base_folder);
+        parseGltfTextureInfo(model, emissiveTexIt->second, base_folder, "emissiveTexture", materialGltf.emissiveTexture);
     }
     else {
         materialGltf.emissiveTexture.path = EMPTY_TEXTURE;
@@ -182,8 +182,6 @@ utils::MaterialGltf SceneManager::parseGltfMaterial(const tinygltf::Model& model
     // Metallic and Roughness Factors
     materialGltf.metallicFactor = material.pbrMetallicRoughness.metallicFactor;
     materialGltf.roughnessFactor = material.pbrMetallicRoughness.roughnessFactor;
-
-    return materialGltf;
 }
 
 bool SceneManager::parseGltfFile(const std::string& filePath, const std::string& parentFolder, std::vector<utils::Mesh>& meshes) {
@@ -233,7 +231,7 @@ bool SceneManager::parseGltfFile(const std::string& filePath, const std::string&
             auto uvs            = getBufferData<glm::vec2>(model, primitive.attributes.at("TEXCOORD_0"));         
             auto normals        = getBufferData<glm::vec3>(model, primitive.attributes.at("NORMAL"));
 
-            //TODO: 01/2025 --> I wrote this part of the code 1 year ago: what was I thinking?
+            //TODO: 01/2025 --> I wrote this part of the code more than a year ago: what was I thinking?
             const glm::vec4* tangents = NULL;
             bool hasTangents = false;
             if (primitive.attributes.find("TANGENT") != primitive.attributes.end())
@@ -242,7 +240,7 @@ bool SceneManager::parseGltfFile(const std::string& filePath, const std::string&
                 hasTangents = true;
             }
             
-            myMesh.material = parseGltfMaterial(model, primitive.material, parentFolder);
+            parseGltfMaterial(model, primitive.material, parentFolder, myMesh.material);
 
             //TODO: indices is wrong to be used like this because it is not a global index amongst all primitives
             myMesh.faces.resize(indices.size() / 3);
@@ -387,14 +385,14 @@ void SceneManager::setupMeshBuffers(const std::vector<utils::Mesh>& meshes)
 
 void SceneManager::loadTextures(const std::vector<utils::Mesh>& meshes)
 {
-    
     for (auto& mesh : meshes)
     {
         //TODO!!!: the render context supports only one mesh
         //BASECOLOR ALBEDO TEXTURE LOAD
         if (mesh.material.baseColorTexture.path != EMPTY_TEXTURE)
         {
-            renderContext.textureTypeMap.insert_or_assign(BASE_COLOR_TEXTURE, parsers::loadImageAndBpp(mesh.material.baseColorTexture.path, renderContext.material.baseColorTexture.width, renderContext.material.baseColorTexture.height));
+            utils::TextureDataGl tdgl(mesh.material.baseColorTexture);
+            renderContext.textureTypeMap.insert_or_assign(BASE_COLOR_TEXTURE, tdgl);
         }
         else {
             renderContext.material.baseColorTexture.width = MAX_RESOLUTION_TARGET;
@@ -405,17 +403,8 @@ void SceneManager::loadTextures(const std::vector<utils::Mesh>& meshes)
         //METALLIC-ROUGHNESS TEXTURE LOAD
         if (mesh.material.metallicRoughnessTexture.path != EMPTY_TEXTURE)
         {
-            std::string metallicPath, roughnessPath, folderPath;
-            //In case Metallic and Roughness are separate we need to combine them in the appropriate RGB channels
-            if (parsers::extractImageNames(mesh.material.metallicRoughnessTexture.path, folderPath, metallicPath, roughnessPath))
-            {
-                int channels;
-                unsigned char* metallicRoughnessTextureData = parsers::combineMetallicRoughness(metallicPath.c_str(), roughnessPath.c_str(), renderContext.material.metallicRoughnessTexture.width, renderContext.material.metallicRoughnessTexture.height, channels); 
-                renderContext.textureTypeMap.insert_or_assign(METALLIC_ROUGHNESS_TEXTURE, utils::TextureDataGl(metallicRoughnessTextureData, channels));
-            }
-            else {
-                renderContext.textureTypeMap.insert_or_assign(METALLIC_ROUGHNESS_TEXTURE, parsers::loadImageAndBpp(mesh.material.metallicRoughnessTexture.path, renderContext.material.metallicRoughnessTexture.width, renderContext.material.metallicRoughnessTexture.height));
-            }
+            utils::TextureDataGl tdgl(mesh.material.metallicRoughnessTexture);
+            renderContext.textureTypeMap.insert_or_assign(METALLIC_ROUGHNESS_TEXTURE, tdgl);
         }
         else {
             renderContext.material.metallicRoughnessTexture.width = MAX_RESOLUTION_TARGET;
@@ -426,7 +415,9 @@ void SceneManager::loadTextures(const std::vector<utils::Mesh>& meshes)
         //NORMAL TEXTURE LOAD
         if (mesh.material.normalTexture.path != EMPTY_TEXTURE)
         {
-            renderContext.textureTypeMap.insert_or_assign(NORMAL_TEXTURE, parsers::loadImageAndBpp(mesh.material.normalTexture.path, renderContext.material.normalTexture.width, renderContext.material.normalTexture.height));
+            
+            utils::TextureDataGl tdgl(mesh.material.normalTexture);
+            renderContext.textureTypeMap.insert_or_assign(NORMAL_TEXTURE, tdgl);
         }
         else {
             renderContext.material.normalTexture.width = MAX_RESOLUTION_TARGET;
@@ -438,7 +429,8 @@ void SceneManager::loadTextures(const std::vector<utils::Mesh>& meshes)
         //OCCLUSION TEXTURE LOAD
         if (mesh.material.occlusionTexture.path != EMPTY_TEXTURE)
         {
-            renderContext.textureTypeMap.insert_or_assign(AO_TEXTURE, parsers::loadImageAndBpp(mesh.material.occlusionTexture.path, renderContext.material.occlusionTexture.width, renderContext.material.occlusionTexture.height));
+            utils::TextureDataGl tdgl(mesh.material.occlusionTexture);
+            renderContext.textureTypeMap.insert_or_assign(AO_TEXTURE, tdgl);
         }
         else {
             renderContext.material.occlusionTexture.width = MAX_RESOLUTION_TARGET;
@@ -449,7 +441,8 @@ void SceneManager::loadTextures(const std::vector<utils::Mesh>& meshes)
         //EMISSIVE TEXTURE LOAD
         if (mesh.material.emissiveTexture.path != EMPTY_TEXTURE)
         {
-            renderContext.textureTypeMap.insert_or_assign(EMISSIVE_TEXTURE, parsers::loadImageAndBpp(mesh.material.emissiveTexture.path, renderContext.material.emissiveTexture.width, renderContext.material.emissiveTexture.height));
+            utils::TextureDataGl tdgl(mesh.material.emissiveTexture);
+            renderContext.textureTypeMap.insert_or_assign(EMISSIVE_TEXTURE, tdgl);
         }
         else {
             renderContext.material.emissiveTexture.width = MAX_RESOLUTION_TARGET;

@@ -11,13 +11,7 @@ ImGuiUI::ImGuiUI(float defaultResolutionIndex, int defaultFormat, float defaultG
       hasMeshBeenLoaded(false),
       loadNewPly(false),
       hasPlyBeenLoaded(false)
-{
-    //TODO: remove this and add a different debug default folder
-    strcpy(meshFilePathBuffer, "C:\\Users\\sscolari\\Desktop\\dataset\\scifiHelmet\\scifiHelmet.glb");
-    strcpy(plyFilePathBuffer, "C:\\Users\\sscolari\\Desktop\\halcyonFix\\halcyon\\Content\\Halcyon\\PlyTestAssets\\plushToyUp.ply");
-
-    destinationFilePathBuffer[0] = '\0';  // empty destination path initially
-}
+{}
 
 ImGuiUI::~ImGuiUI()
 {
@@ -36,50 +30,62 @@ void ImGuiUI::initialize(GLFWwindow* window)
     ImGui_ImplOpenGL3_Init("#version 460"); // Use appropriate GLSL version
 }
 
+
+
 void ImGuiUI::renderUI()
 {
     ImGui::Begin("File Selector");
+    
+    ImGui::SeparatorText("Input");
 
-    ImGui::InputText("Mesh File", meshFilePathBuffer, sizeof(meshFilePathBuffer));
-    if (ImGui::Button("Load Mesh")) {
-        loadNewMesh = true;
-        std::string filePath(meshFilePathBuffer);
-        if (!filePath.empty()) {
-            size_t lastSlashPos = filePath.find_last_of("/\\");
-            if (lastSlashPos != std::string::npos) {
-                meshParentFolder = filePath.substr(0, lastSlashPos + 1);
+    if (ImGui::Button("Select file to load (.glb / .ply)")) {
+        IGFD::FileDialogConfig config;
+	    config.path = ".";
+        ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".glb,.ply", config);
+    }
+
+    if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey")) {
+        if (ImGuiFileDialog::Instance()->IsOk()) { // action if OK
+            std::string file = ImGuiFileDialog::Instance()->GetFilePathName();
+            std::string parentFolder = ImGuiFileDialog::Instance()->GetCurrentPath().append("//");
+            currentModelFormat = utils::getFileExtension(file);
+            switch (currentModelFormat)
+            {
+                case utils::ModelFileExtension::GLB:
+                    meshFilePath = file;
+                    meshParentFolder = parentFolder;
+                    break;
+                case utils::ModelFileExtension::PLY:
+                    plyFilePath = file;
+                    plyParentFolder = parentFolder;
+                    break;
+                case utils::ModelFileExtension::NONE:
+                    break;
             }
-            else {
-                meshParentFolder = "";
-            }
+
         }
+    
+        ImGuiFileDialog::Instance()->Close();
     }
 
-    ImGui::InputText("Ply File", plyFilePathBuffer, sizeof(plyFilePathBuffer));
-    if (ImGui::Button("Load Ply")) {
-        loadNewPly = true;
-        std::string filePath(plyFilePathBuffer);
-        if (!filePath.empty()) {
-            size_t lastSlashPos = filePath.find_last_of("/\\");
-            if (lastSlashPos != std::string::npos) {
-                plyParentFolder = filePath.substr(0, lastSlashPos + 1);
-            }
-            else {
-                plyParentFolder = "";
-            }
-        }
+    switch (currentModelFormat)
+    {
+        case utils::ModelFileExtension::GLB:
+            ImGui::Text("Selected Glb file: %s", meshFilePath.c_str());
+            ImGui::SameLine();
+            loadNewMesh = ImGui::Button("Convert Mesh to 3DGS");
+            break;
+        case utils::ModelFileExtension::PLY:
+            ImGui::Text("Selected Ply file: %s", plyFilePath.c_str());
+            ImGui::SameLine();
+            loadNewPly = ImGui::Button("Load 3DGS ply");
+            break;
+        case utils::ModelFileExtension::NONE:
+            break;
     }
 
+    ImGui::SeparatorText("Output");
 
-    ImGui::ColorEdit4("Background Color", &sceneBackgroundColor.x);
-    ImGui::Combo("Render Mode", &renderIndex, renderLabels, IM_ARRAYSIZE(renderLabels));
-
-    //TODO: right now std_dev is not updated in the actual gaussianBuffer, just during rendering. Need to consider this when exporting
-    if (ImGui::SliderFloat("Gaussian Std Dev", &gaussian_std, minStd, maxStd, "%.2f"));
-
-    if (ImGui::SliderFloat("Mesh2Splat quality", &quality, 0.0f, 1.0f, "%.2f")) {
-        runConversionFlag = true;
-    }
     ImGui::Combo("Export Format", &formatIndex, formatLabels, IM_ARRAYSIZE(formatLabels));
 
     ImGui::InputText("Save .PLY destination", destinationFilePathBuffer, sizeof(destinationFilePathBuffer));
@@ -87,6 +93,21 @@ void ImGuiUI::renderUI()
         savePly = true;
     }
 
+    ImGui::End();
+
+    ImGui::Begin("Properties");
+
+    ImGui::Combo("Property visualization", &renderIndex, renderLabels, IM_ARRAYSIZE(renderLabels));
+
+    //TODO: right now std_dev is not updated in the actual gaussianBuffer, just during rendering. Need to consider this when exporting
+    if (ImGui::SliderFloat("Gaussian Scale", &gaussian_std, minStd, maxStd, "%.2f"));
+
+    if (ImGui::SliderFloat("Mesh2Splat sampling density", &quality, 0.0f, 1.0f, "%.2f")) {
+        runConversionFlag = true;
+    }
+
+
+    ImGui::ColorEdit4("Background Color", &sceneBackgroundColor.x);
 
     ImGui::End();
 
@@ -102,6 +123,7 @@ void ImGuiUI::renderGizmoUi(glm::mat4& glmViewMat, glm::mat4& glmProjMat, glm::m
     static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
     static ImGuizmo::MODE currentMode = ImGuizmo::LOCAL;
 
+    ImGui::SeparatorText("Operation");
     if (ImGui::RadioButton("Translate", currentOperation == ImGuizmo::TRANSLATE))
         currentOperation = ImGuizmo::TRANSLATE;
     ImGui::SameLine();
@@ -111,14 +133,28 @@ void ImGuiUI::renderGizmoUi(glm::mat4& glmViewMat, glm::mat4& glmProjMat, glm::m
     if (ImGui::RadioButton("Scale", currentOperation == ImGuizmo::SCALE))
         currentOperation = ImGuizmo::SCALE;
         
+
     if (currentOperation != ImGuizmo::SCALE)
     {
+        ImGui::SeparatorText("Reference System");
         if (ImGui::RadioButton("Local", currentMode == ImGuizmo::LOCAL))
             currentMode = ImGuizmo::LOCAL;
         ImGui::SameLine();
         if (ImGui::RadioButton("World", currentMode == ImGuizmo::WORLD))
             currentMode = ImGuizmo::WORLD;
     }
+
+    if (isLightingEnabled())
+    {
+        ImGui::SeparatorText("Object selector");
+        if (ImGui::RadioButton("Model", !lightSelected))
+            lightSelected = false;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Light", lightSelected) && lightingEnabled)
+            lightSelected = true;
+    }
+
+
 
     ImGui::End();
 
@@ -198,13 +234,9 @@ void ImGuiUI::renderLightingSettings()
     
     if (lightingEnabled)
     {
-        ImGui::Checkbox("Select Light", &lightSelected);
         ImGui::SliderFloat("Light intensity", &lightIntensity, minLightIntensity, maxLightIntensity, "%2.0f");
-    }
- 
-
-    else
-        lightSelected = false;
+        ImGui::ColorEdit3("Light Color", &lightColor.x);
+    } else lightSelected = false;
 
     ImGui::End();
 }
@@ -217,10 +249,11 @@ void ImGuiUI::preframe()
     ImGui::NewFrame();
 }
 
-void ImGuiUI::displayGaussianCount(unsigned int gaussianCount)
+void ImGuiUI::displayGaussianCounts(unsigned int gaussianCount, unsigned int visibleGaussianCount)
 {
-    ImGui::Begin("Visible gaussians count:");
-    ImGui::Text("N: %s", utils::formatWithCommas(gaussianCount).c_str());
+    ImGui::Begin("Object info");
+    ImGui::Text("Total gaussian count: %s", utils::formatWithCommas(gaussianCount).c_str());
+    ImGui::Text("Visible gaussian count: %s", utils::formatWithCommas(visibleGaussianCount).c_str());
     ImGui::End();
 }
 
@@ -239,11 +272,11 @@ bool ImGuiUI::shouldLoadPly() const { return loadNewPly; } ;
 bool ImGuiUI::wasPlyLoaded() const { return hasPlyBeenLoaded; };
 
 bool ImGuiUI::shouldSavePly() const { return savePly; } ;
-std::string ImGuiUI::getMeshFilePath() const { return std::string(meshFilePathBuffer); };
+std::string ImGuiUI::getMeshFilePath() const { return meshFilePath; };
 std::string ImGuiUI::getMeshFilePathParentFolder() const {return meshParentFolder;};
-std::string ImGuiUI::getMeshFullFilePathDestination() const { return std::string(destinationFilePathBuffer); };
+std::string ImGuiUI::getMeshFullFilePathDestination() const { return destinationFilePathBuffer; };
 
-std::string ImGuiUI::getPlyFilePath() const { return std::string(plyFilePathBuffer); };
+std::string ImGuiUI::getPlyFilePath() const { return std::string(plyFilePath); };
 std::string ImGuiUI::getPlyFilePathParentFolder() const { return plyParentFolder; };
 
 unsigned int ImGuiUI::getFormatOption() const { return formatOptions[formatIndex]; };
@@ -277,6 +310,8 @@ void ImGuiUI::setFrameMetrics(double gpuFrameTime) {
 bool ImGuiUI::isLightSelected() const { return lightSelected; };
 bool ImGuiUI::isLightingEnabled() const { return lightingEnabled; };
 float ImGuiUI::getLightIntensity() const { return lightIntensity; };
+glm::vec3 ImGuiUI::getLightColor() const { return lightColor; };
+
 
 
 

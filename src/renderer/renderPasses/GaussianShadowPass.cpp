@@ -3,8 +3,8 @@
 
 GaussianShadowPass::GaussianShadowPass(RenderContext& renderContext)
 {
-    glGenTextures(1, &renderContext.m_shadowCubemap);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, renderContext.m_shadowCubemap);
+    glGenTextures(1, &renderContext.pointLightData.m_shadowCubemap);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, renderContext.pointLightData.m_shadowCubemap);
 
     const int SHADOW_CUBEMAP_SIZE = 1024; 
     for (int i = 0; i < 6; i++)
@@ -79,7 +79,7 @@ void GaussianShadowPass::execute(RenderContext& renderContext)
 {
     glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), 1.0f, renderContext.nearPlane, renderContext.farPlane);
 
-    glm::vec3 lightPos = glm::vec3(renderContext.pointLightModel[3]);
+    glm::vec3 lightPos = glm::vec3(renderContext.pointLightData.pointLightModel[3]);
 
     std::vector<glm::mat4> shadowTransforms;
 
@@ -118,14 +118,14 @@ void GaussianShadowPass::execute(RenderContext& renderContext)
     glUtils::setUniform1ui(renderContext.shaderPrograms.shadowPassShaderProgram,    "u_format", renderContext.format);
     glUtils::setUniformMat4(renderContext.shaderPrograms.shadowPassShaderProgram,   "u_modelToWorld", renderContext.modelMat);
     glUtils::setUniform1i(renderContext.shaderPrograms.shadowPassShaderProgram,     "u_gaussianCount", renderContext.numberOfGaussians);
-    glUtils::setUniform3f(renderContext.shaderPrograms.shadowPassShaderProgram,     "u_lightPos", glm::vec3(renderContext.pointLightModel[3]));
+    glUtils::setUniform3f(renderContext.shaderPrograms.shadowPassShaderProgram,     "u_lightPos", glm::vec3(renderContext.pointLightData.pointLightModel[3]));
 
     glUtils::setUniform2f(renderContext.shaderPrograms.shadowPassShaderProgram,     "u_nearFar", glm::vec2(renderContext.nearPlane, renderContext.farPlane));
            
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, renderContext.gaussianBuffer);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, renderContext.pointLightData.perQuadTransformationsUnified);
-    size_t transformationBufferSize = MAX_GAUSSIANS_TO_SORT * sizeof(glm::vec4) * 3;
+    size_t transformationBufferSize = MAX_GAUSSIANS_TO_SORT * sizeof(glm::vec4) * 3 * 6;
     glBufferData(GL_SHADER_STORAGE_BUFFER, transformationBufferSize, nullptr, GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, renderContext.pointLightData.perQuadTransformationsUnified);
     
@@ -162,14 +162,14 @@ void GaussianShadowPass::drawToCubeMapFaces(RenderContext& renderContext)
         glViewport(0, 0, SHADOW_CUBEMAP_SIZE, SHADOW_CUBEMAP_SIZE);
 	
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                                   GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, renderContext.m_shadowCubemap, 0);
+                                   GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, renderContext.pointLightData.m_shadowCubemap, 0);
 
         glUseProgram(renderContext.shaderPrograms.shadowPassCubemapRender);
 
         glUtils::setUniform2i(renderContext.shaderPrograms.shadowPassCubemapRender,
                                   "u_resolution", glm::ivec2(SHADOW_CUBEMAP_SIZE, SHADOW_CUBEMAP_SIZE));
 
-        glUtils::setUniform3f(renderContext.shaderPrograms.shadowPassCubemapRender,     "u_lightPos", glm::vec3(renderContext.pointLightModel[3]));
+        glUtils::setUniform3f(renderContext.shaderPrograms.shadowPassCubemapRender,     "u_lightPos", glm::vec3(renderContext.pointLightData.pointLightModel[3]));
         glUtils::setUniform1f(renderContext.shaderPrograms.shadowPassCubemapRender,     "u_farPlane", renderContext.farPlane);
 
 	    glDisable(GL_BLEND);
@@ -184,7 +184,7 @@ void GaussianShadowPass::drawToCubeMapFaces(RenderContext& renderContext)
         //per-instance (per quad) data
         glBindBuffer(GL_ARRAY_BUFFER, renderContext.pointLightData.perQuadTransformationsUnified);
 
-        const size_t instancesPerFace = MAX_GAUSSIANS_TO_SORT / 6;
+        const size_t instancesPerFace = MAX_GAUSSIANS_TO_SORT;
         const size_t instanceStride = 3 * sizeof(glm::vec4);
         size_t faceOffset = face * instancesPerFace * instanceStride;
         

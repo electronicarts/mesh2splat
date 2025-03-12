@@ -423,4 +423,19 @@ namespace utils
     
         return numStr;
     }
+
+    ModelFileExtension getFileExtension(const std::string& filename)
+    {
+        size_t pos = filename.rfind('.');
+        if (pos == std::string::npos)
+            return ModelFileExtension::NONE;
+
+        std::string ext = filename.substr(pos+1);
+
+        if (ext == "glb") return ModelFileExtension::GLB;
+        else if (ext == "ply") return ModelFileExtension::PLY;
+
+        return ModelFileExtension::NONE;
+    }
+
 }
