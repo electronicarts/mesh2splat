@@ -2,13 +2,13 @@
 
 //TODO: create a separete camera class, avoid it bloating and getting too messy
 
-Renderer::Renderer(GLFWwindow* window, Camera& cameraInstance) : camera(cameraInstance)
+Renderer::Renderer(GLFWwindow* window, Camera& cameraInstance) : camera(cameraInstance), renderContext {}
 {
-    sceneManager = std::make_unique<SceneManager>(renderContext);
 
     rendererGlfwWindow = window;
     renderPassesOrder = {};
-    renderContext = {};
+
+    sceneManager = std::make_unique<SceneManager>(renderContext);
     renderContext.gaussianBuffer                = 0;
     renderContext.gaussianDepthPostFiltering    = 0;
     renderContext.drawIndirectBuffer            = 0;

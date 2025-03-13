@@ -18,7 +18,7 @@ bool SceneManager::loadModel(const std::string& filePath, const std::string& par
         return false;
     }
 
-    generateNormalizedUvCoordinates(meshes);
+    //generateNormalizedUvCoordinates(meshes);
     setupMeshBuffers(meshes);
     loadTextures(meshes);
     glUtils::generateTextures(renderContext.meshToTextureData);
@@ -305,6 +305,9 @@ void SceneManager::setupMeshBuffers(std::vector<utils::Mesh>& meshes)
     renderContext.dataMeshAndGlMesh.reserve(meshes.size());
 
     float totalSurface = 0;
+    
+    glm::vec3 minBB(FLT_MAX);
+    glm::vec3 maxBB(-FLT_MAX);
 
     for (auto& mesh : meshes) {
         utils::GLMesh glMesh;
@@ -341,14 +344,24 @@ void SceneManager::setupMeshBuffers(std::vector<utils::Mesh>& meshes)
                 vertices.push_back(face.scale.y);
                 vertices.push_back(face.scale.z);
 
-            }
+                minBB.x = std::min(minBB.x, face.pos[i].x);
+                minBB.y = std::min(minBB.y, face.pos[i].y);
+                minBB.z = std::min(minBB.z, face.pos[i].z);
 
+                maxBB.x = std::max(maxBB.x, face.pos[i].x);
+                maxBB.y = std::max(maxBB.y, face.pos[i].y);
+                maxBB.z = std::max(maxBB.z, face.pos[i].z);
+
+            }
+            
             mesh.surfaceArea += utils::triangleArea(face.pos[0], face.pos[1], face.pos[2]);
-        
+            
         }
-        
+        mesh.bbox = utils::BBox(minBB, maxBB);
+
         renderContext.totalSurfaceArea += mesh.surfaceArea;
 
+        
         unsigned int floatsPerVertex = 17;
         glMesh.vertexCount = vertices.size() / floatsPerVertex; // Number of vertices
 

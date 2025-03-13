@@ -143,15 +143,24 @@ namespace utils
         glm::vec4 rotation;
     };
 
-    struct Mesh { //TODO: 
+    struct BBox
+    {
+        glm::vec3 min;
+        glm::vec3 max;
+
+        BBox(glm::vec3 min, glm::vec3 max) : min(min), max(max) {}
+
+    };
+
+    struct Mesh {
         std::string name;
         std::vector<Face> faces; // Tuple of vertex indices, uv indices and normalIndices
         MaterialGltf material; 
         float surfaceArea = 0;
+        BBox bbox = BBox(glm::vec3(0), glm::vec3(0));
 
         Mesh(const std::string& name = "Unnamed") : name(name) {}
     };
-
 
     struct GLMesh {
         GLuint vao;

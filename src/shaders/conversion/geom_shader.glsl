@@ -5,6 +5,9 @@ layout(triangle_strip, max_vertices = 3) out;
 
 uniform vec2 metallicRoughnessFactors;
 uniform float u_meshFactorScale;
+uniform vec3 u_bboxMin;
+uniform vec3 u_bboxMax;
+
 //uniform float u_sigma_x;
 //uniform float u_sigma_y;
 
@@ -377,6 +380,8 @@ void main() {
     vec3 edge2 = gs_in[2].position - gs_in[0].position;
     vec3 edge3 = gs_in[2].position - gs_in[1].position;
 
+    vec3 bboxSize = u_bboxMax - u_bboxMin;
+
     if (length(edge2) > length(edge1) && length(edge2) > length(edge3)) {
         vec3 temp = edge1;
         edge1 = edge2;
@@ -393,6 +398,60 @@ void main() {
     
     vec3 normal = normalize(cross(edge1, edge2));
 
+    float absX = abs(normal.x);
+    float absY = abs(normal.y);
+    float absZ = abs(normal.z);
+
+    vec2 orthogonalUvs[3];
+    //I am mapping longest dimension to 0-1, and scaling down the smaller one proportionally
+    for (int i = 0; i < 3; i++)
+    {
+        float u, v;
+        vec3 pos = gs_in[i].position;
+
+        if (absX > absY && absX > absZ)
+        {
+            float rangeY = u_bboxMax.y - u_bboxMin.y;
+            float rangeZ = u_bboxMax.z - u_bboxMin.z;
+            float range  = max(rangeY, rangeZ);
+
+            float relY = pos.y - u_bboxMin.y;
+            float relZ = pos.z - u_bboxMin.z;
+
+            u = relY / range;  
+            v = relZ / range;
+
+        }
+        else if (absY > absZ)
+        {
+            float rangeX = u_bboxMax.x - u_bboxMin.x;
+            float rangeZ = u_bboxMax.z - u_bboxMin.z;
+            float range  = max(rangeX, rangeZ);
+
+            float relX = pos.x - u_bboxMin.x;
+            float relZ = pos.z - u_bboxMin.z;
+
+            u = relX / range;
+            v = relZ / range;
+        }
+        else
+        {
+            float rangeX = u_bboxMax.x - u_bboxMin.x;
+            float rangeY = u_bboxMax.y - u_bboxMin.y;
+            float range  = max(rangeX, rangeY);
+
+            float relX = pos.x - u_bboxMin.x;
+            float relY = pos.y - u_bboxMin.y;
+
+            u = relX / range;
+            v = relY / range;
+        }
+
+        orthogonalUvs[i] = vec2(u, v);
+    }
+
+
+
     vec3 xAxis = edge1;
     vec3 yAxis = normalize(cross(normal, xAxis));
     vec3 zAxis = normal;
@@ -404,7 +463,8 @@ void main() {
     mat2x3 J;
 
     vec3 true_vertices3D[3] = { gs_in[0].position, gs_in[1].position, gs_in[2].position };
-    vec2 true_normalized_vertices2D[3] = { gs_in[0].normalizedUv, gs_in[1].normalizedUv, gs_in[2].normalizedUv };
+    //vec2 true_normalized_vertices2D[3] = { gs_in[0].normalizedUv, gs_in[1].normalizedUv, gs_in[2].normalizedUv };
+    vec2 true_normalized_vertices2D[3] = { orthogonalUvs[0], orthogonalUvs[1], orthogonalUvs[2] };
 
     J = computeUv3DJacobian(true_vertices3D, true_normalized_vertices2D);
       
@@ -415,8 +475,8 @@ void main() {
     vec3 Ju = vec3(J_T[0][0], J_T[1][0], J_T[2][0]); 
     vec3 Jv = vec3(J_T[0][1], J_T[1][1], J_T[2][1]); 
 
-    float gaussian_scale_x = length(Ju) * u_meshFactorScale; 
-    float gaussian_scale_y = length(Jv) * u_meshFactorScale; 
+    float gaussian_scale_x = length(Ju);
+    float gaussian_scale_y = length(Jv);
 
     //Due to numerical error, I cannot pack this into log
     float packed_s_x    = gaussian_scale_x;
@@ -433,7 +493,11 @@ void main() {
         UV                      = gs_in[i].uv;
         Quaternion              = quaternion;
         //-------
-        gl_Position             = vec4(gs_in[i].normalizedUv * 2.0 - 1.0, 0.0, 1.0);
+
+        //float u = clamp(orthogonalUvs[i].x, 0.0, 1.0);
+        //float v = clamp(orthogonalUvs[i].y, 0.0, 1.0);
+        //gl_Position = vec4(u * 2.0 - 1.0, v * 2.0 - 1.0, 0.0, 1.0);
+        gl_Position             = vec4(orthogonalUvs[i] * 2.0 - 1.0, 0.0, 1.0);
         EmitVertex();
     }
     EndPrimitive();
