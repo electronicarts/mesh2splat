@@ -206,11 +206,10 @@ bool SceneManager::parseGltfFile(const std::string& filePath, const std::string&
     int index = 0;
 
     for (const auto& mesh : model.meshes) {
-        std::string baseName = "mesh";
-        utils::Mesh myMesh(baseName.append(std::to_string(index)));
-        ++index;
-        
         for (const auto& primitive : mesh.primitives) {
+            std::string baseName = "mesh";
+            utils::Mesh myMesh(baseName.append(std::to_string(index)));
+            ++index;
             const tinygltf::Accessor& indicesAccessor = model.accessors[primitive.indices];
             const tinygltf::BufferView& bufferView = model.bufferViews[indicesAccessor.bufferView];
             const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
@@ -282,9 +281,7 @@ bool SceneManager::parseGltfFile(const std::string& filePath, const std::string&
                     dst->uv[e] = uvs[index[e]];
                     dst->normal[e] = normals[index[e]]; 
                 }
-                    
             }
-            
             meshes.push_back(myMesh);
         }
     }
@@ -413,7 +410,6 @@ void SceneManager::loadTextures(const std::vector<utils::Mesh>& meshes)
     for (auto& mesh : meshes)
     {
         std::map<std::string, utils::TextureDataGl> textureMapForThisMesh;
-        //TODO!!!: the render context supports only one mesh
         //BASECOLOR ALBEDO TEXTURE LOAD
         if (mesh.material.baseColorTexture.path != EMPTY_TEXTURE)
         {
@@ -488,13 +484,15 @@ void SceneManager::exportPly(const std::string outputFile, unsigned int exportFo
 
     std::vector<utils::GaussianDataSSBO> cpuData(renderContext.numberOfGaussians);
 
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    
     glGetBufferSubData(
         GL_SHADER_STORAGE_BUFFER,
         0,
         renderContext.numberOfGaussians * sizeof(utils::GaussianDataSSBO),
         cpuData.data()
     );
-
+    
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     
     float scaleMultiplier = renderContext.gaussianStd / static_cast<float>(renderContext.resolutionTarget);

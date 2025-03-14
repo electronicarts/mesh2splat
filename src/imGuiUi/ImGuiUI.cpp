@@ -84,15 +84,50 @@ void ImGuiUI::renderUI()
             break;
     }
 
-    ImGui::SeparatorText("Output");
+    ImGui::SeparatorText("Output Folder");
 
-    ImGui::Combo("Export Format", &formatIndex, formatLabels, IM_ARRAYSIZE(formatLabels));
+    if (ImGui::Button("Select output folder")) {
+        IGFD::FileDialogConfig config;
+        config.path = ".";
+        ImGuiFileDialog::Instance()->OpenDialog(
+            "ChooseFolderDlgKey",          // dialog key
+            "Choose Output Folder",        // window title
+            nullptr,                       // no filter => can pick folders
+            config
+        );
+    }
 
-    ImGui::InputText("Save .PLY destination", destinationFilePathBuffer, sizeof(destinationFilePathBuffer));
+    // Display the dialog when open
+    if (ImGuiFileDialog::Instance()->Display("ChooseFolderDlgKey"))
+    {
+        if (ImGuiFileDialog::Instance()->IsOk()) {
+            // The user validated (OK)
+            // For a folder, we typically use GetCurrentPath()
+            // to get the path of the chosen directory.
+            std::string chosenFolder = ImGuiFileDialog::Instance()->GetCurrentPath();
+        
+            // Save or store this folder path somewhere for your usage:
+            destinationFilePathFolder = chosenFolder + "\\";
+        }
+
+        // Close the dialog
+        ImGuiFileDialog::Instance()->Close();
+    }
+
+    ImGui::SameLine();
+    // Show which folder is chosen
+    if(!destinationFilePathFolder.empty()) ImGui::Text("Selected folder: %s", destinationFilePathFolder.c_str());
+    ImGui::SameLine();
+    float availableWidth = ImGui::GetContentRegionAvail().x;
+    float comboWidth = std::max(180.0f, availableWidth * 0.25f);
+    // Now set the next item's width to half the available region
+    ImGui::InputText("##ExportFileName", outputFilename, sizeof(outputFilename));
+
+    ImGui::SetNextItemWidth(comboWidth);
+    ImGui::Combo("##Combobox", & formatIndex, formatLabels, IM_ARRAYSIZE(formatLabels));
     if (ImGui::Button("Save splat")) {
         savePly = true;
     }
-
     ImGui::End();
 
     ImGui::Begin("Properties");
@@ -274,7 +309,17 @@ bool ImGuiUI::wasPlyLoaded() const { return hasPlyBeenLoaded; };
 bool ImGuiUI::shouldSavePly() const { return savePly; } ;
 std::string ImGuiUI::getMeshFilePath() const { return meshFilePath; };
 std::string ImGuiUI::getMeshFilePathParentFolder() const {return meshParentFolder;};
-std::string ImGuiUI::getMeshFullFilePathDestination() const { return destinationFilePathBuffer; };
+std::string ImGuiUI::getMeshFullFilePathDestination() const {
+    
+    if (utils::getFileExtension(std::string(outputFilename)) == utils::ModelFileExtension::NONE)
+    {
+        return destinationFilePathFolder + "/" + std::string(outputFilename) + ".ply";
+    }
+    else if (utils::getFileExtension(std::string(outputFilename)) == utils::ModelFileExtension::PLY)
+    {
+        return destinationFilePathFolder + "/" + std::string(outputFilename);
+    }
+};
 
 std::string ImGuiUI::getPlyFilePath() const { return std::string(plyFilePath); };
 std::string ImGuiUI::getPlyFilePathParentFolder() const { return plyParentFolder; };

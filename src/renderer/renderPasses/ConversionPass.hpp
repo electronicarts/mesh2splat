@@ -7,5 +7,5 @@ public:
     void execute(RenderContext &renderContext);
 
 private:
-    void conversion(RenderContext renderContext, std::pair<utils::Mesh, utils::GLMesh> mesh, GLuint dummyFramebuffer, float surfaceOccupance);
+    void conversion(RenderContext& renderContext, std::pair<utils::Mesh, utils::GLMesh>& mesh, GLuint dummyFramebuffer);
 };

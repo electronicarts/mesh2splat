@@ -422,7 +422,7 @@ namespace parsers
     }
 
 
-    void writeBinaryPlyStandardFormat(const std::string& filename, std::vector<utils::GaussianDataSSBO>& gaussians) {
+    void writeBinaryPlyStandardFormat(const std::string& filename, std::vector<utils::GaussianDataSSBO>& gaussians, float scaleMultiplier) {
         std::ofstream file(filename, std::ios::binary | std::ios::out);
         //TODO: abstract this somehow
         // Write header in ASCII
@@ -487,9 +487,9 @@ namespace parsers
             // Opacity
             file.write(reinterpret_cast<const char*>(&gaussian.color.a), sizeof(gaussian.color.a));
 
-            gaussian.scale.x = std::log(gaussian.scale.x);
-            gaussian.scale.y = std::log(gaussian.scale.y);
-            gaussian.scale.z = std::log(gaussian.scale.z);
+            gaussian.scale.x = std::log(gaussian.scale.x * scaleMultiplier);
+            gaussian.scale.y = std::log(gaussian.scale.y * scaleMultiplier);
+            gaussian.scale.z = std::log(gaussian.scale.z * scaleMultiplier);
 
             // Scale
             file.write(reinterpret_cast<const char*>(&gaussian.scale.x), sizeof(gaussian.scale.x));
@@ -596,11 +596,11 @@ namespace parsers
         switch (FORMAT)
         {
             case 0:
-                writePbrPLY(outputFileLocation, gaussians_3D_list, scaleMultiplier);
+                writeBinaryPlyStandardFormat(outputFileLocation, gaussians_3D_list, scaleMultiplier);
                 break;
     
             case 1:
-                writeBinaryPlyStandardFormat(outputFileLocation, gaussians_3D_list);
+                writePbrPLY(outputFileLocation, gaussians_3D_list, scaleMultiplier);
                 break;
 
             case 2:
@@ -608,7 +608,7 @@ namespace parsers
                 break;
     
             default:
-                writeBinaryPlyStandardFormat(outputFileLocation, gaussians_3D_list);
+                writeBinaryPlyStandardFormat(outputFileLocation, gaussians_3D_list, scaleMultiplier);
                 break;
         }
     }

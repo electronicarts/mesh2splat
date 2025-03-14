@@ -4,14 +4,12 @@ layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
 
 uniform vec2 metallicRoughnessFactors;
-uniform float u_meshFactorScale;
 uniform vec3 u_bboxMin;
 uniform vec3 u_bboxMax;
 
 //uniform float u_sigma_x;
 //uniform float u_sigma_y;
 
-// Match this struct with the VS_OUT struct from the vertex shader
 in VS_OUT{
     vec3 position;
     vec3 normal;
@@ -202,23 +200,6 @@ mat2 construct2DCovMatrix(float sigmaX, float sigmaY)
     return covMatrix;
 }
 
-vec3 computeBarycentric2D(vec2 p, vec2 a, vec2 b, vec2 c)
-{
-    vec2 v0 = b - a;
-    vec2 v1 = c - a;
-    vec2 v2 = p - a;
-    float d00 = dot(v0, v0);
-    float d01 = dot(v0, v1);
-    float d11 = dot(v1, v1);
-    float d20 = dot(v2, v0);
-    float d21 = dot(v2, v1);
-    float inv_det = 1.0 / (d00 * d11 - d01 * d01);
-    float v = (d11 * d20 - d01 * d21) * inv_det;
-    float w = (d00 * d21 - d01 * d20) * inv_det;
-    float u = 1.0 - v - w;
-    return vec3(u, v, w);
-}
-
 mat2 inverse2x2(mat2 m) {
     float determinant = m[0][0] * m[1][1] - m[0][1] * m[1][0];
     if (determinant == 0.0) {
@@ -339,42 +320,6 @@ vec3 sortDescending(vec3 v) {
     return v;
 }
 
-vec4 gramSchmidtOrthonormalization()
-{
-    vec3 r1 = (gs_in[0].normal + gs_in[1].normal + gs_in[2].normal) / 3.0; //normalize(cross(gs_in[1].position - gs_in[0].position, gs_in[2].position - gs_in[0].position));
-    vec3 m = (gs_in[0].position + gs_in[1].position + gs_in[2].position) / 3.0;
-    vec3 r2 = normalize(gs_in[0].position - m);
-
-    // To obtain r3, first get it as triangleVertices[1] - m
-    vec3 initial_r3 = gs_in[1].position - m;
-
-    // Gram-Schmidt Orthonormalization to find r3
-    // Project initial_r3 onto r1
-    // Project initial_r3 onto r1 and subtract it
-    vec3 proj_r3_onto_r1 = project(initial_r3, r1);
-    vec3 orthogonal_to_r1 = initial_r3 - proj_r3_onto_r1;
-
-    // Project the result onto r2 and subtract it
-    vec3 proj_r3_onto_r2 = project(orthogonal_to_r1, r2);
-    vec3 orthogonal_to_r1_and_r2 = orthogonal_to_r1 - proj_r3_onto_r2;
-
-    // Normalize the final result
-    vec3 r3 = normalize(orthogonal_to_r1_and_r2);
-
-    mat3 rotMat = mat3(r2, r3, r1);
-    vec4 q = quat_cast(rotMat);
-    return vec4(q.w, q.x, q.y, q.z);
-}
-
-float polynomial(float x) {
-    return  0.524948        +
-            0.0050501       * x -
-            0.0000406078    * pow(x, 2.0) +
-            1.61708e-7      * pow(x, 3.0) -
-            2.59824e-10     * pow(x, 4.0) +
-            1.33165e-13     * pow(x, 5.0);
-}
-
 void main() {
     vec3 edge1 = gs_in[1].position - gs_in[0].position;
     vec3 edge2 = gs_in[2].position - gs_in[0].position;
@@ -403,7 +348,7 @@ void main() {
     float absZ = abs(normal.z);
 
     vec2 orthogonalUvs[3];
-    //I am mapping longest dimension to 0-1, and scaling down the smaller one proportionally
+    //longest dimension to 0-1, and scaling down the smaller one proportionally
     for (int i = 0; i < 3; i++)
     {
         float u, v;
@@ -450,8 +395,6 @@ void main() {
         orthogonalUvs[i] = vec2(u, v);
     }
 
-
-
     vec3 xAxis = edge1;
     vec3 yAxis = normalize(cross(normal, xAxis));
     vec3 zAxis = normal;
@@ -463,7 +406,6 @@ void main() {
     mat2x3 J;
 
     vec3 true_vertices3D[3] = { gs_in[0].position, gs_in[1].position, gs_in[2].position };
-    //vec2 true_normalized_vertices2D[3] = { gs_in[0].normalizedUv, gs_in[1].normalizedUv, gs_in[2].normalizedUv };
     vec2 true_normalized_vertices2D[3] = { orthogonalUvs[0], orthogonalUvs[1], orthogonalUvs[2] };
 
     J = computeUv3DJacobian(true_vertices3D, true_normalized_vertices2D);
@@ -492,11 +434,6 @@ void main() {
         Normal                  = gs_in[i].normal;
         UV                      = gs_in[i].uv;
         Quaternion              = quaternion;
-        //-------
-
-        //float u = clamp(orthogonalUvs[i].x, 0.0, 1.0);
-        //float v = clamp(orthogonalUvs[i].y, 0.0, 1.0);
-        //gl_Position = vec4(u * 2.0 - 1.0, v * 2.0 - 1.0, 0.0, 1.0);
         gl_Position             = vec4(orthogonalUvs[i] * 2.0 - 1.0, 0.0, 1.0);
         EmitVertex();
     }

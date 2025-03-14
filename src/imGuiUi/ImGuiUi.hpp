@@ -117,7 +117,9 @@ private:
 
     utils::ModelFileExtension currentModelFormat = utils::ModelFileExtension::NONE;
 
-    char destinationFilePathBuffer[256];
+    std::string destinationFilePathFolder = "";
+    char outputFilename[256] = "DefaultFilename.ply";
+
 
     const float minStd = 0.1f;
     const float maxStd = 2.0f;
