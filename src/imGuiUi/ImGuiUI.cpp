@@ -124,7 +124,7 @@ void ImGuiUI::renderUI()
     ImGui::InputText("##ExportFileName", outputFilename, sizeof(outputFilename));
 
     ImGui::SetNextItemWidth(comboWidth);
-    ImGui::Combo("##Combobox", & formatIndex, formatLabels, IM_ARRAYSIZE(formatLabels));
+    ImGui::Combo("##Combobox", &formatIndex, formatLabels, IM_ARRAYSIZE(formatLabels));
     if (ImGui::Button("Save splat")) {
         savePly = true;
     }
@@ -137,9 +137,19 @@ void ImGuiUI::renderUI()
     //TODO: right now std_dev is not updated in the actual gaussianBuffer, just during rendering. Need to consider this when exporting
     if (ImGui::SliderFloat("Gaussian Scale", &gaussian_std, minStd, maxStd, "%.2f"));
 
-    if (ImGui::SliderFloat("Mesh2Splat sampling density", &quality, 0.0f, 1.0f, "%.2f")) {
+    ImGui::SeparatorText("Sampling density settings");
+
+    if (ImGui::SliderFloat("Sampling density", &quality, 0.0f, 1.0f, "%.2f")) {
         runConversionFlag = true;
     }
+    if (ImGui::Combo("(Max quality tweak)", &resolutionIndex, resolutionLabels, IM_ARRAYSIZE(resolutionLabels)))
+    {
+        maxRes = resolutionOptions[resolutionIndex];
+    }
+
+    ImGui::Dummy(ImVec2(0,2.0f));
+    ImGui::SeparatorText("##");
+    ImGui::Dummy(ImVec2(0,1.0f));
 
 
     ImGui::ColorEdit4("Background Color", &sceneBackgroundColor.x);

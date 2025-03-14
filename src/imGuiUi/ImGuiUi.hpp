@@ -73,8 +73,8 @@ public:
 
 private:
     int resolutionIndex;
-    const int resolutionOptions[4] = { 256, 512, 1000, 2048 };
-    const char* resolutionLabels[4] = { "256", "512", "1024", "2048" };
+    const int resolutionOptions[3] = { 1024, 2048, 4096 };
+    const char* resolutionLabels[3] = { "1024", "2048", "4096" };
     
     int formatIndex;
     const unsigned int formatOptions[3] = { 0, 1, 2 };
@@ -125,8 +125,8 @@ private:
     const float maxStd = 2.0f;
     const float minLightIntensity = 0.0;
     const float maxLightIntensity = 1000.0;
-    const int maxRes = 4096;
-    const int minRes = 16;
+    int maxRes = 1024; //TBH not sure what best value is here
+    int minRes = 16;
 
     //Gpu timing data
     std::vector<float> frameTimeHistory = {0.0f};
