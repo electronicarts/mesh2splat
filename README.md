@@ -1,7 +1,7 @@
 # Mesh2Splat
-<div style="text-align: center;">
+<p align="center">
     <img src="./res/mesh2splatPipeline.jpg" width="550px">
-</div>
+</p>
 
 **Mesh2Splat** is a fast surface splatting approach used to convert convert 3D meshes into 3DGS [(3D Gaussian Splatting)](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/) models by exploiting the rasterizer's interpolator the comes with a 3DGS renderer to view the results.<br>
 What if we wanted to represent a synthetic object (3D model) in 3DGS format?<br>
