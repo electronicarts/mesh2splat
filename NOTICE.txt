@@ -3,6 +3,12 @@ This directory includes software subject to the following licenses:
 imgui - MIT
 https://github.com/ocornut/imgui/blob/master/LICENSE.txt
 
+imguizmo - MIT
+https://github.com/CedricGuillemet/ImGuizmo/blob/master/LICENSE
+
+ImGuiFileDialog - MIT
+https://github.com/aiekick/ImGuiFileDialog/blob/master/LICENSE
+
 json - MIT
 https://github.com/nlohmann/json/blob/develop/LICENSE.MIT
 
@@ -20,3 +26,12 @@ https://github.com/jpcy/xatlas/blob/master/LICENSE
 
 gl-radix-sort - MIT
 https://github.com/loryruta/gl-radix-sort/blob/master/LICENSE
+
+glfw - zlib
+https://github.com/glfw/glfw/blob/master/LICENSE.md
+
+glew - Modified BSD and MIT
+https://github.com/nigels-com/glew/blob/master/LICENSE.txt
+
+glm - Happy Bunny License (Modified MIT) or MIT
+https://glm.g-truc.net/copying.txt

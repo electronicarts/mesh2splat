@@ -7,8 +7,6 @@ uniform vec2 metallicRoughnessFactors;
 uniform vec3 u_bboxMin;
 uniform vec3 u_bboxMax;
 
-//uniform float u_sigma_x;
-//uniform float u_sigma_y;
 
 in VS_OUT{
     vec3 position;
@@ -420,7 +418,6 @@ void main() {
     float gaussian_scale_x = length(Ju);
     float gaussian_scale_y = length(Jv);
 
-    //Due to numerical error, I cannot pack this into log
     float packed_s_x    = gaussian_scale_x;
     float packed_s_y    = gaussian_scale_y;
     float packed_s_z    = 1e-7;

@@ -87,8 +87,8 @@ void ConversionPass::conversion(
         }
     }
 
-    glUtils::setUniform3f(renderContext.shaderPrograms.converterShaderProgram, "u_bboxMin", mesh.first.bbox.min);
-    glUtils::setUniform3f(renderContext.shaderPrograms.converterShaderProgram, "u_bboxMax", mesh.first.bbox.max);
+    glUtils::setUniform3f(renderContext.shaderPrograms.converterShaderProgram,      "u_bboxMin", mesh.first.bbox.min);
+    glUtils::setUniform3f(renderContext.shaderPrograms.converterShaderProgram,      "u_bboxMax", mesh.first.bbox.max);
 
     glBindVertexArray(mesh.second.vao);
 

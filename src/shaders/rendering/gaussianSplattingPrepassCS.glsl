@@ -136,7 +136,9 @@ void main() {
     }
 
 	float multiplier = (u_format == 0 || u_format == 3)  ? u_stdDev : 1.0;
-	vec3 scale = gaussian.scale.xyz * multiplier ;
+	vec3 modelScale = vec3(length(u_modelToWorld[0]), length(u_modelToWorld[0]), length(u_modelToWorld[1]));
+	vec3 scale = gaussian.scale.xyz * multiplier * (modelScale * modelScale);
+
 
 	mat3 cov3d;
 	mat3 rotMatrix;
