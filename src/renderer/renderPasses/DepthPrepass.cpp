@@ -23,8 +23,11 @@ void DepthPrepass::execute(RenderContext& renderContext)
 
     for (auto& mesh : renderContext.dataMeshAndGlMesh)
     {
-        glBindVertexArray(mesh.second.vao);
-        glDrawArrays(GL_TRIANGLES, 0, mesh.second.vertexCount); 
+        if (mesh.first.material.baseColorFactor.a == 1.0f) //Exclude non-opaque objects from depth buffer creation
+        {
+            glBindVertexArray(mesh.second.vao);
+            glDrawArrays(GL_TRIANGLES, 0, mesh.second.vertexCount); 
+        }
     }
 
     glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
