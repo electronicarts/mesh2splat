@@ -69,9 +69,13 @@ To build **Mesh2Splat**, follow the following steps:
 
 ### Build Steps
 1. Open a terminal (`cmd` or `PowerShell`) in the project root directory.
-2. Run the provided batch script:
-   ```sh
-   build.bat
+2. Run the provided batch scripts:
+    -   ```sh
+       run_build_debug.bat
+    -    ```sh
+       run_build_release.bat
+run the release build if you want to build directly the executable in release mode.
+
 
 ## Limitations
 - Volumetric Data such as foliage, grass, hair, clouds, etc. has not being targeted and will probably not be converted correctly if using primitives different from triangles.<br>
