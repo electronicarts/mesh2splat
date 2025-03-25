@@ -10,7 +10,6 @@ Currently, the only way to do so is to generate a synthetic dataset (camera pose
 **Mesh2Splat** instead, by directly using the geometry, materials and texture information from the 3D model, rather than going through the classical 3DGS pipeline, is able to obtain a 3DGS representation of the input 3D models in milliseconds.<br>
 
 ## Method
-The **pipeline** of Mesh2Splat is as follows:
 The (current) core concept behind **Mesh2Splat** is rather simple:
 - Compute 3D model bounding box
 - Initialize a 2D covariance matrix for our 2D Gaussians as: <br>
