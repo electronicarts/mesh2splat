@@ -33,7 +33,7 @@ uniform vec2 u_nearFar;
 uniform vec3 u_lightPos;
 
 uniform int u_renderMode;
-uniform unsigned int u_format;
+uniform uint u_format;
 uniform int u_gaussianCount;
 
 layout(std430, binding = 0) readonly buffer GaussianBuffer {

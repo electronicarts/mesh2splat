@@ -26,10 +26,10 @@ uniform mat4 u_viewToClip;
 uniform mat4 u_modelToWorld;
 uniform vec2 u_resolution;
 uniform vec2 u_nearFar;
-uniform unsigned int u_depthTestMesh;
+uniform uint u_depthTestMesh;
 
 uniform int u_renderMode;
-uniform unsigned int u_format;
+uniform uint u_format;
 uniform int u_gaussianCount;
 
 layout(std430, binding = 0) readonly buffer GaussianBuffer {
