@@ -49,6 +49,7 @@ $`{\Sigma_{2D}} = \begin{bmatrix} \sigma^{2}_x & 0 \\\ 0 & \sigma^{2}_y \end{bma
 - **Visualization options**: albedo, normals, depth, geometry, overdraw and pbr properties.
 - **Gaussian shading**: supports PBR based shading.
 - **Lighting and shadows**: simple point light and omnidirectional shadow mapping.
+- **Shader hot-reload**: if you want to experiment with the shaders, hot-reload makes it easy to test things out.
 
 <div align="center">
     <img src="./res/pbrShading.gif" width="850px">
