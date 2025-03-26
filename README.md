@@ -10,7 +10,6 @@ Currently, the only way to do so is to generate a synthetic dataset (camera pose
 **Mesh2Splat** instead, by directly using the geometry, materials and texture information from the 3D model, rather than going through the classical 3DGS pipeline, is able to obtain a 3DGS representation of the input 3D models in milliseconds.<br>
 
 ## Method
-The **pipeline** of Mesh2Splat is as follows:
 The (current) core concept behind **Mesh2Splat** is rather simple:
 - Compute 3D model bounding box
 - Initialize a 2D covariance matrix for our 2D Gaussians as: <br>
@@ -65,13 +64,17 @@ To build **Mesh2Splat**, follow the following steps:
 
 ### Prerequisites
 - **CMake** (>= 3.10)
-- **Visual Studio 2022** (or a compatible C++17 compiler)
+- **Visual Studio 2019** (or a compatible C++17 compiler)
 
 ### Build Steps
 1. Open a terminal (`cmd` or `PowerShell`) in the project root directory.
-2. Run the provided batch script:
-   ```sh
-   build.bat
+2. Run one of the provided batch scripts:
+   - `run_build_debug.bat`
+   - `run_build_release.bat`
+<br>
+
+   > **Tip**: Use the release build if you only need the final executable in optimized (Release) mode.
+
 
 ## Limitations
 - Volumetric Data such as foliage, grass, hair, clouds, etc. has not being targeted and will probably not be converted correctly if using primitives different from triangles.<br>
