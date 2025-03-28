@@ -13,5 +13,6 @@ enum class EventType {
     SavePLY,
     EnableGaussianRendering,
     CheckShaderUpdate,
-    ResizedWindow
+    ResizedWindow,
+    UpdateTransforms
 };

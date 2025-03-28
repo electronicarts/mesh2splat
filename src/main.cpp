@@ -50,8 +50,6 @@ int main(int argc, char** argv) {
         
         guiRendererMediator.update();
 
-        renderer.updateTransformations();
-
         renderer.renderFrame();
 
         ImGuiUI.displayGaussianCounts(renderer.getTotalGaussianCount(), renderer.getVisibleGaussianCount());

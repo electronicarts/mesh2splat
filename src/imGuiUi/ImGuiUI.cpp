@@ -193,7 +193,8 @@ void ImGuiUI::renderUI()
 
 void ImGuiUI::renderGizmoUi(glm::mat4& glmViewMat, glm::mat4& glmProjMat, glm::mat4& glmModelMat)
 {
-
+    ImGui::SetNextWindowPos(ImVec2(100, 400), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(350, 200), ImGuiCond_FirstUseEver);
     ImGui::Begin("Gizmo Control");
 
     static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
@@ -330,7 +331,7 @@ void ImGuiUI::preframe()
 void ImGuiUI::displayGaussianCounts(unsigned int gaussianCount, unsigned int visibleGaussianCount)
 {
     ImGui::SetNextWindowPos(ImVec2(20, 250), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(320, 80), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(280, 80), ImGuiCond_FirstUseEver);
     ImGui::Begin("Object info");
     ImGui::Text("Total gaussian count: %s", utils::formatWithCommas(gaussianCount).c_str());
     ImGui::Text("Visible gaussian count: %s", utils::formatWithCommas(visibleGaussianCount).c_str());

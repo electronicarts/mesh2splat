@@ -54,7 +54,7 @@ public:
 	void setLightIntensity(float lightIntensity);
 	void setLightColor(glm::vec3 lightColor);
 	bool hasWindowSizeChanged();
-
+	bool isWindowMinimized();
 
 
 private:

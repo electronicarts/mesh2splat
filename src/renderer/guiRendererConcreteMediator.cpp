@@ -104,11 +104,16 @@ void GuiRendererConcreteMediator::notify(EventType event)
             break;
         }
         case EventType::ResizedWindow: {
+
             renderer.deleteDepthTexture();
             renderer.createDepthTexture();
             renderer.deleteGBuffer();
             renderer.createGBuffer();
 
+            break;
+        }
+        case EventType::UpdateTransforms: {
+            renderer.updateTransformations();
             break;
         }
     }
@@ -121,32 +126,36 @@ void GuiRendererConcreteMediator::update()
         notify(EventType::CheckShaderUpdate);
     }
 
-    if (renderer.hasWindowSizeChanged())
-    {
-        notify(EventType::ResizedWindow);
-    }
+    if(!renderer.isWindowMinimized())
+    { 
+        if (renderer.hasWindowSizeChanged())
+        {
+            notify(EventType::ResizedWindow);
+        }
 
-    if (imguiUI.shouldLoadNewMesh() && !imguiUI.getMeshFilePath().empty()) {
-        notify(EventType::LoadModel);
-    }
+        if (imguiUI.shouldLoadNewMesh() && !imguiUI.getMeshFilePath().empty()) {
+            notify(EventType::LoadModel);
+        }
 
-    if (imguiUI.shouldLoadPly() && !imguiUI.getPlyFilePath().empty()) {
-        notify(EventType::LoadPly);
+        if (imguiUI.shouldLoadPly() && !imguiUI.getPlyFilePath().empty()) {
+            notify(EventType::LoadPly);
+        }
+
+        if (imguiUI.wasMeshLoaded() || imguiUI.wasPlyLoaded()) {
+            notify(EventType::EnableGaussianRendering);
+        }
+
+        if (imguiUI.shouldRunConversion() && imguiUI.wasMeshLoaded()) {
+            notify(EventType::RunConversion);
+        }
+
+        if (imguiUI.shouldSavePly()) {
+            notify(EventType::SavePLY);
+        }
+
+        notify(EventType::UpdateTransforms);
     }
     
-    if (imguiUI.wasMeshLoaded() || imguiUI.wasPlyLoaded()) {
-        notify(EventType::EnableGaussianRendering);
-    }
-
-    if (imguiUI.shouldRunConversion() && imguiUI.wasMeshLoaded()) {
-        notify(EventType::RunConversion);
-    }
-
-    if (imguiUI.shouldSavePly()) {
-        notify(EventType::SavePLY);
-    }
-
-
     double gpuFrameTime = renderer.getTotalGpuFrameTimeMs(); // Retrieve GPU frame time
     imguiUI.setFrameMetrics(gpuFrameTime);
 }

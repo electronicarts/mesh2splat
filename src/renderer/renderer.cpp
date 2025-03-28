@@ -30,6 +30,7 @@ Renderer::Renderer(GLFWwindow* window, Camera& cameraInstance) : camera(cameraIn
 
     
     lastShaderCheckTime      = glfwGetTime();
+
     //TODO: should this maybe live in the Renderer rather than shader utils? Probably yes
     glUtils::initializeShaderLocations();
     
@@ -417,6 +418,11 @@ bool Renderer::hasWindowSizeChanged()
     int width, height;
     glfwGetFramebufferSize(rendererGlfwWindow, &width, &height);
     return renderContext.rendererResolution != glm::ivec2(width, height);
+}
+
+bool Renderer::isWindowMinimized()
+{
+    return glfwGetWindowAttrib(rendererGlfwWindow, GLFW_ICONIFIED);
 }
 
 

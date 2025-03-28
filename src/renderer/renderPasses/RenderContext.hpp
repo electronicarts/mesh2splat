@@ -29,6 +29,7 @@ struct RenderContext {
     // Parameters
     std::string meshFilePath;
     std::string baseFolder;
+    bool isWindowMinimized;
     int resolution;
     glm::ivec2 rendererResolution;
     float gaussianStd;
