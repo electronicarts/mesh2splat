@@ -1,4 +1,9 @@
-﻿#include "utils/normalizedUvUnwrapping.hpp"
+﻿///////////////////////////////////////////////////////////////////////////////
+//         Mesh2Splat: fast mesh to 3D gaussian splat conversion             //
+//        Copyright (c) 2025 Electronic Arts Inc. All rights reserved.       //
+///////////////////////////////////////////////////////////////////////////////
+
+#include "utils/normalizedUvUnwrapping.hpp"
 #include "renderer/renderer.hpp"
 #include "glewGlfwHandlers/glewGlfwHandler.hpp"
 #include "renderer/guiRendererConcreteMediator.hpp"

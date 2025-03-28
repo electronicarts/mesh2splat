@@ -1,3 +1,8 @@
+///////////////////////////////////////////////////////////////////////////////
+//         Mesh2Splat: fast mesh to 3D gaussian splat conversion             //
+//        Copyright (c) 2025 Electronic Arts Inc. All rights reserved.       //
+///////////////////////////////////////////////////////////////////////////////
+
 #include "glUtils.hpp"
 #include "utils/shaderRegistry.hpp"
 
@@ -47,10 +52,10 @@ namespace glUtils
 
         fs::path shadersBase = fs::path(__FILE__).parent_path() / "../shaders"; //Todo: rather move the shader files relative to the exe loc
     
-        shaderLocations.converterVertexShaderLocation                   = (shadersBase / "conversion" / "vertex_shader.glsl").string();
-        shaderLocations.converterGeomShaderLocation                     = (shadersBase / "conversion" / "geom_shader.glsl").string();
+        shaderLocations.converterVertexShaderLocation                   = (shadersBase / "conversion" / "converterVS.glsl").string();
+        shaderLocations.converterGeomShaderLocation                     = (shadersBase / "conversion" / "converterGS.glsl").string();
         shaderLocations.eigenDecompositionShaderLocation                = (shadersBase / "conversion" / "eigendecomposition.glsl").string();
-        shaderLocations.converterFragShaderLocation                     = (shadersBase / "conversion" / "fragment_shader.glsl").string();
+        shaderLocations.converterFragShaderLocation                     = (shadersBase / "conversion" / "converterFS.glsl").string();
 
         shaderLocations.transformComputeShaderLocation                  = (shadersBase / "rendering" / "frameBufferReaderCS.glsl").string();
 
@@ -97,6 +102,7 @@ namespace glUtils
         shaderRegistry.registerShaderProgram(ShaderProgramTypes::PrepassFiltering3dgsProgram, {
             { shaderLocations.rendererPrepassComputeShaderLocation, GL_COMPUTE_SHADER }
         });
+
         shaderRegistry.registerShaderProgram(ShaderProgramTypes::Rendering3dgsProgram, {
             { shaderLocations.rendererVertexShaderLocation, GL_VERTEX_SHADER },
             { shaderLocations.rendererFragmentShaderLocation, GL_FRAGMENT_SHADER }

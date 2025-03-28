@@ -1,3 +1,8 @@
+///////////////////////////////////////////////////////////////////////////////
+//         Mesh2Splat: fast mesh to 3D gaussian splat conversion             //
+//        Copyright (c) 2025 Electronic Arts Inc. All rights reserved.       //
+///////////////////////////////////////////////////////////////////////////////
+
 #include "Camera.hpp"
 
 Camera::Camera(glm::vec3 position, glm::vec3 up, float yaw, float pitch)

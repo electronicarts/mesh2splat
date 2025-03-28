@@ -1,3 +1,8 @@
+///////////////////////////////////////////////////////////////////////////////
+//         Mesh2Splat: fast mesh to 3D gaussian splat conversion             //
+//        Copyright (c) 2025 Electronic Arts Inc. All rights reserved.       //
+///////////////////////////////////////////////////////////////////////////////
+
 #include "renderer.hpp"
 
 //TODO: create a separete camera class, avoid it bloating and getting too messy
@@ -129,7 +134,6 @@ void Renderer::initialize() {
 
     createDepthTexture();
     createGBuffer();
-
 }
 
 void Renderer::renderFrame()
