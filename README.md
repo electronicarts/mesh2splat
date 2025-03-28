@@ -49,6 +49,7 @@ $`{\Sigma_{2D}} = \begin{bmatrix} \sigma^{2}_x & 0 \\\ 0 & \sigma^{2}_y \end{bma
 - **Visualization options**: albedo, normals, depth, geometry, overdraw and pbr properties.
 - **Gaussian shading**: supports PBR based shading.
 - **Lighting and shadows**: simple point light and omnidirectional shadow mapping.
+- **Shader hot-reload**: if you want to experiment with the shaders and 3DGS math, hot-reload is there to make your life easier.
 
 <div align="center">
     <img src="./res/pbrShading.gif" width="850px">
@@ -65,6 +66,7 @@ To build **Mesh2Splat**, follow the following steps:
 ### Prerequisites
 - **CMake** (>= 3.10)
 - **Visual Studio 2019** (or a compatible C++17 compiler)
+- **OpenGL-compatible GPU and drivers**
 
 ### Build Steps
 1. Open a terminal (`cmd` or `PowerShell`) in the project root directory.
