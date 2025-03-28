@@ -150,13 +150,13 @@ void ImGuiUI::renderFileSelectorWindow()
 
 void ImGuiUI::renderPropertiesWindow()
 {
-    ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(350, 350), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(600, 20), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(450, 350), ImGuiCond_FirstUseEver);
 
     ImGui::Begin("Properties");
 
     ImGui::Combo("Property visualization", &renderIndex, renderLabels, IM_ARRAYSIZE(renderLabels));
-    ImGui::Checkbox("Enable mesh-gaussian depth test", &enableDepthTest);
+    ImGui::Checkbox("Enable mesh-gaussian depth test (improves rendering performance)", &enableDepthTest);
 
     //TODO: right now std_dev is not updated in the actual gaussianBuffer, just during rendering. Need to consider this when exporting
     if (ImGui::SliderFloat("Gaussian Scale", &gaussian_std, minStd, maxStd, "%.2f"));
@@ -304,8 +304,8 @@ void ImGuiUI::renderGpuFrametime()
 
 void ImGuiUI::renderLightingSettings()
 {
-    ImGui::SetNextWindowPos(ImVec2(1000, 20), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(250, 250), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(500, 500), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(250, 80), ImGuiCond_FirstUseEver);
 
     ImGui::Begin("Lighting");
 
@@ -388,6 +388,7 @@ void ImGuiUI::setRunConversion(bool shouldRunConversionFlag) { runConversionFlag
 void ImGuiUI::setShouldSavePly(bool shouldSavePly) { savePly = shouldSavePly; };
 
 void ImGuiUI::setFrameMetrics(double gpuFrameTime) {
+    this->gpuFrameTime = static_cast<float>(gpuFrameTime);
     this->gpuFrameTime = static_cast<float>(gpuFrameTime);
     
     // Rolling buffer as vector
