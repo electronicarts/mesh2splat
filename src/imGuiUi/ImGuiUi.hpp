@@ -5,6 +5,8 @@
 
 #pragma once
 #include <string>
+#include <optional> 
+#include <filesystem>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -12,6 +14,7 @@
 #include "utils/utils.hpp"
 #include "Imguizmo.hpp"
 #include "ImGuiFileDialog.h"
+
 
 
 class ImGuiUI {
@@ -27,6 +30,13 @@ public:
 
     bool shouldRunConversion() const;
     bool shouldLoadNewMesh() const;
+    //Batch processing stuff
+    bool hasBatchWork() const;                        // any Queued left?
+    bool isBatchRunning() const;                      // UI is in "running" state
+
+                          // flag cancel; new items not dispatched
+
+    bool shouldBatchLoadNewMeshes() const ;
     bool shouldSavePly() const;
     bool wasMeshLoaded() const;
     bool shouldLoadPly() const;
@@ -48,6 +58,7 @@ public:
     glm::vec4 getSceneBackgroundColor() const;
 
     void setLoadNewMesh(bool shouldLoadNewMesh);
+    void setBatchLoadNewMeshes(bool shouldBatchLoadNewMeshes);
     void setMeshLoaded(bool loaded);
     void setRunConversion(bool shouldRunConversionFlag);
     void setShouldSavePly(bool shouldSavePly);
@@ -77,8 +88,25 @@ public:
         PBR = 5
     };
     
+
+
     ImGuiUI::VisualizationOption selectedRenderMode() const ;
 
+    //Batch functions
+    struct BatchItem {
+        std::string path;
+        std::string parent;
+        utils::ModelFileExtension ext;
+        enum class Status { Queued, Processing, Done, Failed } status = Status::Queued;
+        std::string outPath; // filled by UI using your current output naming rules
+        std::string error;   // filled if failed
+    };
+
+    BatchItem* popNextBatchItem();      // get next Queued -> set to Processing
+    void markBatchItemDone(const std::string& path);  // Processing -> Done
+    void markBatchItemFailed(const std::string& path, const std::string& err);
+    void cancelBatch();     
+    const std::vector<ImGuiUI::BatchItem>& ImGuiUI::getBatchItems() const;
 
 private:
     int resolutionIndex = 0;
@@ -105,6 +133,7 @@ private:
     float quality;
     bool runConversionFlag = false;
     bool loadNewMesh = false;
+    bool batchLoadNewMeshes = false; 
     bool loadNewPly = false;
 
     //Rendering flags
@@ -148,4 +177,32 @@ private:
 
     glm::vec4 sceneBackgroundColor = { 0,0,0,1 };
     glm::vec3 lightColor = { 1,1,1 };
+
+    //Batching data
+    std::vector<BatchItem> batchItems;
+    bool batchIncludeSubfolders = false;
+    bool batchRunning = false;
+    bool batchCancelRequested = false;
+    float batchProgress01 = 0.0f;
+    int batchSelectedRow = -1;
+
+    void renderBatchWindow();                  // NEW panel
+    void enqueueFolder(const std::string& dir);
+    
+    static bool isSupportedMesh(const std::filesystem::directory_entry& e)
+    {
+        if (!e.is_regular_file()) return false;
+        auto ext = e.path().extension().string();
+        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+        return (ext == ".glb" || ext == ".ply");
+    };
+
+    static utils::ModelFileExtension extFromPath(const std::string& p)
+    {
+        auto ext = utils::getFileExtension(p);
+        if (ext == utils::ModelFileExtension::GLB) return utils::ModelFileExtension::GLB;
+        if (ext == utils::ModelFileExtension::PLY) return utils::ModelFileExtension::PLY;
+        return utils::ModelFileExtension::NONE;
+    };
+
 };

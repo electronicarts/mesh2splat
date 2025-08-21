@@ -126,7 +126,64 @@ void GuiRendererConcreteMediator::update()
         notify(EventType::CheckShaderUpdate);
     }
 
-    if(!renderer.isWindowMinimized())
+    bool windowVisible = !renderer.isWindowMinimized();
+
+    const bool batchActive      = imguiUI.isBatchRunning();
+    const bool batchHasWork     = (currentJob != nullptr) || imguiUI.hasBatchWork();
+
+    if (windowVisible && batchActive) {
+        // If batch says it's running but there's nothing to do, end it now.
+        if (!batchHasWork) {
+            imguiUI.cancelBatch();
+            // reset mediator-side state too
+            currentJob = nullptr;
+            batchSubstate = BatchSubstate::Idle;
+        } else {
+            // === Normal batch flow ===
+            switch (batchSubstate) {
+                case BatchSubstate::Idle: {
+                    if (imguiUI.hasBatchWork()) {
+                        if (ImGuiUI::BatchItem* job = imguiUI.popNextBatchItem()) {
+                            startBatchJob(job, imguiUI);
+                        }
+                    }
+                    break;
+                }
+                case BatchSubstate::Converting: {
+                    ++framesSinceDispatch;
+                    if (framesSinceDispatch >= 1) { // bump to 2 if you ever see racey exports
+                        batchSubstate = BatchSubstate::Exporting;
+                    }
+                    break;
+                }
+                case BatchSubstate::Exporting: {
+                    try {
+                        const unsigned int fmt = imguiUI.getFormatOption();
+                        renderer.getSceneManager().exportPly(currentJob->outPath, fmt);
+                        finishBatchJobSuccess(imguiUI);
+                    } catch (const std::exception& e) {
+                        finishBatchJobFail(imguiUI, e.what());
+                    } catch (...) {
+                        finishBatchJobFail(imguiUI, "Unknown error");
+                    }
+                    break;
+                }
+                case BatchSubstate::Loading:
+                    break;
+            }
+
+            // keep transforms valid, skip visualization
+            if (renderer.hasWindowSizeChanged()) notify(EventType::ResizedWindow);
+            notify(EventType::UpdateTransforms);
+
+            // only EARLY-RETURN if batch is truly active (work still pending)
+            double gpuFrameTime = renderer.getTotalGpuFrameTimeMs();
+            imguiUI.setFrameMetrics(gpuFrameTime);
+            return;
+        }
+    }
+
+    if(windowVisible && !batchActive)
     { 
         if (renderer.hasWindowSizeChanged())
         {
@@ -158,4 +215,41 @@ void GuiRendererConcreteMediator::update()
     
     double gpuFrameTime = renderer.getTotalGpuFrameTimeMs(); // Retrieve GPU frame time
     imguiUI.setFrameMetrics(gpuFrameTime);
+}
+
+//TODO: as you can see batchItem should NOT be part of the ImGuiUI, this is poor SWE
+
+static bool isGlb(utils::ModelFileExtension e) { return e == utils::ModelFileExtension::GLB; }
+static bool isPly(utils::ModelFileExtension e) { return e == utils::ModelFileExtension::PLY; }
+
+void GuiRendererConcreteMediator::startBatchJob(ImGuiUI::BatchItem* job, ImGuiUI& ui) {
+    currentJob = job;
+    framesSinceDispatch = 0;
+    batchSubstate = BatchSubstate::Loading;
+
+    renderer.resetModelMatrices();
+    renderer.setFormatType(0); 
+
+    if (isGlb(job->ext)) {
+        renderer.getSceneManager().loadModel(job->path, job->parent);
+        renderer.gaussianBufferFromSize(ui.getResolutionTarget() * ui.getResolutionTarget());
+        renderer.setViewportResolutionForConversion(ui.getResolutionTarget());
+        renderer.enableRenderPass(conversionPassName);
+        batchSubstate = BatchSubstate::Converting;
+    } else {
+        finishBatchJobFail(ui, "Unsupported extension");
+    }
+}
+
+
+void GuiRendererConcreteMediator::finishBatchJobSuccess(ImGuiUI& ui) {
+    ui.markBatchItemDone(currentJob->path);
+    currentJob = nullptr;
+    batchSubstate = BatchSubstate::Idle;
+}
+
+void GuiRendererConcreteMediator::finishBatchJobFail(ImGuiUI& ui, const std::string& what) {
+    ui.markBatchItemFailed(currentJob->path, what);
+    currentJob = nullptr;
+    batchSubstate = BatchSubstate::Idle;
 }

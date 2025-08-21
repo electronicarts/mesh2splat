@@ -10,6 +10,7 @@
 
 #include <string>
 #include <vector>
+#include <filesystem>
 #include <deque>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -209,12 +210,13 @@ namespace utils
 
     };
 
-    enum ModelFileExtension
+    enum class ModelFileExtension
     {
         NONE,
         PLY,
         GLB,
     };
+
 
     bool pointInTriangle(const glm::vec2& pt, const glm::vec2& v1, const glm::vec2& v2, const glm::vec2& v3);
 
@@ -277,4 +279,19 @@ namespace utils
     std::string getExecutableDir();
 
     fs::path relative(fs::path p, fs::path base);
+
+    std::string modelFileExtensionEnumToString(ModelFileExtension ext);
+
+    static std::string pad3(int i) { char b[8]; std::snprintf(b, sizeof(b), "%03d", i); return b; }
+
+    static std::string makeUniquePath(const std::filesystem::path& p) {
+        namespace fs = std::filesystem;
+        fs::path candidate = p;
+        int n = 1;
+        while (fs::exists(candidate)) {
+            candidate = p.parent_path() / (p.stem().string() + "_" + pad3(n++) + p.extension().string());
+        }
+        return candidate.string();
+    }
+
 }

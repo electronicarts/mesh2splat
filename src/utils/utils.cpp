@@ -484,4 +484,14 @@ namespace utils
 
         return ret;
     }
+
+    std::string modelFileExtensionEnumToString(ModelFileExtension ext) {
+        switch (ext) {
+            case ModelFileExtension::NONE: return "none";
+            case ModelFileExtension::PLY: return "ply";
+            case ModelFileExtension::GLB: return "glb";
+            default: return "Unknown";
+        }
+    }
+
 }

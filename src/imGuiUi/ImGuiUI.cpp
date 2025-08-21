@@ -53,7 +53,7 @@ void ImGuiUI::renderFileSelectorWindow()
     }
 
     if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey")) {
-        if (ImGuiFileDialog::Instance()->IsOk()) { // action if OK
+        if (ImGuiFileDialog::Instance()->IsOk()) { 
             std::string file = ImGuiFileDialog::Instance()->GetFilePathName();
             std::string parentFolder = ImGuiFileDialog::Instance()->GetCurrentPath().append("//");
             currentModelFormat = utils::getFileExtension(file);
@@ -70,7 +70,7 @@ void ImGuiUI::renderFileSelectorWindow()
             case utils::ModelFileExtension::NONE:
                 break;
             }
-
+            
         }
 
         ImGuiFileDialog::Instance()->Close();
@@ -189,6 +189,7 @@ void ImGuiUI::renderUI()
     renderPropertiesWindow();
     renderGpuFrametime();
     renderLightingSettings();
+    renderBatchWindow();
 }
 
 void ImGuiUI::renderGizmoUi(glm::mat4& glmViewMat, glm::mat4& glmProjMat, glm::mat4& glmModelMat)
@@ -320,6 +321,120 @@ void ImGuiUI::renderLightingSettings()
     ImGui::End();
 }
 
+void ImGuiUI::renderBatchWindow()
+{
+    ImGui::SetNextWindowPos(ImVec2(20, 600), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(800, 320), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Batch Processing");
+
+    // Folder chooser
+    if (ImGui::Button("Select input folder")) {
+        IGFD::FileDialogConfig cfg; cfg.path = ".";
+        ImGui::SetNextWindowSize(ImVec2(700, 400), ImGuiCond_Always);
+        ImGuiFileDialog::Instance()->OpenDialog("BatchFolderKey", "Choose Input Folder", nullptr, cfg);
+    }
+
+    ImGui::SameLine();
+    ImGui::Checkbox("Include subfolders", &batchIncludeSubfolders);
+
+    // Handle folder selection
+    if (ImGuiFileDialog::Instance()->Display("BatchFolderKey")) {
+        if (ImGuiFileDialog::Instance()->IsOk()) {
+            std::string dir = ImGuiFileDialog::Instance()->GetCurrentPath();
+            enqueueFolder(dir);
+        }
+        ImGuiFileDialog::Instance()->Close();
+    }
+
+    // Controls
+    ImGui::Separator();
+    if (!batchRunning) {
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f,0.60f,0.20f,1.0f));
+        if (ImGui::Button("Start batch")) {
+            batchRunning = !batchItems.empty();
+            batchCancelRequested = false;
+        }
+        ImGui::PopStyleColor();
+        ImGui::SameLine();
+        if (ImGui::Button("Clear list")) {
+            batchItems.clear();
+            batchProgress01 = 0.f;
+            batchSelectedRow = -1;
+        }
+    } else {
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.70f,0.20f,0.20f,1.0f));
+        if (ImGui::Button("Cancel")) {
+            batchCancelRequested = true;
+        }
+        ImGui::PopStyleColor();
+        ImGui::SameLine();
+        ImGui::TextUnformatted("(Running… conversions are dispatched by app loop)");
+    }
+
+    // Progress
+    // Compute live progress = finished / total
+    int done = 0, failed = 0, processing = 0;
+    for (const auto& it : batchItems) {
+        if (it.status == BatchItem::Status::Done) ++done;
+        else if (it.status == BatchItem::Status::Failed) ++failed;
+        else if (it.status == BatchItem::Status::Processing) ++processing;
+    }
+    int total = static_cast<int>(batchItems.size());
+    float progress = total > 0 ? float(done + failed) / float(total) : 0.f;
+    batchProgress01 = progress;
+
+    ImGui::ProgressBar(batchProgress01, ImVec2(-1, 0),
+        total ? (std::string(" ") + std::to_string(done) + "/" + std::to_string(total) + " done").c_str()
+              : "0/0");
+
+    // Table
+    ImGui::Separator();
+    if (ImGui::BeginTable("batch_table", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable)) {
+        ImGui::TableSetupColumn("File");
+        ImGui::TableSetupColumn("Parent");
+        ImGui::TableSetupColumn("Ext");
+        ImGui::TableSetupColumn("Status");
+        ImGui::TableSetupColumn("Output");
+        ImGui::TableHeadersRow();
+
+        for (int i = 0; i < (int)batchItems.size(); ++i) {
+            auto& it = batchItems[i];
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            if (ImGui::Selectable(std::filesystem::path(it.path).filename().string().c_str(), batchSelectedRow == i, ImGuiSelectableFlags_SpanAllColumns))
+                batchSelectedRow = i;
+            ImGui::TableSetColumnIndex(1); ImGui::TextUnformatted(it.parent.c_str());
+            ImGui::TableSetColumnIndex(2); ImGui::TextUnformatted(utils::modelFileExtensionEnumToString(it.ext).c_str()); // add toString helper if you don't have one
+            ImGui::TableSetColumnIndex(3);
+            {
+                const char* s = it.status == BatchItem::Status::Queued ? "Queued" :
+                                it.status == BatchItem::Status::Processing ? "Processing" :
+                                it.status == BatchItem::Status::Done ? "Done" : "Failed";
+                if (it.status == BatchItem::Status::Failed && !it.error.empty()) {
+                    ImGui::TextColored(ImVec4(1,0.4f,0.4f,1), "Failed");
+                    if (ImGui::IsItemHovered() && !it.error.empty())
+                        ImGui::SetTooltip("%s", it.error.c_str());
+                } else {
+                    ImGui::TextUnformatted(s);
+                }
+            }
+            ImGui::TableSetColumnIndex(4); ImGui::TextUnformatted(it.outPath.c_str());
+        }
+        ImGui::EndTable();
+    }
+
+    // Row actions
+    if (batchSelectedRow >= 0 && batchSelectedRow < (int)batchItems.size()) {
+        ImGui::Separator();
+        if (ImGui::Button("Remove selected")) {
+            batchItems.erase(batchItems.begin() + batchSelectedRow);
+            batchSelectedRow = -1;
+        }
+    }
+
+    ImGui::End();
+}
+
 
 void ImGuiUI::preframe()
 {
@@ -348,6 +463,7 @@ void ImGuiUI::postframe()
 
 bool ImGuiUI::shouldRunConversion() const { return runConversionFlag; } ;
 bool ImGuiUI::shouldLoadNewMesh() const { return loadNewMesh; } ;
+bool ImGuiUI::shouldBatchLoadNewMeshes() const { return batchLoadNewMeshes; } ;
 bool ImGuiUI::wasMeshLoaded() const { return hasMeshBeenLoaded; } ;
 bool ImGuiUI::shouldLoadPly() const { return loadNewPly; } ;
 bool ImGuiUI::wasPlyLoaded() const { return hasPlyBeenLoaded; };
@@ -406,3 +522,106 @@ glm::vec3 ImGuiUI::getLightColor() const { return lightColor; };
 
 void ImGuiUI::setEnableDepthTest(bool depthTest) { enableDepthTest = depthTest; }
 bool ImGuiUI::getIsDepthTestEnabled() const { return enableDepthTest; }
+
+//TODO: batching utility code, I think refactor is needed to move batching logic to separate file, for later refactor pass
+void ImGuiUI::enqueueFolder(const std::string& dir)
+{
+    namespace fs = std::filesystem;
+    if (!fs::exists(dir)) return;
+
+    auto addEntry = [&](const fs::directory_entry& e){
+        if (!isSupportedMesh(e)) return;
+        BatchItem bi;
+        bi.path   = e.path().string();
+        bi.parent = e.path().parent_path().string();
+        bi.ext    = extFromPath(bi.path);
+
+        // Build default output name using your current rules:
+        // reuse destinationFilePathFolder + outputFilename + format
+        // If user hasn't chosen an explicit filename, auto-derive from input stem.
+        std::string stem = e.path().stem().string();
+        const bool explicitName = std::string(outputFilename).size() > 0;
+        const bool hasExt = utils::getFileExtension(std::string(outputFilename)) != utils::ModelFileExtension::NONE;
+        std::string finalName = explicitName ? std::string(outputFilename) : (stem + ".ply");
+        if (!hasExt && explicitName) finalName += ".ply";
+
+        const std::filesystem::path inputPath = e.path();
+        const std::string inputStem = inputPath.stem().string();
+
+        // Batch output dir: if user picked one, use it; else (fallback) the input’s parent
+        std::filesystem::path outDir = destinationFilePathFolder.empty()
+            ? inputPath.parent_path()
+            : std::filesystem::path(destinationFilePathFolder);
+
+        // IMPORTANT: always per-row filename from input stem
+        std::filesystem::path outPath = outDir / (inputStem + ".ply");
+
+        bi.outPath = utils::makeUniquePath(outPath);
+
+        batchItems.push_back(std::move(bi));
+    };
+
+    if (batchIncludeSubfolders) {
+        for (auto& e : fs::recursive_directory_iterator(dir)) addEntry(e);
+    } else {
+        for (auto& e : fs::directory_iterator(dir)) addEntry(e);
+    }
+}
+
+bool ImGuiUI::hasBatchWork() const
+{
+    if (batchCancelRequested) return false;
+    for (const auto& it : batchItems)
+        if (it.status == BatchItem::Status::Queued) return true;
+    return false;
+}
+
+bool ImGuiUI::isBatchRunning() const { return batchRunning && !batchCancelRequested; }
+
+ImGuiUI::BatchItem* ImGuiUI::popNextBatchItem()
+{
+    if (batchCancelRequested) return nullptr;
+    for (auto& it : batchItems) {
+        if (it.status == BatchItem::Status::Queued) {
+            it.status = BatchItem::Status::Processing;
+            return &it; // return pointer to live storage
+        }
+    }
+    // Nothing left
+    if (batchRunning) batchRunning = false;
+    return nullptr;
+}
+
+void ImGuiUI::markBatchItemDone(const std::string& path)
+{
+    //TODO: use a map for O(1)
+    for (auto& it : batchItems) {
+        if (it.path == path && it.status == BatchItem::Status::Processing) {
+            it.status = BatchItem::Status::Done;
+            break;
+        }
+    }
+}
+
+void ImGuiUI::markBatchItemFailed(const std::string& path, const std::string& err)
+{
+    for (auto& it : batchItems) {
+        if (it.path == path && it.status == BatchItem::Status::Processing) {
+            it.status = BatchItem::Status::Failed;
+            it.error = err;
+            break;
+        }
+    }
+}
+
+void ImGuiUI::cancelBatch()
+{
+    batchCancelRequested = true;
+    batchRunning = false; // UI no longer dispatches
+}
+
+
+const std::vector<ImGuiUI::BatchItem>& ImGuiUI::getBatchItems() const { return batchItems; }
+
+
+
