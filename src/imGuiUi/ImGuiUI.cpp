@@ -536,7 +536,6 @@ void ImGuiUI::enqueueFolder(const std::string& dir)
         bi.parent = e.path().parent_path().string();
         bi.ext    = extFromPath(bi.path);
 
-        // Build default output name using your current rules:
         // reuse destinationFilePathFolder + outputFilename + format
         // If user hasn't chosen an explicit filename, auto-derive from input stem.
         std::string stem = e.path().stem().string();

@@ -132,14 +132,12 @@ void GuiRendererConcreteMediator::update()
     const bool batchHasWork     = (currentJob != nullptr) || imguiUI.hasBatchWork();
 
     if (windowVisible && batchActive) {
-        // If batch says it's running but there's nothing to do, end it now.
+        // If batch says it's running but there's nothing to do, end it now!
         if (!batchHasWork) {
             imguiUI.cancelBatch();
-            // reset mediator-side state too
             currentJob = nullptr;
             batchSubstate = BatchSubstate::Idle;
         } else {
-            // === Normal batch flow ===
             switch (batchSubstate) {
                 case BatchSubstate::Idle: {
                     if (imguiUI.hasBatchWork()) {
@@ -151,7 +149,7 @@ void GuiRendererConcreteMediator::update()
                 }
                 case BatchSubstate::Converting: {
                     ++framesSinceDispatch;
-                    if (framesSinceDispatch >= 1) { // bump to 2 if you ever see racey exports
+                    if (framesSinceDispatch >= 1) { // 2 or more if race cond in exports
                         batchSubstate = BatchSubstate::Exporting;
                     }
                     break;
@@ -172,7 +170,6 @@ void GuiRendererConcreteMediator::update()
                     break;
             }
 
-            // keep transforms valid, skip visualization
             if (renderer.hasWindowSizeChanged()) notify(EventType::ResizedWindow);
             notify(EventType::UpdateTransforms);
 
