@@ -8,6 +8,7 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <imgui_stdlib.h>
 #include <glm/glm.hpp>
 #include "utils/utils.hpp"
 #include "Imguizmo.hpp"
@@ -27,7 +28,7 @@ public:
 
     bool shouldRunConversion() const;
     bool shouldLoadNewMesh() const;
-    bool shouldSavePly() const;
+    bool shouldExportSplats() const;
     bool wasMeshLoaded() const;
     bool shouldLoadPly() const;
     bool isLightingEnabled() const;
@@ -37,8 +38,6 @@ public:
     std::string getMeshFilePath() const;
     std::string getMeshFilePathParentFolder() const;
     std::string getMeshFullFilePathDestination() const;
-    std::string getPlyFilePathParentFolder() const;
-    std::string getPlyFilePath() const;
 
 
     float getGaussianStd() const;
@@ -50,7 +49,7 @@ public:
     void setLoadNewMesh(bool shouldLoadNewMesh);
     void setMeshLoaded(bool loaded);
     void setRunConversion(bool shouldRunConversionFlag);
-    void setShouldSavePly(bool shouldSavePly);
+    void setShouldExportSplats(bool shouldSavePly);
     void setFrameMetrics(double gpuFrameTime);
     void setLoadNewPly(bool loadedPly);
     void setPlyLoaded(bool loadedPly);
@@ -84,9 +83,9 @@ private:
     int resolutionIndex = 0;
     const int resolutionOptions[3] = { 1024, 2048, 4096 };
     const char* resolutionLabels[3] = { "1024", "2048", "4096" };
-    
+
+	// index into formatLabels
     int formatIndex = 0;
-    const unsigned int formatOptions[3] = { 0, 1, 2 };
     const char* formatLabels[3] = { "PLY Standard Format", "PLY PBR", "PLY Compressed PBR"};
 
     int renderIndex = 0;
@@ -116,20 +115,18 @@ private:
     bool lightSelected = false;
     bool lightingEnabled = false;
 
-    bool savePly = false;
+    bool exportSplats = false;
 
     bool enableDepthTest = false;
 
     std::string meshFilePath;
     std::string meshParentFolder;
 
-    std::string plyFilePath;
-    std::string plyParentFolder;
-
     utils::ModelFileExtension currentModelFormat = utils::ModelFileExtension::NONE;
 
     std::string destinationFilePathFolder = "";
-    char outputFilename[256] = "DefaultFilename.ply";
+	// without extension
+    char outputFilename[256] = "DefaultFilename";
 
 
     const float minStd = 0.1f;

@@ -33,7 +33,7 @@ void DepthPrepass::execute(RenderContext& renderContext)
         if (mesh.first.material.baseColorFactor.a == 1.0f) //Exclude non-opaque objects from depth buffer creation
         {
             glBindVertexArray(mesh.second.vao);
-            glDrawArrays(GL_TRIANGLES, 0, mesh.second.vertexCount); 
+            glDrawArrays(GL_TRIANGLES, 0, (GLsizei)mesh.second.vertexCount); 
         }
     }
 

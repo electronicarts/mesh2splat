@@ -335,22 +335,22 @@ namespace glUtils
 
             // Vertex attribute pointers
             // Position attribute
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertexStride, (void*)0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, (GLsizei)vertexStride, (void*)0);
             glEnableVertexAttribArray(0);
             // Normal attribute
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertexStride, (void*)(3 * sizeof(float)));
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, (GLsizei)vertexStride, (void*)(3 * sizeof(float)));
             glEnableVertexAttribArray(1);
             // Tangent attribute
-            glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, vertexStride, (void*)(6 * sizeof(float)));
+            glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, (GLsizei)vertexStride, (void*)(6 * sizeof(float)));
             glEnableVertexAttribArray(2);
             // UV attribute
-            glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, vertexStride, (void*)(10 * sizeof(float)));
+            glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, (GLsizei)vertexStride, (void*)(10 * sizeof(float)));
             glEnableVertexAttribArray(3);
             // Normalized UV attribute
-            glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, vertexStride, (void*)(12 * sizeof(float)));
+            glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, (GLsizei)vertexStride, (void*)(12 * sizeof(float)));
             glEnableVertexAttribArray(4);
             // Scale attribute
-            glVertexAttribPointer(5, 3, GL_FLOAT, GL_FALSE, vertexStride, (void*)(14 * sizeof(float)));
+            glVertexAttribPointer(5, 3, GL_FLOAT, GL_FALSE, (GLsizei)vertexStride, (void*)(14 * sizeof(float)));
             glEnableVertexAttribArray(5);
 
             //Should use array indices for per face data such as rotation and scale or directly compute it in the shader, should actually do it in a compute shader and be done
