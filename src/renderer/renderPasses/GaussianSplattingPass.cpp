@@ -75,7 +75,7 @@ void GaussianSplattingPass::execute(RenderContext& renderContext)
     unsigned int stride = sizeof(glm::vec4) * vec4sPerInstance; //This is the ndc stride
     
     //i=0 is for the per-vertex quad pos, see line 27. Technically we´ll have a byte "hole" between per vertex-data (vec3) and the per-instance one (vec4) considering "(void*)(sizeof(glm::vec4) * (i - 1))" pointer
-    for (int i = 1; i <= vec4sPerInstance; ++i) {
+    for (unsigned int i = 1; i <= vec4sPerInstance; ++i) {
         glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(glm::vec4) * (i - 1)));
         glEnableVertexAttribArray(i);
         glVertexAttribDivisor(i, 1);

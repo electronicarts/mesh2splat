@@ -444,7 +444,7 @@ namespace utils
     }
 
     float triangleArea(const glm::vec3& A, const glm::vec3& B, const glm::vec3& C) {
-        return 0.5 * std::abs(
+        return 0.5f * std::abs(
             A.x * (B.y - C.y) +
             B.x * (C.y - A.y) +
             C.x * (A.y - B.y)

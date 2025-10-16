@@ -36,7 +36,7 @@ bool SceneManager::loadPly(const std::string& filePath) {
         parsers::loadPlyFile(filePath, renderContext.readGaussians);
         return true;
     }
-    catch (const std::exception& e)
+    catch (const std::exception&)
     {
         std::cerr << "Error loading PLY file: " << filePath << std::endl;
         return false;
@@ -185,8 +185,8 @@ void SceneManager::parseGltfMaterial(const tinygltf::Model& model, int materialI
     }
 
     // Metallic and Roughness Factors
-    materialGltf.metallicFactor = material.pbrMetallicRoughness.metallicFactor;
-    materialGltf.roughnessFactor = material.pbrMetallicRoughness.roughnessFactor;
+    materialGltf.metallicFactor = (float)material.pbrMetallicRoughness.metallicFactor;
+    materialGltf.roughnessFactor = (float)material.pbrMetallicRoughness.roughnessFactor;
 }
 
 bool SceneManager::parseGltfFile(const std::string& filePath, const std::string& parentFolder, std::vector<utils::Mesh>& meshes) {
@@ -262,7 +262,7 @@ bool SceneManager::parseGltfFile(const std::string& filePath, const std::string&
             
             for (size_t i = 0, count = indices.size(); i < count; i += 3, ++dst) {             
 
-                size_t index[3] = { indices[i], indices[i + 1], indices[i + 2] };
+                int index[3] = { indices[i], indices[i + 1], indices[i + 2] };
 
                 if (hasTangents)
                 {
@@ -386,22 +386,22 @@ void SceneManager::setupMeshBuffers(std::vector<utils::Mesh>& meshes)
 
         // Vertex attribute pointers
         // Position attribute
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertexStride, (void*)0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, (GLuint)vertexStride, (void*)0);
         glEnableVertexAttribArray(0);
         // Normal attribute
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertexStride, (void*)(3 * sizeof(float)));
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, (GLuint)vertexStride, (void*)(3 * sizeof(float)));
         glEnableVertexAttribArray(1);
         // Tangent attribute
-        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, vertexStride, (void*)(6 * sizeof(float)));
+        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, (GLuint)vertexStride, (void*)(6 * sizeof(float)));
         glEnableVertexAttribArray(2);
         // UV attribute
-        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, vertexStride, (void*)(10 * sizeof(float)));
+        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, (GLuint)vertexStride, (void*)(10 * sizeof(float)));
         glEnableVertexAttribArray(3);
         // Normalized UV attribute
-        glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, vertexStride, (void*)(12 * sizeof(float)));
+        glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, (GLuint)vertexStride, (void*)(12 * sizeof(float)));
         glEnableVertexAttribArray(4);
         // Scale attribute
-        glVertexAttribPointer(5, 3, GL_FLOAT, GL_FALSE, vertexStride, (void*)(14 * sizeof(float)));
+        glVertexAttribPointer(5, 3, GL_FLOAT, GL_FALSE, (GLuint)vertexStride, (void*)(14 * sizeof(float)));
         glEnableVertexAttribArray(5);
 
         //Should use array indices for per face data such as rotation and scale or directly compute it in the shader, should actually do it in a compute shader and be done
@@ -488,7 +488,7 @@ void SceneManager::loadTextures(const std::vector<utils::Mesh>& meshes)
     
 }
 
-void SceneManager::exportPly(const std::string outputFile, unsigned int exportFormat)
+void SceneManager::exportSplats(const std::string outputFile, unsigned int exportFormat)
 {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, renderContext.gaussianBuffer);
 

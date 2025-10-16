@@ -596,9 +596,9 @@ namespace parsers
         
     }
 
-    void savePlyVector(std::string outputFileLocation, std::vector<utils::GaussianDataSSBO> gaussians_3D_list, unsigned int FORMAT, float scaleMultiplier)
+    void savePlyVector(std::string outputFileLocation, std::vector<utils::GaussianDataSSBO> gaussians_3D_list, unsigned int format, float scaleMultiplier)
     {
-        switch (FORMAT)
+        switch (format)
         {
             case 0:
                 writeBinaryPlyStandardFormat(outputFileLocation, gaussians_3D_list, scaleMultiplier);
@@ -611,9 +611,9 @@ namespace parsers
             case 2:
                 writeCompressedPbrPLY(outputFileLocation, gaussians_3D_list, scaleMultiplier);
                 break;
-    
+
             default:
-                writeBinaryPlyStandardFormat(outputFileLocation, gaussians_3D_list, scaleMultiplier);
+                assert(0);
                 break;
         }
     }

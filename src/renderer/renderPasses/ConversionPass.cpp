@@ -103,6 +103,6 @@ void ConversionPass::conversion(
 
     glBindVertexArray(mesh.second.vao);
 
-    glDrawArrays(GL_TRIANGLES, 0, mesh.second.vertexCount); 
+    glDrawArrays(GL_TRIANGLES, 0, (GLsizei)mesh.second.vertexCount); 
  
 }

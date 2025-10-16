@@ -43,7 +43,7 @@ void GaussiansPrepass::execute(RenderContext& renderContext)
     unsigned int threadsPerGroup = 256;
     unsigned int totalGroupsNeeded = (totalInvocations + threadsPerGroup - 1) / threadsPerGroup;
     unsigned int groupsX = (unsigned int)ceil(sqrt((float)totalGroupsNeeded));
-    unsigned int groupsY = (totalGroupsNeeded + groupsX - 1) / std::max(float(groupsX), 1.0f); 
+    unsigned int groupsY = (unsigned int)ceil((totalGroupsNeeded + groupsX - 1) / std::max(float(groupsX), 1.0f));
     glDispatchCompute(groupsX, groupsY, 1);
 
     glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);

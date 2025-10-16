@@ -177,7 +177,8 @@ namespace glu
 
         void source_from_file(const char* src_filepath)
         {
-            FILE* file = fopen(src_filepath, "rt");
+			FILE* file = 0;
+			fopen_s(&file, src_filepath, "rt");
             GLU_CHECK_STATE(!file, "Failed to shader file: %s", src_filepath);
 
             fseek(file, 0, SEEK_END);
@@ -571,7 +572,7 @@ void main()
 
             m_program.use();
 
-            glUniform1ui(m_program.get_uniform_location("u_count"), count);
+            glUniform1ui(m_program.get_uniform_location("u_count"), (GLuint)count);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, buffer);
 
             for (int depth = 0;; depth++)
@@ -585,7 +586,7 @@ void main()
                 glUniform1ui(m_program.get_uniform_location("u_depth"), depth);
 
                 size_t num_workgroups = div_ceil(level_count, m_num_threads);
-                glDispatchCompute(num_workgroups, 1, 1);
+                glDispatchCompute((GLuint)num_workgroups, 1, 1);
                 glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
             }
         }
@@ -804,7 +805,7 @@ void main()
         {
             m_upsweep_program.use();
 
-            glUniform1ui(m_upsweep_program.get_uniform_location("u_count"), count);
+            glUniform1ui(m_upsweep_program.get_uniform_location("u_count"), (GLuint)count);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, buffer);
 
             int step = 1;
@@ -814,7 +815,7 @@ void main()
                 glUniform1ui(m_upsweep_program.get_uniform_location("u_step"), step);
 
                 size_t num_workgroups = div_ceil<size_t>(level_count, m_num_threads);
-                glDispatchCompute(num_workgroups, num_partitions, 1);
+                glDispatchCompute((GLuint)num_workgroups, (GLuint)num_partitions, 1);
                 glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
                 step <<= 1;
@@ -830,7 +831,7 @@ void main()
         {
             m_downsweep_program.use();
 
-            glUniform1ui(m_downsweep_program.get_uniform_location("u_count"), count);
+            glUniform1ui(m_downsweep_program.get_uniform_location("u_count"), (GLuint)count);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, buffer);
 
             int step = next_power_of_2(int(count)) >> 1;
@@ -840,7 +841,7 @@ void main()
                 glUniform1ui(m_downsweep_program.get_uniform_location("u_step"), step);
 
                 size_t num_workgroups = div_ceil(level_count, m_num_threads);
-                glDispatchCompute(num_workgroups, num_partitions, 1);
+                glDispatchCompute((GLuint)num_workgroups, (GLuint)num_partitions, 1);
                 glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
                 step >>= 1;
@@ -1506,11 +1507,11 @@ void main()
                 m_block_count_buffer.bind(1);
                 m_global_count_buffer.bind(2);
 
-                glUniform1ui(m_count_program.get_uniform_location("u_count"), count);
-                glUniform1ui(m_count_program.get_uniform_location("u_radix_shift"), step << 2);
-                glUniform1ui(m_count_program.get_uniform_location("u_num_blocks_power_of_2"), num_blocks_power_of_2);
+                glUniform1ui(m_count_program.get_uniform_location("u_count"), (GLuint)count);
+                glUniform1ui(m_count_program.get_uniform_location("u_radix_shift"), (GLuint)(step << 2));
+                glUniform1ui(m_count_program.get_uniform_location("u_num_blocks_power_of_2"), (GLuint)(num_blocks_power_of_2));
 
-                glDispatchCompute(num_blocks, 1, 1);
+                glDispatchCompute((GLuint)num_blocks, 1, 1);
                 glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
                 // ---------------------------------------------------------------- Prefix sum
@@ -1528,11 +1529,11 @@ void main()
                 m_block_count_buffer.bind(4);
                 m_global_count_buffer.bind(5);
 
-                glUniform1ui(m_reorder_program.get_uniform_location("u_count"), count);
-                glUniform1ui(m_reorder_program.get_uniform_location("u_radix_shift"), step << 2);
-                glUniform1ui(m_reorder_program.get_uniform_location("u_num_blocks_power_of_2"), num_blocks_power_of_2);
+                glUniform1ui(m_reorder_program.get_uniform_location("u_count"), (GLuint)count);
+                glUniform1ui(m_reorder_program.get_uniform_location("u_radix_shift"), (GLuint)(step << 2));
+                glUniform1ui(m_reorder_program.get_uniform_location("u_num_blocks_power_of_2"), (GLuint)num_blocks_power_of_2);
 
-                glDispatchCompute(num_blocks, 1, 1);
+                glDispatchCompute((GLuint)num_blocks, 1, 1);
                 glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
                 ++step;

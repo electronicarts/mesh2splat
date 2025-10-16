@@ -10,7 +10,7 @@ enum class EventType {
     LoadPly,
     ViewDepth,
     RunConversion,
-    SavePLY,
+    ExportSplats,
     EnableGaussianRendering,
     CheckShaderUpdate,
     ResizedWindow,

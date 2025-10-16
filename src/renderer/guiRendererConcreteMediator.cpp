@@ -26,7 +26,7 @@ void GuiRendererConcreteMediator::notify(EventType event)
             break;
         }
         case EventType::LoadPly: {
-            if (renderer.getSceneManager().loadPly(imguiUI.getPlyFilePath()))
+            if (renderer.getSceneManager().loadPly(imguiUI.getMeshFilePath()))
             {
                 renderer.resetModelMatrices();
                 renderer.updateGaussianBuffer();
@@ -39,8 +39,7 @@ void GuiRendererConcreteMediator::notify(EventType event)
                 renderer.resetRendererViewportResolution();
 
                 imguiUI.setLoadNewPly(false);
-                imguiUI.setPlyLoaded(true);
-                
+                imguiUI.setPlyLoaded(true);               
 
                 imguiUI.setMeshLoaded(false); //need to reset this
             }
@@ -98,9 +97,9 @@ void GuiRendererConcreteMediator::notify(EventType event)
             
             break;
         }
-        case EventType::SavePLY: {
-            renderer.getSceneManager().exportPly(imguiUI.getMeshFullFilePathDestination(), imguiUI.getFormatOption());
-            imguiUI.setShouldSavePly(false);
+        case EventType::ExportSplats: {
+            renderer.getSceneManager().exportSplats(imguiUI.getMeshFullFilePathDestination(), imguiUI.getFormatOption());
+            imguiUI.setShouldExportSplats(false);
             break;
         }
         case EventType::ResizedWindow: {
@@ -137,7 +136,7 @@ void GuiRendererConcreteMediator::update()
             notify(EventType::LoadModel);
         }
 
-        if (imguiUI.shouldLoadPly() && !imguiUI.getPlyFilePath().empty()) {
+        if (imguiUI.shouldLoadPly() && !imguiUI.getMeshFilePath().empty()) {
             notify(EventType::LoadPly);
         }
 
@@ -149,8 +148,8 @@ void GuiRendererConcreteMediator::update()
             notify(EventType::RunConversion);
         }
 
-        if (imguiUI.shouldSavePly()) {
-            notify(EventType::SavePLY);
+        if (imguiUI.shouldExportSplats()) {
+            notify(EventType::ExportSplats);
         }
 
         notify(EventType::UpdateTransforms);

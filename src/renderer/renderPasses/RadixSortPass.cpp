@@ -36,7 +36,7 @@ unsigned int RadixSortPass::computeKeyValuesPre(RenderContext& renderContext)
     unsigned int threadsPerGroup = 16 * 16; 
     unsigned int totalGroupsNeeded = (validCount + threadsPerGroup - 1) / threadsPerGroup;
     unsigned int groupsX = (unsigned int)ceil(sqrt((float)totalGroupsNeeded));
-    unsigned int groupsY = (totalGroupsNeeded + groupsX - 1) / std::max(float(groupsX), 1.0f); 
+    unsigned int groupsY = (unsigned int)ceil((totalGroupsNeeded + groupsX - 1) / std::max(float(groupsX), 1.0f)); 
     glDispatchCompute(groupsX, groupsY, 1);
 
     glMemoryBarrier(GL_COMMAND_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
@@ -79,7 +79,7 @@ void RadixSortPass::gatherPost(RenderContext& renderContext, unsigned int validC
     unsigned int threadsPerGroup = 16 * 16; 
     unsigned int totalGroupsNeeded = (validCount + threadsPerGroup - 1) / threadsPerGroup;
     unsigned int groupsX = (unsigned int)ceil(sqrt((float)totalGroupsNeeded));
-    unsigned int groupsY = (totalGroupsNeeded + groupsX - 1) / std::max(float(groupsX), 1.0f); 
+    unsigned int groupsY = (unsigned int)ceil((totalGroupsNeeded + groupsX - 1) / std::max(float(groupsX), 1.0f)); 
     glDispatchCompute(groupsX, groupsY, 1);
 
     glMemoryBarrier(GL_COMMAND_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);

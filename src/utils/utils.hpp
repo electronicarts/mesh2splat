@@ -23,6 +23,16 @@
 #include <locale>
 #include <sstream>
 #include <limits>
+
+// include windows before glew to avoid compiler warning
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -36,15 +46,6 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
 
 
 static void CheckOpenGLError(const char* stmt, const char* fname, int line)
@@ -144,6 +145,7 @@ namespace utils
     struct GaussianDataSSBO {
         glm::vec4 position;
         glm::vec4 color;
+		// linear
         glm::vec4 scale;
         glm::vec4 normal;
         glm::vec4 rotation;
@@ -264,7 +266,7 @@ namespace utils
 
     bool shouldSkip(const GaussianDataSSBO& g);
 
-    inline float sigmoid(float opacity) { return 1.0 / (1.0 + std::exp(-opacity)); };
+    inline float sigmoid(float opacity) { return 1.0f / (1.0f + std::expf(-opacity)); };
 
     std::string formatWithCommas(int value);
 
