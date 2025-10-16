@@ -49,7 +49,7 @@ void ImGuiUI::renderFileSelectorWindow()
 
     ImGui::SeparatorText("Input (.ply|.glb)");
     
-    ImGui::Text("file: ");
+    ImGui::Text("File: ");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(availableWidth - ImGui::GetCursorPosX() - ImGui::GetStyle().ItemSpacing.x - buttonWidth + ImGui::GetStyle().WindowPadding.x);
     ImGui::InputText("##InputFile", &meshFilePath, ImGuiInputTextFlags_ReadOnly);
@@ -102,10 +102,9 @@ void ImGuiUI::renderFileSelectorWindow()
     ImGui::SeparatorText("Output");
 
     ImGuiIO& io = ImGui::GetIO();
-    float comboWidth = std::max(180.0f, availableWidth * 0.25f) * io.FontGlobalScale;
     ImGui::TextUnformatted("Format: ");
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(comboWidth);
+    ImGui::SetNextItemWidth(availableWidth - ImGui::GetCursorPosX() + ImGui::GetStyle().WindowPadding.x);
     ImGui::Combo("##Combobox", &formatIndex, formatLabels, IM_ARRAYSIZE(formatLabels));
 
     ImGui::Text("Directory: ");
