@@ -119,6 +119,13 @@ private:
 
     bool enableDepthTest = false;
 
+	// windows
+	bool infoWindow = false;
+	bool lightingWindow = false;
+	bool performanceWindow = false;
+	bool propertiesWindow = true;
+	bool fileSelectorWindow = true;
+
     std::string meshFilePath;
     std::string meshParentFolder;
 

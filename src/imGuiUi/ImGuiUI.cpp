@@ -38,11 +38,14 @@ void ImGuiUI::initialize(GLFWwindow* window)
 
 void ImGuiUI::renderFileSelectorWindow()
 {
+	if (!fileSelectorWindow)
+		return;
+
     ImGui::SetNextWindowPos(ImVec2(20, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(600, 200), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSizeConstraints(ImVec2(600, 300), ImVec2(FLT_MAX, FLT_MAX));
+    ImGui::SetNextWindowSizeConstraints(ImVec2(500, 200), ImVec2(FLT_MAX, FLT_MAX));
 
-    ImGui::Begin("File Selector");
+    ImGui::Begin("File Selector", &fileSelectorWindow);
 
     float availableWidth = ImGui::GetContentRegionAvail().x;
     float buttonWidth = ImGui::CalcTextSize("...").x + ImGui::GetStyle().FramePadding.x * 2;
@@ -161,10 +164,13 @@ void ImGuiUI::renderFileSelectorWindow()
 
 void ImGuiUI::renderPropertiesWindow()
 {
+	if (!propertiesWindow)
+		return;
+
     ImGui::SetNextWindowPos(ImVec2(600, 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(450, 350), ImGuiCond_FirstUseEver);
 
-    ImGui::Begin("Properties");
+    ImGui::Begin("Properties", &propertiesWindow);
 
     ImGui::Combo("Property visualization", &renderIndex, renderLabels, IM_ARRAYSIZE(renderLabels));
     ImGui::Checkbox("Enable mesh-gaussian depth test (improves rendering performance)", &enableDepthTest);
@@ -196,9 +202,34 @@ void ImGuiUI::renderPropertiesWindow()
 
 void ImGuiUI::renderUI()
 {
-    renderFileSelectorWindow();
+	ImGuiIO& io = ImGui::GetIO();
+
+	static bool largeFont = false;
+	static bool imguiDemo = false;
+
+	if(imguiDemo)
+		ImGui::ShowDemoWindow(&imguiDemo);
+	io.FontGlobalScale = largeFont ? 2.0f : 1.0f;
+
+	if (ImGui::BeginMainMenuBar()) {
+		if (ImGui::BeginMenu("Settings"))
+		{
+			ImGui::MenuItem("ImGUI Demo Window", NULL, &imguiDemo);
+			ImGui::MenuItem("Performance Window", NULL, &performanceWindow);
+			ImGui::MenuItem("Info Window", NULL, &infoWindow);
+			ImGui::MenuItem("Lighting Window", NULL, &lightingWindow);
+			ImGui::MenuItem("Properties Window", NULL, &propertiesWindow);
+			ImGui::MenuItem("File Selector Window", NULL, &fileSelectorWindow);
+			ImGui::Separator();
+			ImGui::MenuItem("Large Font", NULL, &largeFont);
+			ImGui::EndMenu();
+		}
+		ImGui::EndMainMenuBar();
+	}
+
+	renderFileSelectorWindow();
     renderPropertiesWindow();
-    renderGpuFrametime();
+	renderGpuFrametime();
     renderLightingSettings();
 }
 
@@ -269,10 +300,13 @@ void ImGuiUI::renderGizmoUi(glm::mat4& glmViewMat, glm::mat4& glmProjMat, glm::m
 
 void ImGuiUI::renderGpuFrametime()
 {
-    ImGui::SetNextWindowPos(ImVec2(20, 350), ImGuiCond_FirstUseEver);
+	if (!performanceWindow)
+		return;
+	
+	ImGui::SetNextWindowPos(ImVec2(20, 350), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(400, 240), ImGuiCond_FirstUseEver);
 
-    ImGui::Begin("Performance");
+    ImGui::Begin("Performance", &performanceWindow);
     ImGui::Text("Frame Time: %.3f ms", gpuFrameTime);
     float current_max = *std::max_element(frameTimeHistory.begin(), frameTimeHistory.end());
     float display_max = std::max(current_max, maxPlotTimeMs);
@@ -315,10 +349,13 @@ void ImGuiUI::renderGpuFrametime()
 
 void ImGuiUI::renderLightingSettings()
 {
+	if (!lightingWindow)
+		return;
+
     ImGui::SetNextWindowPos(ImVec2(500, 500), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(250, 80), ImGuiCond_FirstUseEver);
 
-    ImGui::Begin("Lighting");
+    ImGui::Begin("Lighting", &lightingWindow);
 
     ImGui::Checkbox("Enable lighting", &lightingEnabled);
     
@@ -341,7 +378,10 @@ void ImGuiUI::preframe()
 
 void ImGuiUI::displayGaussianCounts(unsigned int gaussianCount, unsigned int visibleGaussianCount)
 {
-    ImGui::SetNextWindowPos(ImVec2(20, 250), ImGuiCond_FirstUseEver);
+	if (!infoWindow)
+		return;
+
+	ImGui::SetNextWindowPos(ImVec2(20, 250), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(280, 80), ImGuiCond_FirstUseEver);
     ImGui::Begin("Object info");
     ImGui::Text("Total gaussian count: %s", utils::formatWithCommas(gaussianCount).c_str());
