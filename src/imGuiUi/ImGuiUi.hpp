@@ -4,6 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #pragma once
+#include <cstdint>
 #include <string>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -41,6 +42,8 @@ public:
 
     float getGaussianStd() const;
     int getResolutionTarget() const;
+    uint32_t getMaxSplats() const;
+    bool getAutoReduceResolution() const;
     unsigned int getFormatOption() const;
 
     glm::vec4 getSceneBackgroundColor() const;
@@ -142,6 +145,8 @@ private:
     const float maxLightIntensity = 1000.0;
     int maxRes = 1024; //TBH not sure what best value is here
     int minRes = 16;
+    uint32_t maxSplats = 4000000;
+    bool autoReduceResolution = true;
 
     //Gpu timing data
     std::vector<float> frameTimeHistory = {0.0f};

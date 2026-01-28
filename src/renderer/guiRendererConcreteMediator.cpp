@@ -98,6 +98,11 @@ void GuiRendererConcreteMediator::notify(EventType event)
             break;
         }
         case EventType::ExportSplats: {
+            if (renderer.getRenderContext()->format == 0)
+            {
+                renderer.setViewportResolutionForConversion(imguiUI.getResolutionTarget());
+                renderer.runConversionPassNow();
+            }
             renderer.getSceneManager().exportSplats(imguiUI.getMeshFullFilePathDestination(), imguiUI.getFormatOption());
             imguiUI.setShouldExportSplats(false);
             break;
@@ -127,6 +132,9 @@ void GuiRendererConcreteMediator::update()
 
     if(!renderer.isWindowMinimized())
     { 
+        renderer.getRenderContext()->maxSplats = imguiUI.getMaxSplats();
+        renderer.getRenderContext()->autoReduceResolution = imguiUI.getAutoReduceResolution();
+
         if (renderer.hasWindowSizeChanged())
         {
             notify(EventType::ResizedWindow);

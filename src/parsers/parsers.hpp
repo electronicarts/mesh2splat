@@ -13,15 +13,27 @@
 
 namespace parsers
 {
+	enum class DcMode : uint32_t
+	{
+		Current = 0,
+		DirectLinear = 1,
+		DirectSrgb = 2
+	};
+	enum class OpacityMode : uint32_t
+	{
+		Current = 0,
+		Raw = 1,
+		Logit = 2
+	};
 	utils::TextureDataGl loadImageAndBpp(std::string texturePath, int& textureWidth, int& textureHeight);
 
-	void writePbrPLY(const std::string& filename, std::vector<utils::GaussianDataSSBO>& gaussians, float scaleMultiplier);
+	void writePbrPLY(const std::string& filename, std::vector<utils::GaussianDataSSBO>& gaussians, float scaleMultiplier, DcMode dcMode, OpacityMode opacityMode);
 
-	void writeBinaryPlyStandardFormat(const std::string& filename, const std::vector<utils::GaussianDataSSBO>& gaussians, float scaleMultiplier);
+	void writeBinaryPlyStandardFormat(const std::string& filename, const std::vector<utils::GaussianDataSSBO>& gaussians, float scaleMultiplier, DcMode dcMode, OpacityMode opacityMode);
 
 	void loadPlyFile(std::string plyFileLocation, std::vector<utils::GaussianDataSSBO>& gaussians);
 
-	void saveSplatVector(std::string outputFileLocation, std::vector<utils::GaussianDataSSBO> gaussians_3D_list, unsigned int format, float scaleMultiplier);
+	void saveSplatVector(std::string outputFileLocation, std::vector<utils::GaussianDataSSBO> gaussians_3D_list, unsigned int format, float scaleMultiplier, DcMode dcMode, OpacityMode opacityMode);
 
 	unsigned char* combineMetallicRoughness(const char* path1, const char* path2, int& width, int& height, int& channels);
 

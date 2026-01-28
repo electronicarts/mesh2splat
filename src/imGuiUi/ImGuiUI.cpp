@@ -5,6 +5,7 @@
 
 #include "ImGuiUI.hpp"
 #include "ini/IniArchive.h"
+#include <algorithm>
 
 wchar_t* g_settingIni = L"settings.ini";
 
@@ -28,10 +29,14 @@ ImGuiUI::~ImGuiUI()
 
 	// ------------------------
 
+    const int maxSplatsIni = static_cast<int>(maxSplats);
+    const int autoReduceIni = autoReduceResolution ? 1 : 0;
 	iniArchive.AddKeyValue("meshFilePath", meshFilePath, "input file path");
 	iniArchive.AddKeyValue("resolutionIndex", resolutionIndex, "index in resolution combobox");
 	iniArchive.AddKeyValue("formatIndex", formatIndex, "index in output format combobox");
 	iniArchive.AddKeyValue("quality", quality, "float quality");
+    iniArchive.AddKeyValue("maxSplats", maxSplatsIni, "hard cap for exported splats");
+    iniArchive.AddKeyValue("autoReduceResolution", autoReduceIni, "auto reduce conversion res when over cap");
 
 	// ------------------------
 
@@ -58,6 +63,12 @@ void ImGuiUI::initialize(GLFWwindow* window)
 	iniArchive.Get("resolutionIndex", resolutionIndex, 0);
 	iniArchive.Get("formatIndex", formatIndex, 0);
 	iniArchive.Get("quality", quality, 0.5f);
+    int maxSplatsIni = static_cast<int>(maxSplats);
+    int autoReduceIni = autoReduceResolution ? 1 : 0;
+    iniArchive.Get("maxSplats", maxSplatsIni, 4000000);
+    iniArchive.Get("autoReduceResolution", autoReduceIni, 1);
+    maxSplats = static_cast<uint32_t>(std::max(1, maxSplatsIni));
+    autoReduceResolution = (autoReduceIni != 0);
 
 	// ------------------------
 
@@ -230,6 +241,18 @@ void ImGuiUI::renderPropertiesWindow()
     if (ImGui::Combo("(Max quality tweak)", &resolutionIndex, resolutionLabels, IM_ARRAYSIZE(resolutionLabels)))
     {
         maxRes = resolutionOptions[resolutionIndex];
+        runConversionFlag = true;
+    }
+    {
+        int maxSplatsInt = static_cast<int>(maxSplats);
+        if (ImGui::SliderInt("Max splats (cap)", &maxSplatsInt, 250000, 10000000, "%d"))
+        {
+            maxSplats = static_cast<uint32_t>(std::max(1, maxSplatsInt));
+            runConversionFlag = true;
+        }
+    }
+    if (ImGui::Checkbox("Auto reduce res when over cap", &autoReduceResolution))
+    {
         runConversionFlag = true;
     }
 
@@ -468,6 +491,8 @@ unsigned int ImGuiUI::getFormatOption() const { return formatIndex; };
 glm::vec4 ImGuiUI::getSceneBackgroundColor() const { return sceneBackgroundColor; };
 float ImGuiUI::getGaussianStd() const { return gaussian_std; };
 int ImGuiUI::getResolutionTarget() const { return static_cast<int>(minRes + quality * (maxRes - minRes)); };
+uint32_t ImGuiUI::getMaxSplats() const { return maxSplats; };
+bool ImGuiUI::getAutoReduceResolution() const { return autoReduceResolution; };
 
 //renderModeSelector
 ImGuiUI::VisualizationOption ImGuiUI::selectedRenderMode() const { return renderOptions[renderIndex]; };

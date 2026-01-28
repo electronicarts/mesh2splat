@@ -6,6 +6,9 @@
 #include "utils/utils.hpp"
 #include "parsers.hpp"
 #include "GaussianSplat.h"
+#include <cmath>
+#include <algorithm>
+
 
 #include <algorithm> // std::min and std::max
 
@@ -404,7 +407,40 @@ namespace parsers
         return projectedVertices;
     }
 
-    void writePbrPLY(const std::string& filename, std::vector<utils::GaussianDataSSBO>& gaussians, float scaleMultiplier) {
+    static glm::vec3 computeDcFromColor(const glm::vec3& colorLinear, DcMode dcMode)
+    {
+        switch (dcMode)
+        {
+            case DcMode::DirectLinear:
+                return colorLinear;
+            case DcMode::DirectSrgb:
+                return utils::linear_to_srgb_float(colorLinear);
+            case DcMode::Current:
+            default:
+                return utils::getShFromColor(colorLinear);
+        }
+    }
+
+    static float encodeOpacity(float opacityLinear, OpacityMode mode, bool defaultLogit)
+    {
+        bool useLogit = defaultLogit;
+        if (mode == OpacityMode::Raw) useLogit = false;
+        else if (mode == OpacityMode::Logit) useLogit = true;
+
+        if (!useLogit)
+            return opacityLinear;
+
+        auto invSigmoid = [](float a) -> float {
+            const float eps = 1e-6f;
+            if (!std::isfinite(a)) a = 0.5f;
+            a = std::clamp(a, eps, 1.0f - eps);
+            return std::log(a / (1.0f - a));
+        };
+
+        return invSigmoid(opacityLinear);
+    }
+
+    void writePbrPLY(const std::string& filename, std::vector<utils::GaussianDataSSBO>& gaussians, float scaleMultiplier, DcMode dcMode, OpacityMode opacityMode) {
         std::ofstream file(filename, std::ios::binary | std::ios::out);
 
         // Write header in ASCII
@@ -453,7 +489,7 @@ namespace parsers
             //RGB
 
             //TODO: 
-            glm::vec3 sh0 = utils::getShFromColor(gaussian.color);
+            glm::vec3 sh0 = computeDcFromColor(glm::vec3(gaussian.color), dcMode);
             
             file.write(reinterpret_cast<const char*>(&sh0.x), sizeof(sh0.x));
             file.write(reinterpret_cast<const char*>(&sh0.y), sizeof(sh0.y));
@@ -471,12 +507,25 @@ namespace parsers
             //-----------------------------------------------------------------
 
             //Opacity
-            file.write(reinterpret_cast<const char*>(&gaussian.color.w), sizeof(gaussian.color.w));
+            auto safeLog = [](float v) -> float {
+                const float eps = 1e-12f;
+                if (!std::isfinite(v) || v <= eps) v = eps;
+                return std::log(v);
+            };
+
+            float opacityOut = encodeOpacity(gaussian.color.w, opacityMode, true);
+            file.write(reinterpret_cast<const char*>(&opacityOut), sizeof(opacityOut));
+
+            // Scale: write log(linearScale * scaleMultiplier), but clamp to avoid -inf
+            glm::vec3 packedScale;
+            packedScale.x = safeLog(gaussian.linearScale.x * scaleMultiplier);
+            packedScale.y = safeLog(gaussian.linearScale.y * scaleMultiplier);
+            packedScale.z = safeLog(gaussian.linearScale.z * scaleMultiplier);
+
+            file.write(reinterpret_cast<const char*>(&packedScale.x), sizeof(packedScale.x));
+            file.write(reinterpret_cast<const char*>(&packedScale.y), sizeof(packedScale.y));
+            file.write(reinterpret_cast<const char*>(&packedScale.z), sizeof(packedScale.z));
             
-			glm::vec3 packedScale;
-            packedScale.x = std::log(gaussian.linearScale.x * scaleMultiplier);
-            packedScale.y = std::log(gaussian.linearScale.y * scaleMultiplier);
-            packedScale.z = std::log(gaussian.linearScale.z * scaleMultiplier);           
 
             file.write(reinterpret_cast<const char*>(&packedScale.x), sizeof(packedScale.x));
             file.write(reinterpret_cast<const char*>(&packedScale.y), sizeof(packedScale.y));
@@ -603,7 +652,7 @@ namespace parsers
         file.close();
     }
 
-    void writeBinaryPlyStandardFormat(const std::string& filename, std::vector<utils::GaussianDataSSBO>& gaussians, float scaleMultiplier) {
+    void writeBinaryPlyStandardFormat(const std::string& filename, std::vector<utils::GaussianDataSSBO>& gaussians, float scaleMultiplier, DcMode dcMode, OpacityMode opacityMode) {
         std::ofstream file(filename, std::ios::binary | std::ios::out);
         //TODO: abstract this somehow
         // Write header in ASCII
@@ -653,7 +702,7 @@ namespace parsers
             file.write(reinterpret_cast<const char*>(&gaussian.normal.z), sizeof(gaussian.normal.z));
 
             // RGB
-            glm::vec3 sh0 = utils::getShFromColor(gaussian.color);
+            glm::vec3 sh0 = computeDcFromColor(glm::vec3(gaussian.color), dcMode);
             
             file.write(reinterpret_cast<const char*>(&sh0.x), sizeof(sh0.x));
             file.write(reinterpret_cast<const char*>(&sh0.y), sizeof(sh0.y));
@@ -666,7 +715,8 @@ namespace parsers
             }
 
             // Opacity
-            file.write(reinterpret_cast<const char*>(&gaussian.color.w), sizeof(gaussian.color.w));
+            float opacityOut = encodeOpacity(gaussian.color.w, opacityMode, false);
+            file.write(reinterpret_cast<const char*>(&opacityOut), sizeof(opacityOut));
 
 			glm::vec3 packedScale;
             packedScale.x = std::log(gaussian.linearScale.x * scaleMultiplier);
@@ -773,16 +823,16 @@ namespace parsers
         
     }
 
-    void saveSplatVector(std::string outputFileLocation, std::vector<utils::GaussianDataSSBO> gaussians_3D_list, unsigned int format, float scaleMultiplier)
+    void saveSplatVector(std::string outputFileLocation, std::vector<utils::GaussianDataSSBO> gaussians_3D_list, unsigned int format, float scaleMultiplier, DcMode dcMode, OpacityMode opacityMode)
     {
         switch (format)
         {
             case 0:
-                writeBinaryPlyStandardFormat(outputFileLocation, gaussians_3D_list, scaleMultiplier);
+                writeBinaryPlyStandardFormat(outputFileLocation, gaussians_3D_list, scaleMultiplier, dcMode, opacityMode);
                 break;
     
             case 1:
-                writePbrPLY(outputFileLocation, gaussians_3D_list, scaleMultiplier);
+                writePbrPLY(outputFileLocation, gaussians_3D_list, scaleMultiplier, dcMode, opacityMode);
                 break;
 
             case 2:

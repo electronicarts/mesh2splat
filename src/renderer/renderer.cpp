@@ -23,6 +23,8 @@ Renderer::Renderer(GLFWwindow* window, Camera& cameraInstance) : camera(cameraIn
     renderContext.perQuadTransformationsBuffer  = 0;
     renderContext.atomicCounterBuffer = 0;
     renderContext.atomicCounterBufferConversionPass = 0;
+    renderContext.conversionDebugCounters = 0;
+    renderContext.debugPrimIdBuffer = 0;
 
     renderContext.normalizedUvSpaceWidth        = 0;
     renderContext.normalizedUvSpaceHeight       = 0;
@@ -78,6 +80,12 @@ Renderer::Renderer(GLFWwindow* window, Camera& cameraInstance) : camera(cameraIn
     glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &zeroVal);
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
+    glGenBuffers(1, &renderContext.conversionDebugCounters);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, renderContext.conversionDebugCounters);
+    uint32_t zeros[5] = {};
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(zeros), zeros, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
     //Indirect buff
     glGenBuffers(1, &(renderContext.drawIndirectBuffer));
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, renderContext.drawIndirectBuffer);
@@ -107,6 +115,10 @@ Renderer::~Renderer()
     glDeleteBuffers(1, &(renderContext.valuesBuffer));
     glDeleteBuffers(1, &(renderContext.perQuadTransformationBufferSorted));
     glDeleteBuffers(1, &(renderContext.gaussianDepthPostFiltering));
+    glDeleteBuffers(1, &(renderContext.conversionDebugCounters));
+    if (renderContext.debugPrimIdBuffer) {
+        glDeleteBuffers(1, &(renderContext.debugPrimIdBuffer));
+    }
 
     for (auto& query : renderContext.queryPool) {
         glDeleteQueries(1, &query);
@@ -234,7 +246,7 @@ void Renderer::enableRenderPass(std::string renderPassName)
 
 void Renderer::setViewportResolutionForConversion(int resolutionTarget)
 {
-    renderContext.resolutionTarget = int(resolutionTarget / renderContext.dataMeshAndGlMesh.size());
+    renderContext.resolutionTarget = std::max(1, resolutionTarget);
 }
 
             
@@ -423,6 +435,20 @@ bool Renderer::hasWindowSizeChanged()
 bool Renderer::isWindowMinimized()
 {
     return glfwGetWindowAttrib(rendererGlfwWindow, GLFW_ICONIFIED);
+}
+
+void Renderer::runConversionPassNow()
+{
+    auto it = renderPasses.find(conversionPassName);
+    if (it != renderPasses.end())
+    {
+        it->second->execute(renderContext);
+        it->second->setIsEnabled(false);
+    }
+    else
+    {
+        std::cerr << "RenderPass: [ " << conversionPassName << " ] not found." << std::endl;
+    }
 }
 
 

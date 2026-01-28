@@ -44,7 +44,8 @@ namespace utils
 
     glm::vec3 getShFromColor(glm::vec3 color)
     {
-        glm::vec3 sh = color - glm::vec3(0.5f) / SH_COEFF0;
+        // Encode DC so that decode rgb = SH_COEFF0 * f_dc + 0.5 returns original linear RGB.
+        glm::vec3 sh = (color - glm::vec3(0.5f)) / SH_COEFF0;
         return glm::vec3(sh.x, sh.y, sh.z);
     }
 

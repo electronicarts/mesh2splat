@@ -209,6 +209,30 @@ namespace glUtils
         return GL_TEXTURE0; 
     }
 
+    static GLenum mapWrapMode(int wrap)
+    {
+        switch (wrap)
+        {
+            case GL_MIRRORED_REPEAT: return GL_MIRRORED_REPEAT;
+            case GL_CLAMP_TO_EDGE: return GL_CLAMP_TO_EDGE;
+            case GL_REPEAT:
+            default:
+                return GL_REPEAT;
+        }
+    }
+
+    static GLint mapMinFilter(int filter)
+    {
+        if (filter == 0) return GL_LINEAR_MIPMAP_LINEAR;
+        return static_cast<GLint>(filter);
+    }
+
+    static GLint mapMagFilter(int filter)
+    {
+        if (filter == 0) return GL_LINEAR;
+        return static_cast<GLint>(filter);
+    }
+
     void generateTextures(std::map<std::string, std::map<std::string, utils::TextureDataGl>>& meshToTextureData)
     {
         // For each mesh entry in meshToTextureData
@@ -249,8 +273,11 @@ namespace glUtils
 
                 textureDataGl.glTextureID = texture;
 
-                GLenum internalFormat = (textureDataGl.channels == 4) ? GL_RGBA : GL_RGB;
-                GLenum format = internalFormat;
+                bool useSrgb = textureDataGl.srgb && textureType == BASE_COLOR_TEXTURE;
+                GLenum internalFormat = (textureDataGl.channels == 4)
+                    ? (useSrgb ? GL_SRGB8_ALPHA8 : GL_RGBA)
+                    : (useSrgb ? GL_SRGB8 : GL_RGB);
+                GLenum format = (textureDataGl.channels == 4) ? GL_RGBA : GL_RGB;
 
                 glTexImage2D(GL_TEXTURE_2D,
                              0,
@@ -265,10 +292,10 @@ namespace glUtils
                 glGenerateMipmap(GL_TEXTURE_2D);
 
                 // Set wrapping/filtering
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, mapWrapMode(textureDataGl.wrapS));
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mapWrapMode(textureDataGl.wrapT));
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, mapMinFilter(textureDataGl.minFilter));
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mapMagFilter(textureDataGl.magFilter));
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 4);
 

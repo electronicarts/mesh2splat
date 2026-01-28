@@ -55,6 +55,7 @@ public:
 	void setLightColor(glm::vec3 lightColor);
 	bool hasWindowSizeChanged();
 	bool isWindowMinimized();
+	void runConversionPassNow();
 
 
 private:

@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include "utils/utils.hpp"
 #include "utils/glUtils.hpp"
 #include "utils/ShaderRegistry.hpp"
@@ -63,6 +64,26 @@ struct RenderContext {
     int normalizedUvSpaceHeight;
     unsigned int resolutionTarget; 
     unsigned int format; //0: from mesh2splat, 1: classic .ply 3dgs, 2: compressedPBR
+    uint32_t maxSplats = 4000000;
+    bool autoReduceResolution = true;
+    bool debugUv = false;
+    bool debugColor = false;
+    bool debugTextureStats = false;
+    bool debugColorStats = false;
+    bool debugUvCompare = false;
+    bool autoUvWrap = false;
+    int debugMaxPrimitives = 3;
+    int debugMaxVertices = 10;
+    int debugMaxMaterials = 10;
+    bool debugPrintSummary = true;
+    int debugMaxSplats = 10;
+    int forceUvWrapMode = 0; // 0=none, 1=repeat, 2=clamp, 3=mirror
+    int forceSrgbMode = 0; // 0=auto, 1=on, 2=off
+    int textureStatsDownsample = 256;
+    int dcMode = 0; // 0=current, 1=direct_linear, 2=direct_srgb
+    bool dcModeSpecified = false;
+    int opacityMode = 0; // 0=current, 1=raw, 2=logit
+    bool opacityModeSpecified = false;
 
     // Resources
     GLuint vao;
@@ -79,6 +100,8 @@ struct RenderContext {
     GLuint drawIndirectBuffer;
     GLuint atomicCounterBuffer;
     GLuint atomicCounterBufferConversionPass;
+    GLuint conversionDebugCounters;
+    GLuint debugPrimIdBuffer = 0;
 
     GLint numberOfGaussians;
 
