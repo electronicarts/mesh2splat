@@ -404,3 +404,8 @@ FodyWeavers.xsd
 *.zip
 *.tga
 *.ply
+
+# Project-specific generated artifacts
+RCa*
+mesh2splat/
+mesh2glb/*.glb
