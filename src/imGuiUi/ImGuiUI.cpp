@@ -6,6 +6,7 @@
 #include "ImGuiUI.hpp"
 #include "ini/IniArchive.h"
 #include <algorithm>
+#include <cstring>
 
 wchar_t* g_settingIni = L"settings.ini";
 
@@ -29,14 +30,10 @@ ImGuiUI::~ImGuiUI()
 
 	// ------------------------
 
-    const int maxSplatsIni = static_cast<int>(maxSplats);
-    const int autoReduceIni = autoReduceResolution ? 1 : 0;
 	iniArchive.AddKeyValue("meshFilePath", meshFilePath, "input file path");
 	iniArchive.AddKeyValue("resolutionIndex", resolutionIndex, "index in resolution combobox");
 	iniArchive.AddKeyValue("formatIndex", formatIndex, "index in output format combobox");
 	iniArchive.AddKeyValue("quality", quality, "float quality");
-    iniArchive.AddKeyValue("maxSplats", maxSplatsIni, "hard cap for exported splats");
-    iniArchive.AddKeyValue("autoReduceResolution", autoReduceIni, "auto reduce conversion res when over cap");
 
 	// ------------------------
 
@@ -63,12 +60,6 @@ void ImGuiUI::initialize(GLFWwindow* window)
 	iniArchive.Get("resolutionIndex", resolutionIndex, 0);
 	iniArchive.Get("formatIndex", formatIndex, 0);
 	iniArchive.Get("quality", quality, 0.5f);
-    int maxSplatsIni = static_cast<int>(maxSplats);
-    int autoReduceIni = autoReduceResolution ? 1 : 0;
-    iniArchive.Get("maxSplats", maxSplatsIni, 4000000);
-    iniArchive.Get("autoReduceResolution", autoReduceIni, 1);
-    maxSplats = static_cast<uint32_t>(std::max(1, maxSplatsIni));
-    autoReduceResolution = (autoReduceIni != 0);
 
 	// ------------------------
 
@@ -243,19 +234,6 @@ void ImGuiUI::renderPropertiesWindow()
         maxRes = resolutionOptions[resolutionIndex];
         runConversionFlag = true;
     }
-    {
-        int maxSplatsInt = static_cast<int>(maxSplats);
-        if (ImGui::SliderInt("Max splats (cap)", &maxSplatsInt, 250000, 10000000, "%d"))
-        {
-            maxSplats = static_cast<uint32_t>(std::max(1, maxSplatsInt));
-            runConversionFlag = true;
-        }
-    }
-    if (ImGui::Checkbox("Auto reduce res when over cap", &autoReduceResolution))
-    {
-        runConversionFlag = true;
-    }
-
     ImGui::Dummy(ImVec2(0, 2.0f));
     ImGui::SeparatorText("##");
     ImGui::Dummy(ImVec2(0, 1.0f));
@@ -499,6 +477,11 @@ ImGuiUI::VisualizationOption ImGuiUI::selectedRenderMode() const { return render
 
 void ImGuiUI::setLoadNewMesh(bool shouldLoadNewMesh) { loadNewMesh = shouldLoadNewMesh; };
 void ImGuiUI::setMeshLoaded(bool loaded) { hasMeshBeenLoaded = loaded; };
+void ImGuiUI::setMeshFilePath(const std::string& path) {
+    meshFilePath = path;
+    currentModelFormat = utils::getFileExtension(meshFilePath);
+};
+void ImGuiUI::setMeshParentFolder(const std::string& folder) { meshParentFolder = folder; };
 
 void ImGuiUI::setLoadNewPly(bool loadPly) { loadNewPly = loadPly; };
 void ImGuiUI::setPlyLoaded(bool loadedPly) { hasPlyBeenLoaded = loadedPly; };
@@ -525,3 +508,11 @@ glm::vec3 ImGuiUI::getLightColor() const { return lightColor; };
 
 void ImGuiUI::setEnableDepthTest(bool depthTest) { enableDepthTest = depthTest; }
 bool ImGuiUI::getIsDepthTestEnabled() const { return enableDepthTest; }
+void ImGuiUI::setOutputFolder(const std::string& folder) { destinationFilePathFolder = folder; }
+void ImGuiUI::setOutputFilename(const std::string& filename) {
+    if (filename.empty()) {
+        return;
+    }
+    std::strncpy(outputFilename, filename.c_str(), sizeof(outputFilename) - 1);
+    outputFilename[sizeof(outputFilename) - 1] = '\0';
+}

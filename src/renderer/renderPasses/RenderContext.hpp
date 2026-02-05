@@ -71,19 +71,19 @@ struct RenderContext {
     bool debugTextureStats = false;
     bool debugColorStats = false;
     bool debugUvCompare = false;
-    bool autoUvWrap = false;
+    bool autoUvWrap = true;
     int debugMaxPrimitives = 3;
     int debugMaxVertices = 10;
     int debugMaxMaterials = 10;
     bool debugPrintSummary = true;
     int debugMaxSplats = 10;
     int forceUvWrapMode = 0; // 0=none, 1=repeat, 2=clamp, 3=mirror
-    int forceSrgbMode = 0; // 0=auto, 1=on, 2=off
+    int forceSrgbMode = 1; // 0=auto, 1=on, 2=off
     int textureStatsDownsample = 256;
     int dcMode = 0; // 0=current, 1=direct_linear, 2=direct_srgb
     bool dcModeSpecified = false;
-    int opacityMode = 0; // 0=current, 1=raw, 2=logit
-    bool opacityModeSpecified = false;
+    int opacityMode = 2; // 0=current, 1=raw, 2=logit
+    bool opacityModeSpecified = true;
 
     // Resources
     GLuint vao;

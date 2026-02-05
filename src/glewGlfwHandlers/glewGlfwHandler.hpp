@@ -9,7 +9,7 @@
 class GlewGlfwHandler
 {
 public:
-	GlewGlfwHandler(glm::ivec2 windowDimensions, std::string windowName);
+	GlewGlfwHandler(glm::ivec2 windowDimensions, std::string windowName, bool visible = true);
 	~GlewGlfwHandler() {};
 	int init();
 	void updateResize();

@@ -50,6 +50,8 @@ public:
 
     void setLoadNewMesh(bool shouldLoadNewMesh);
     void setMeshLoaded(bool loaded);
+    void setMeshFilePath(const std::string& path);
+    void setMeshParentFolder(const std::string& folder);
     void setRunConversion(bool shouldRunConversionFlag);
     void setShouldExportSplats(bool shouldSavePly);
     void setFrameMetrics(double gpuFrameTime);
@@ -66,6 +68,8 @@ public:
     
     void setEnableDepthTest(bool depthTest);
     bool getIsDepthTestEnabled() const;
+    void setOutputFolder(const std::string& folder);
+    void setOutputFilename(const std::string& filename);
 
 
     enum class VisualizationOption

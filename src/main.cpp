@@ -9,6 +9,11 @@
 #include "renderer/guiRendererConcreteMediator.hpp"
 #include "utils/argparser.hpp"
 #include <cstdlib>
+#include <experimental/filesystem>
+#include <algorithm>
+#include <cctype>
+#include <memory>
+#include <iostream>
 
 #define IDI_SMALL       101
 
@@ -18,7 +23,10 @@ unsigned int RGBSwizzle(unsigned int c) {
 
 int main(int argc, char** argv) {
 //    GlewGlfwHandler glewGlfwHandler(glm::ivec2(1080, 720), "Mesh2Splat");
-    GlewGlfwHandler glewGlfwHandler(glm::ivec2(2800, 1280), "Mesh2Splat");
+    InputParser input(argc, argv);
+    const bool headless = input.cmdOptionExists("--headless") || input.cmdOptionExists("--no-gui");
+
+    GlewGlfwHandler glewGlfwHandler(glm::ivec2(2800, 1280), "Mesh2Splat", !headless);
 
     Camera camera(
         glm::vec3(0.0f, 0.0f, 5.0f), 
@@ -30,10 +38,15 @@ int main(int argc, char** argv) {
     IoHandler ioHandler(glewGlfwHandler.getWindow(), camera);
     if(glewGlfwHandler.init() == -1) return -1;
 
-    ioHandler.setupCallbacks();
+    if (!headless) {
+        ioHandler.setupCallbacks();
+    }
 
-    ImGuiUI ImGuiUI(0.65f, 0.5f); //TODO: give a meaning to these params
-    ImGuiUI.initialize(glewGlfwHandler.getWindow());
+    std::unique_ptr<ImGuiUI> imguiUi;
+    if (!headless) {
+        imguiUi = std::make_unique<ImGuiUI>(0.65f, 0.5f); //TODO: give a meaning to these params
+        imguiUi->initialize(glewGlfwHandler.getWindow());
+    }
 
     // https://stackoverflow.com/questions/7375003/how-to-convert-hicon-to-hbitmap-in-vc
 #if _WIN32
@@ -79,7 +92,9 @@ int main(int argc, char** argv) {
                 }
             }
             images[0].pixels = (unsigned char*)mem.data();
-            glfwSetWindowIcon(glewGlfwHandler.getWindow(), 1, images);
+            if (!headless) {
+                glfwSetWindowIcon(glewGlfwHandler.getWindow(), 1, images);
+            }
         }
     }
 #endif
@@ -87,15 +102,21 @@ int main(int argc, char** argv) {
     Renderer renderer(glewGlfwHandler.getWindow(), camera);
     renderer.initialize();
 
-    InputParser input(argc, argv);
     RenderContext* ctx = renderer.getRenderContext();
+    namespace fs = std::experimental::filesystem;
+    namespace fs = std::experimental::filesystem;
 
     ctx->debugUv = input.cmdOptionExists("--debug-uv");
     ctx->debugColor = input.cmdOptionExists("--debug-color");
     ctx->debugTextureStats = input.cmdOptionExists("--debug-texture-stats");
     ctx->debugColorStats = input.cmdOptionExists("--debug-color-stats");
     ctx->debugUvCompare = input.cmdOptionExists("--debug-uv-compare");
-    ctx->autoUvWrap = input.cmdOptionExists("--auto-uv-wrap");
+    if (input.cmdOptionExists("--auto-uv-wrap")) {
+        ctx->autoUvWrap = true;
+    }
+    if (input.cmdOptionExists("--no-auto-uv-wrap")) {
+        ctx->autoUvWrap = false;
+    }
 
     const char* debugUvEnv = std::getenv("MESH2SPLAT_DEBUG_UV");
     if (debugUvEnv && debugUvEnv[0] != '\0' && debugUvEnv[0] != '0') {
@@ -204,7 +225,148 @@ int main(int argc, char** argv) {
         else ctx->opacityMode = 0;
     }
 
-    GuiRendererConcreteMediator guiRendererMediator(renderer, ImGuiUI);
+    const std::string inputPathOpt = input.getCmdOption("--input");
+    const std::string outputPathOpt = input.getCmdOption("--output");
+    if (!headless) {
+        if (!inputPathOpt.empty()) {
+            imguiUi->setMeshFilePath(inputPathOpt);
+            fs::path inputPath(inputPathOpt);
+            std::string parentFolder = inputPath.has_parent_path() ? inputPath.parent_path().string() : std::string();
+            if (!parentFolder.empty() && parentFolder.back() != '/' && parentFolder.back() != '\\') {
+                parentFolder.push_back('/');
+            }
+            imguiUi->setMeshParentFolder(parentFolder);
+
+            std::string ext = inputPath.extension().string();
+            std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(std::tolower(c)); });
+            if (ext == ".glb") {
+                imguiUi->setLoadNewMesh(true);
+            } else if (ext == ".ply") {
+                imguiUi->setLoadNewPly(true);
+            }
+        }
+
+        if (!outputPathOpt.empty()) {
+            fs::path outputPath(outputPathOpt);
+            bool looksLikeDir = false;
+            if (!outputPathOpt.empty()) {
+                char last = outputPathOpt.back();
+                looksLikeDir = (last == '/' || last == '\\');
+            }
+            if (!looksLikeDir) {
+                std::error_code ec;
+                if (fs::is_directory(outputPath, ec)) {
+                    looksLikeDir = true;
+                }
+            }
+            if (looksLikeDir) {
+                imguiUi->setOutputFolder(outputPath.string());
+            } else {
+                std::string folder = outputPath.has_parent_path() ? outputPath.parent_path().string() : std::string();
+                if (!folder.empty()) {
+                    imguiUi->setOutputFolder(folder);
+                }
+                std::string filename = outputPath.stem().string();
+                if (filename.empty()) {
+                    filename = outputPath.filename().string();
+                }
+                imguiUi->setOutputFilename(filename);
+            }
+        }
+    } else {
+        if (inputPathOpt.empty() || outputPathOpt.empty()) {
+            std::cerr << "Headless mode requires --input and --output." << std::endl;
+            glfwTerminate();
+            return 1;
+        }
+        fs::path inputPath(inputPathOpt);
+        std::string ext = inputPath.extension().string();
+        std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){ return static_cast<char>(std::tolower(c)); });
+        const bool isGlb = (ext == ".glb");
+        const bool isPly = (ext == ".ply");
+        if (!isGlb && !isPly) {
+            std::cerr << "Unsupported input extension: " << ext << std::endl;
+            glfwTerminate();
+            return 1;
+        }
+
+        std::string parentFolder = inputPath.has_parent_path() ? inputPath.parent_path().string() : std::string();
+        if (!parentFolder.empty() && parentFolder.back() != '/' && parentFolder.back() != '\\') {
+            parentFolder.push_back('/');
+        }
+
+        const int defaultMinRes = 16;
+        const int defaultMaxRes = 1024;
+        const float defaultQuality = 0.5f;
+        const int defaultResolutionTarget = static_cast<int>(defaultMinRes + defaultQuality * (defaultMaxRes - defaultMinRes));
+        ctx->gaussianStd = 0.65f;
+        renderer.setViewportResolutionForConversion(defaultResolutionTarget);
+        renderer.updateTransformations();
+
+        if (isGlb) {
+            renderer.resetModelMatrices();
+            if (!renderer.getSceneManager().loadModel(inputPathOpt, parentFolder)) {
+                std::cerr << "Failed to load model: " << inputPathOpt << std::endl;
+                glfwTerminate();
+                return 1;
+            }
+            renderer.gaussianBufferFromSize(static_cast<unsigned int>(defaultResolutionTarget * defaultResolutionTarget));
+            renderer.setFormatType(0);
+            renderer.runConversionPassNow();
+        } else {
+            if (!renderer.getSceneManager().loadPly(inputPathOpt)) {
+                std::cerr << "Failed to load PLY: " << inputPathOpt << std::endl;
+                glfwTerminate();
+                return 1;
+            }
+            renderer.setFormatType(1);
+            renderer.updateGaussianBuffer();
+        }
+
+        fs::path outputPath(outputPathOpt);
+        bool looksLikeDir = false;
+        if (!outputPathOpt.empty()) {
+            char last = outputPathOpt.back();
+            looksLikeDir = (last == '/' || last == '\\');
+        }
+        if (!looksLikeDir) {
+            std::error_code ec;
+            if (fs::is_directory(outputPath, ec)) {
+                looksLikeDir = true;
+            }
+        }
+
+        std::string outputFilename = "output";
+        if (!inputPath.stem().empty()) {
+            outputFilename = inputPath.stem().string();
+        }
+        std::string outputFolder;
+        if (looksLikeDir) {
+            outputFolder = outputPath.string();
+        } else {
+            outputFolder = outputPath.has_parent_path() ? outputPath.parent_path().string() : std::string();
+            std::string stem = outputPath.stem().string();
+            if (!stem.empty()) {
+                outputFilename = stem;
+            }
+        }
+
+        fs::path outputFullPath;
+        if (!outputFolder.empty()) {
+            outputFullPath = fs::path(outputFolder) / outputFilename;
+        } else {
+            outputFullPath = fs::path(outputFilename);
+        }
+        outputFullPath.replace_extension(".ply");
+        std::string outputFull = outputFullPath.string();
+        std::replace(outputFull.begin(), outputFull.end(), '\\', '/');
+
+        renderer.getSceneManager().exportSplats(outputFull, 0);
+        glfwTerminate();
+        return 0;
+    }
+
+    GuiRendererConcreteMediator guiRendererMediator(renderer, *imguiUi);
 
     float deltaTime = 0.0f; 
     float lastFrame = 0.0f;
@@ -219,18 +381,18 @@ int main(int argc, char** argv) {
         
         ioHandler.processInput(deltaTime);
 
-        renderer.clearingPrePass(ImGuiUI.getSceneBackgroundColor());
+        renderer.clearingPrePass(imguiUi->getSceneBackgroundColor());
 
-        ImGuiUI.preframe();
-        ImGuiUI.renderUI();
+        imguiUi->preframe();
+        imguiUi->renderUI();
 
         guiRendererMediator.update();
 
         renderer.renderFrame();
 
-		ImGuiUI.displayGaussianCounts(renderer.getTotalGaussianCount(), renderer.getVisibleGaussianCount());
+		imguiUi->displayGaussianCounts(renderer.getTotalGaussianCount(), renderer.getVisibleGaussianCount());
 
-        ImGuiUI.postframe();
+        imguiUi->postframe();
 
         glfwSwapBuffers(glewGlfwHandler.getWindow());
     }
