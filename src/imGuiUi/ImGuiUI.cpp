@@ -179,6 +179,13 @@ void ImGuiUI::renderPropertiesWindow()
 
     ImGui::ColorEdit4("Background Color", &sceneBackgroundColor.x);
 
+    ImGui::SeparatorText("Split-Screen Comparison");
+    ImGui::Checkbox("Enable split-screen (Mesh vs Splat)", &splitScreenEnabled);
+    if (splitScreenEnabled)
+    {
+        ImGui::SliderFloat("Split position", &splitScreenPosition, 0.0f, 1.0f, "%.2f");
+    }
+
     ImGui::End();
 }
 
@@ -310,8 +317,21 @@ void ImGuiUI::renderLightingSettings()
 
     ImGui::Begin("Lighting");
 
+    bool wasLightingEnabled = lightingEnabled;
     ImGui::Checkbox("Enable lighting", &lightingEnabled);
-    
+
+    // Auto-select "Final (Shaded)" when lighting is toggled on
+    if (lightingEnabled && !wasLightingEnabled)
+    {
+        prevRenderIndexBeforeLighting = renderIndex;
+        renderIndex = 0; // Final (Shaded) is index 0
+    }
+    // Revert to previous mode when lighting is toggled off
+    else if (!lightingEnabled && wasLightingEnabled)
+    {
+        renderIndex = prevRenderIndexBeforeLighting;
+    }
+
     if (lightingEnabled)
     {
         ImGui::SliderFloat("Light intensity", &lightIntensity, minLightIntensity, maxLightIntensity, "%2.0f");
@@ -368,7 +388,7 @@ void ImGuiUI::renderBatchWindow()
         }
         ImGui::PopStyleColor();
         ImGui::SameLine();
-        ImGui::TextUnformatted("(Running… conversions are dispatched by app loop)");
+        ImGui::TextUnformatted("(Runningï¿½ conversions are dispatched by app loop)");
     }
 
     // Progress
@@ -523,6 +543,9 @@ glm::vec3 ImGuiUI::getLightColor() const { return lightColor; };
 void ImGuiUI::setEnableDepthTest(bool depthTest) { enableDepthTest = depthTest; }
 bool ImGuiUI::getIsDepthTestEnabled() const { return enableDepthTest; }
 
+bool ImGuiUI::isSplitScreenEnabled() const { return splitScreenEnabled; }
+float ImGuiUI::getSplitScreenPosition() const { return splitScreenPosition; }
+
 //TODO: batching utility code, I think refactor is needed to move batching logic to separate file, for later refactor pass
 void ImGuiUI::enqueueFolder(const std::string& dir)
 {
@@ -547,7 +570,7 @@ void ImGuiUI::enqueueFolder(const std::string& dir)
         const std::filesystem::path inputPath = e.path();
         const std::string inputStem = inputPath.stem().string();
 
-        // Batch output dir: if user picked one, use it; else (fallback) the input’s parent
+        // Batch output dir: if user picked one, use it; else (fallback) the inputï¿½s parent
         std::filesystem::path outDir = destinationFilePathFolder.empty()
             ? inputPath.parent_path()
             : std::filesystem::path(destinationFilePathFolder);

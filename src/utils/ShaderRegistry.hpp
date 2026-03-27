@@ -13,6 +13,8 @@ public:
 
     void registerShaderProgram(const glUtils::ShaderProgramTypes, const std::vector<std::pair<std::string, GLenum>>& shaderPaths);
 
+    void registerDependency(const glUtils::ShaderProgramTypes programType, const std::string& path);
+
     bool reloadModifiedShaders(bool forceReload);
 
     GLuint getProgramID(const glUtils::ShaderProgramTypes);

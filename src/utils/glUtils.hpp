@@ -38,6 +38,12 @@ namespace glUtils
 
         std::string depthPrepassVertexShaderLocation;
         std::string depthPrepassFragmentShaderLocation;
+
+        std::string meshRenderVertexShaderLocation;
+        std::string meshRenderFragmentShaderLocation;
+
+        std::string commonShaderLocation;
+
     };
 
     extern ShaderLocations shaderLocations;
@@ -55,6 +61,7 @@ namespace glUtils
         ShadowPrepassComputeProgram,
         ShadowCubemapPassProgram,
         DepthPrepassProgram,
+        MeshRenderProgram,
     };
 
     void initializeShaderLocations();
@@ -88,6 +95,7 @@ namespace glUtils
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     };
 
+    std::string resolveIncludes(const std::string& source, const fs::path& baseDir);
     std::string readShaderFile(const char* filePath);
 
     namespace fs = std::experimental::filesystem;
@@ -110,6 +118,7 @@ namespace glUtils
     struct ShaderProgramInfo {
         ShaderProgramTypes programType;
         std::vector<ShaderInfo> shaders;
+        std::vector<std::shared_ptr<ShaderFileInfo>> dependencies;
         GLuint programID; 
     };
 

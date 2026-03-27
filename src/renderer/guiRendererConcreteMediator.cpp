@@ -14,7 +14,9 @@ void GuiRendererConcreteMediator::notify(EventType event)
             renderer.gaussianBufferFromSize(imguiUI.getResolutionTarget() * imguiUI.getResolutionTarget());
             renderer.setFormatType(0); //TODO: use an enum
             renderer.setViewportResolutionForConversion(imguiUI.getResolutionTarget());
+
             renderer.enableRenderPass(conversionPassName);
+
             renderer.enableRenderPass(gaussiansPrePassName);
             renderer.enableRenderPass(radixSortPassName);
             renderer.enableRenderPass(gaussianSplattingPassName);
@@ -47,8 +49,8 @@ void GuiRendererConcreteMediator::notify(EventType event)
             break;
         }
         case EventType::RunConversion: {
-            renderer.enableRenderPass(conversionPassName);
             renderer.setViewportResolutionForConversion(imguiUI.getResolutionTarget());
+            renderer.enableRenderPass(conversionPassName);
             imguiUI.setRunConversion(false);
             
             break;
@@ -78,6 +80,14 @@ void GuiRendererConcreteMediator::notify(EventType event)
             else
             {
                 renderer.setDepthTestEnabled(false);
+            }
+
+            // Split-screen: render mesh when split-screen is enabled and mesh data is available
+            renderer.setSplitScreenEnabled(imguiUI.isSplitScreenEnabled());
+            renderer.setSplitScreenPosition(imguiUI.getSplitScreenPosition());
+            if (imguiUI.isSplitScreenEnabled() && imguiUI.wasMeshLoaded())
+            {
+                renderer.enableRenderPass(meshRenderPassName);
             }
                         
             renderer.enableRenderPass(gaussianSplattingRelightingPassName);
@@ -109,6 +119,8 @@ void GuiRendererConcreteMediator::notify(EventType event)
             renderer.createDepthTexture();
             renderer.deleteGBuffer();
             renderer.createGBuffer();
+            renderer.deleteMeshGBuffer();
+            renderer.createMeshGBuffer();
 
             break;
         }

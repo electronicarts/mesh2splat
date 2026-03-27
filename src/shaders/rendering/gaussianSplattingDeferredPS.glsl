@@ -107,7 +107,10 @@ void main() {
         FragColor = vec4(texture(gMetallicRoughness, fragUV).rg, 0, 1);
         return;
     }
-    if (!u_isLightingEnalbed) //change to "albedo", not clear otherwise
+
+    // Only apply lighting in FINAL mode (6). All other visualization
+    // modes show raw data without lighting.
+    if (u_renderMode != 6)
     {
         FragColor = vec4(albedo, 1.0f);
         return;

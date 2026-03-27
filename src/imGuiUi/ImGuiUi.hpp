@@ -77,6 +77,9 @@ public:
     void setEnableDepthTest(bool depthTest);
     bool getIsDepthTestEnabled() const;
 
+    bool isSplitScreenEnabled() const;
+    float getSplitScreenPosition() const;
+
 
     enum class VisualizationOption
     {
@@ -85,7 +88,8 @@ public:
         NORMAL = 2,
         GEOMETRY = 3,
         OVERDRAW = 4,
-        PBR = 5
+        PBR = 5,
+        FINAL = 6
     };
     
 
@@ -118,7 +122,9 @@ private:
     const char* formatLabels[3] = { "PLY Standard Format", "PLY PBR", "PLY Compressed PBR"};
 
     int renderIndex = 0;
-    const ImGuiUI::VisualizationOption renderOptions[6] = {
+    int prevRenderIndexBeforeLighting = 0;
+    const ImGuiUI::VisualizationOption renderOptions[7] = {
+        ImGuiUI::VisualizationOption::FINAL,
         ImGuiUI::VisualizationOption::ALBEDO,
         ImGuiUI::VisualizationOption::DEPTH,
         ImGuiUI::VisualizationOption::NORMAL,
@@ -126,7 +132,7 @@ private:
         ImGuiUI::VisualizationOption::OVERDRAW,
         ImGuiUI::VisualizationOption::PBR
     };
-    const char* renderLabels[6] = { "Albedo", "Depth", "Normals", "Geometry", "Overdraw", "PBR (metallic-roughness)"};
+    const char* renderLabels[7] = { "Final (Shaded)", "Albedo", "Depth", "Normals", "Geometry", "Overdraw", "PBR (metallic-roughness)"};
 
     float gaussian_std;
     float lightIntensity = 0;
@@ -148,6 +154,9 @@ private:
     bool savePly = false;
 
     bool enableDepthTest = false;
+
+    bool splitScreenEnabled = false;
+    float splitScreenPosition = 0.5f;
 
     std::string meshFilePath;
     std::string meshParentFolder;

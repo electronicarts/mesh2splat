@@ -108,6 +108,8 @@ Renderer::~Renderer()
     glDeleteBuffers(1, &(renderContext.perQuadTransformationBufferSorted));
     glDeleteBuffers(1, &(renderContext.gaussianDepthPostFiltering));
 
+    deleteMeshGBuffer();
+
     for (auto& query : renderContext.queryPool) {
         glDeleteQueries(1, &query);
     }
@@ -122,10 +124,12 @@ void Renderer::initialize() {
     renderPasses[gaussianSplattingPassName]             = std::make_unique<GaussianSplattingPass>(renderContext);
     renderPasses[gaussianSplattingRelightingPassName]   = std::make_unique<GaussianRelightingPass>();
     renderPasses[gaussianSplattingShadowsPassName]      = std::make_unique<GaussianShadowPass>(renderContext);
+    renderPasses[meshRenderPassName]                    = std::make_unique<MeshRenderPass>();
 
     renderPassesOrder = {
         conversionPassName,
         depthPrepassName,
+        meshRenderPassName,
         gaussiansPrePassName,
         radixSortPassName,
         gaussianSplattingPassName,
@@ -135,6 +139,7 @@ void Renderer::initialize() {
 
     createDepthTexture();
     createGBuffer();
+    createMeshGBuffer();
 }
 
 void Renderer::renderFrame()
@@ -464,3 +469,102 @@ unsigned int Renderer::getTotalGaussianCount()
     return this->renderContext.numberOfGaussians;
 
 }
+
+void Renderer::createMeshGBuffer()
+{
+    resetRendererViewportResolution();
+    int w = renderContext.rendererResolution.x;
+    int h = renderContext.rendererResolution.y;
+
+    glGenFramebuffers(1, &renderContext.meshGBufferFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, renderContext.meshGBufferFBO);
+
+    // Position
+    glGenTextures(1, &renderContext.meshGPosition);
+    glBindTexture(GL_TEXTURE_2D, renderContext.meshGPosition);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderContext.meshGPosition, 0);
+
+    // Normal
+    glGenTextures(1, &renderContext.meshGNormal);
+    glBindTexture(GL_TEXTURE_2D, renderContext.meshGNormal);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, renderContext.meshGNormal, 0);
+
+    // Albedo
+    glGenTextures(1, &renderContext.meshGAlbedo);
+    glBindTexture(GL_TEXTURE_2D, renderContext.meshGAlbedo);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, renderContext.meshGAlbedo, 0);
+
+    // Depth
+    glGenTextures(1, &renderContext.meshGDepth);
+    glBindTexture(GL_TEXTURE_2D, renderContext.meshGDepth);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, w, h, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, renderContext.meshGDepth, 0);
+
+    // Metallic-Roughness
+    glGenTextures(1, &renderContext.meshGMetallicRoughness);
+    glBindTexture(GL_TEXTURE_2D, renderContext.meshGMetallicRoughness);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, renderContext.meshGMetallicRoughness, 0);
+
+    std::vector<GLenum> attachments = {
+        GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2,
+        GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4
+    };
+    glDrawBuffers(static_cast<GLsizei>(attachments.size()), attachments.data());
+
+    // Depth renderbuffer
+    glGenRenderbuffers(1, &renderContext.meshGDepthRBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, renderContext.meshGDepthRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, w, h);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, renderContext.meshGDepthRBO);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        std::cerr << "Mesh GBuffer FBO not complete!" << std::endl;
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void Renderer::deleteMeshGBuffer()
+{
+    glDeleteFramebuffers(1, &renderContext.meshGBufferFBO);
+    glDeleteTextures(1, &renderContext.meshGPosition);
+    glDeleteTextures(1, &renderContext.meshGNormal);
+    glDeleteTextures(1, &renderContext.meshGAlbedo);
+    glDeleteTextures(1, &renderContext.meshGDepth);
+    glDeleteTextures(1, &renderContext.meshGMetallicRoughness);
+    glDeleteRenderbuffers(1, &renderContext.meshGDepthRBO);
+
+    renderContext.meshGBufferFBO = 0;
+    renderContext.meshGPosition = 0;
+    renderContext.meshGNormal = 0;
+    renderContext.meshGAlbedo = 0;
+    renderContext.meshGDepth = 0;
+    renderContext.meshGMetallicRoughness = 0;
+    renderContext.meshGDepthRBO = 0;
+}
+
+void Renderer::setSplitScreenEnabled(bool enabled)
+{
+    renderContext.splitScreenEnabled = enabled;
+}
+
+void Renderer::setSplitScreenPosition(float position)
+{
+    renderContext.splitScreenPosition = position;
+}
+

@@ -56,6 +56,13 @@ public:
 	bool hasWindowSizeChanged();
 	bool isWindowMinimized();
 
+	void createMeshGBuffer();
+	void deleteMeshGBuffer();
+	void setSplitScreenEnabled(bool enabled);
+	void setSplitScreenPosition(float position);
+
+
+
 
 private:
 	std::map<std::string, std::unique_ptr<IRenderPass>> renderPasses;

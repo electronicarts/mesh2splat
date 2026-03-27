@@ -108,4 +108,17 @@ struct RenderContext {
     GLuint depthFBO = 0;
     GLuint meshDepthTexture = 0;
     unsigned int performMeshDepthTest = false;
+
+    //Mesh G-buffer (split-screen comparison)
+    GLuint meshGBufferFBO = 0;
+    GLuint meshGPosition = 0;
+    GLuint meshGNormal = 0;
+    GLuint meshGAlbedo = 0;
+    GLuint meshGDepth = 0;
+    GLuint meshGMetallicRoughness = 0;
+    GLuint meshGDepthRBO = 0;
+
+    //Split-screen comparison
+    bool splitScreenEnabled = false;
+    float splitScreenPosition = 0.5f; // 0.0 = all mesh, 1.0 = all splat
 };

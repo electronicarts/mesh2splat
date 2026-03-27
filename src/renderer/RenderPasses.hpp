@@ -16,10 +16,12 @@
 #include "renderPasses/GaussianRelightingPass.hpp"
 #include "renderPasses/GaussianShadowPass.hpp"
 #include "renderPasses/DepthPrepass.hpp"
+#include "renderPasses/MeshRenderPass.hpp"
 
 
 static std::string conversionPassName					= "conversion";
 static std::string depthPrepassName						= "depthPrepass";
+static std::string meshRenderPassName					= "meshRender";
 static std::string gaussiansPrePassName					= "gaussianPrepass";
 static std::string radixSortPassName					= "radixSort";
 static std::string gaussianSplattingPassName			= "gaussianSplatting";

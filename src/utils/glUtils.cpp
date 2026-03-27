@@ -26,6 +26,33 @@ namespace glUtils
         return shaderID;
     }
 
+    std::string resolveIncludes(const std::string& source, const fs::path& baseDir) {
+        std::istringstream stream(source);
+        std::ostringstream result;
+        std::string line;
+
+        while (std::getline(stream, line)) {
+            std::string trimmed = line;
+            size_t firstNonSpace = trimmed.find_first_not_of(" \t");
+            if (firstNonSpace != std::string::npos)
+                trimmed = trimmed.substr(firstNonSpace);
+
+            if (trimmed.find("#include \"") == 0) {
+                size_t start = trimmed.find('"') + 1;
+                size_t end = trimmed.find('"', start);
+                if (end != std::string::npos) {
+                    std::string includePath = trimmed.substr(start, end - start);
+                    fs::path fullPath = baseDir / includePath;
+                    std::string includeContent = readShaderFile(fullPath.string().c_str());
+                    result << includeContent << "\n";
+                    continue;
+                }
+            }
+            result << line << "\n";
+        }
+        return result.str();
+    }
+
     std::string readShaderFile(const char* filePath) {
         std::ifstream shaderFile;
         std::stringstream shaderStream;
@@ -37,7 +64,7 @@ namespace glUtils
             shaderFile.open(filePath);
             shaderStream << shaderFile.rdbuf();
             shaderFile.close();
-            return shaderStream.str();
+            return resolveIncludes(shaderStream.str(), fs::path(filePath).parent_path());
         }
         catch (std::ifstream::failure& e) {
             std::cerr << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ: " << e.what() << std::endl;
@@ -76,6 +103,12 @@ namespace glUtils
 
         shaderLocations.depthPrepassVertexShaderLocation                = (shadersBase / "rendering" / "depthPrepassVS.glsl").string();
         shaderLocations.depthPrepassFragmentShaderLocation                = (shadersBase / "rendering" / "depthPrepassPS.glsl").string();
+
+        shaderLocations.meshRenderVertexShaderLocation                   = (shadersBase / "rendering" / "meshRenderVS.glsl").string();
+        shaderLocations.meshRenderFragmentShaderLocation                 = (shadersBase / "rendering" / "meshRenderPS.glsl").string();
+
+        shaderLocations.commonShaderLocation                             = (shadersBase / "rendering" / "common.glsl").string();
+
     }
 
     void initializeShaderFileMonitoring(ShaderRegistry& shaderRegistry)
@@ -102,6 +135,7 @@ namespace glUtils
         shaderRegistry.registerShaderProgram(ShaderProgramTypes::PrepassFiltering3dgsProgram, {
             { shaderLocations.rendererPrepassComputeShaderLocation, GL_COMPUTE_SHADER }
         });
+        shaderRegistry.registerDependency(ShaderProgramTypes::PrepassFiltering3dgsProgram, shaderLocations.commonShaderLocation);
 
         shaderRegistry.registerShaderProgram(ShaderProgramTypes::Rendering3dgsProgram, {
             { shaderLocations.rendererVertexShaderLocation, GL_VERTEX_SHADER },
@@ -118,6 +152,7 @@ namespace glUtils
         shaderRegistry.registerShaderProgram(ShaderProgramTypes::ShadowPrepassComputeProgram, {
             { shaderLocations.shadowsPrepassComputeShaderLocation, GL_COMPUTE_SHADER }
         });
+        shaderRegistry.registerDependency(ShaderProgramTypes::ShadowPrepassComputeProgram, shaderLocations.commonShaderLocation);
         shaderRegistry.registerShaderProgram(ShaderProgramTypes::ShadowCubemapPassProgram, {
             { shaderLocations.shadowsCubemapVertexShaderLocation, GL_VERTEX_SHADER },
             { shaderLocations.shadowsCubemapFragmentShaderLocation, GL_FRAGMENT_SHADER }
@@ -128,6 +163,14 @@ namespace glUtils
             { shaderLocations.depthPrepassVertexShaderLocation, GL_VERTEX_SHADER },
             { shaderLocations.depthPrepassFragmentShaderLocation, GL_FRAGMENT_SHADER }
         });
+
+        //MESH COLOR RENDERING (split-screen)
+        shaderRegistry.registerShaderProgram(ShaderProgramTypes::MeshRenderProgram, {
+            { shaderLocations.meshRenderVertexShaderLocation, GL_VERTEX_SHADER },
+            { shaderLocations.meshRenderFragmentShaderLocation, GL_FRAGMENT_SHADER }
+        });
+        shaderRegistry.registerDependency(ShaderProgramTypes::MeshRenderProgram, shaderLocations.commonShaderLocation);
+
 
     }
 

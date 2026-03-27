@@ -29,17 +29,31 @@ void ShaderRegistry::registerShaderProgram(const glUtils::ShaderProgramTypes pro
     shaderPrograms[programType] = std::move(program);
 }
 
+void ShaderRegistry::registerDependency(const glUtils::ShaderProgramTypes programType, const std::string& path) {
+    if (shaderFiles.find(path) == shaderFiles.end()) {
+        shaderFiles[path] = std::make_shared<glUtils::ShaderFileInfo>(glUtils::ShaderFileInfo{ path, fs::last_write_time(path) });
+    }
+    shaderPrograms[programType].dependencies.push_back(shaderFiles[path]);
+}
+
 bool ShaderRegistry::reloadModifiedShaders(bool forceReload = false) {
     bool reloadedAny = false;
     for (auto& [programType, program] : shaderPrograms) {
         bool shouldReload = forceReload || std::any_of(program.shaders.begin(), program.shaders.end(),
             [](const glUtils::ShaderInfo& shader) {
                 return fs::last_write_time(shader.fileInfo->filePath) > shader.fileInfo->lastModified;
+            })
+            || std::any_of(program.dependencies.begin(), program.dependencies.end(),
+            [](const std::shared_ptr<glUtils::ShaderFileInfo>& dep) {
+                return fs::last_write_time(dep->filePath) > dep->lastModified;
             });
 
         if (shouldReload) {
             for (auto& shader : program.shaders) {
                 shader.fileInfo->lastModified = fs::last_write_time(shader.fileInfo->filePath);
+            }
+            for (auto& dep : program.dependencies) {
+                dep->lastModified = fs::last_write_time(dep->filePath);
             }
 
             program.programID = glUtils::reloadShaderPrograms(
