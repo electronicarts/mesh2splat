@@ -35,6 +35,7 @@ uniform uint u_depthTestMesh;
 
 uniform int u_renderMode;
 uniform uint u_format;
+uniform uint u_plyHasPbr;
 uniform int u_gaussianCount;
 
 layout(std430, binding = 0) readonly buffer GaussianBuffer {
@@ -113,7 +114,7 @@ void main() {
 	float computedDepth = computeExponentialDepth(-gaussian_vs.z, u_nearFar);
 	
 
-	if (u_format == 0 || u_format == 3)
+	if (u_format == 0 || (u_format == 1 && u_plyHasPbr != 0) || u_format == 3)
 	{
 		vec3 normalWs = (transpose(inverse(u_modelToWorld)) * vec4(gaussian.normal.xyz, 1.0f)).xyz;
 		computedNormal_Ws = vec4(encodeNormal(normalWs), gaussian.color.a); //remember to decode this when using in the gbuffer

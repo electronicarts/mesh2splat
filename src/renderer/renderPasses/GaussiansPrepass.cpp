@@ -23,6 +23,7 @@ void GaussiansPrepass::execute(RenderContext& renderContext)
     glUtils::setUniform2f(computeShaderGaussianPrepassProgramID,     "u_resolution", renderContext.rendererResolution);
     glUtils::setUniform1i(computeShaderGaussianPrepassProgramID,     "u_renderMode", renderContext.renderMode);
     glUtils::setUniform1ui(computeShaderGaussianPrepassProgramID,    "u_format", renderContext.format);
+    glUtils::setUniform1ui(computeShaderGaussianPrepassProgramID,    "u_plyHasPbr", renderContext.plyHasPbr ? 1u : 0u);
     glUtils::setUniformMat4(computeShaderGaussianPrepassProgramID,   "u_modelToWorld", renderContext.modelMat);
     glUtils::setUniform1i(computeShaderGaussianPrepassProgramID,     "u_gaussianCount", renderContext.numberOfGaussians);
     glUtils::setUniform2f(computeShaderGaussianPrepassProgramID,     "u_nearFar", glm::vec2(renderContext.nearPlane, renderContext.farPlane));

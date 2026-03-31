@@ -511,24 +511,36 @@ namespace parsers
         file.close();
     }
 
-    void loadPlyFile(std::string plyFileLocation, std::vector<utils::GaussianDataSSBO>& gaussians)
+    void loadPlyFile(std::string plyFileLocation, std::vector<utils::GaussianDataSSBO>& gaussians, bool& hasPbr)
     {
         try {
-            happly::PLYData plyIn(plyFileLocation);
+            happly::PLYData plyIn(plyFileLocation, true);
             std::vector<float> vertex_x = plyIn.getElement("vertex").getProperty<float>("x");
             std::vector<float> vertex_y = plyIn.getElement("vertex").getProperty<float>("y");
             std::vector<float> vertex_z = plyIn.getElement("vertex").getProperty<float>("z");
-        
-            std::vector<float> vertex_nx = plyIn.getElement("vertex").getProperty<float>("nx");
-            std::vector<float> vertex_ny = plyIn.getElement("vertex").getProperty<float>("ny");
-            std::vector<float> vertex_nz = plyIn.getElement("vertex").getProperty<float>("nz");
+
+            std::vector<float> vertex_nx;
+            std::vector<float> vertex_ny;
+            std::vector<float> vertex_nz;
+            if (plyIn.getElement("vertex").hasProperty("nx"))
+				vertex_nx = plyIn.getElement("vertex").getProperty<float>("nx");
+            if (plyIn.getElement("vertex").hasProperty("ny"))
+				vertex_ny = plyIn.getElement("vertex").getProperty<float>("ny");
+            if (plyIn.getElement("vertex").hasProperty("nz"))
+				vertex_nz = plyIn.getElement("vertex").getProperty<float>("nz");
 
             std::vector<float> vertex_f_dc_0 = plyIn.getElement("vertex").getProperty<float>("f_dc_0");
             std::vector<float> vertex_f_dc_1 = plyIn.getElement("vertex").getProperty<float>("f_dc_1");
             std::vector<float> vertex_f_dc_2 = plyIn.getElement("vertex").getProperty<float>("f_dc_2");
 
             //TODO: skipping SHs for now
-        
+
+            std::vector<float> vertex_metallic, vertex_roughness;
+            if (plyIn.getElement("vertex").hasProperty("metallicFactor"))
+	            vertex_metallic = plyIn.getElement("vertex").getProperty<float>("metallicFactor");
+            if (plyIn.getElement("vertex").hasProperty("roughnessFactor"))
+                vertex_roughness = plyIn.getElement("vertex").getProperty<float>("roughnessFactor");
+
             std::vector<float> vertex_opacity = plyIn.getElement("vertex").getProperty<float>("opacity");
         
             std::vector<float> vertex_scale_0 = plyIn.getElement("vertex").getProperty<float>("scale_0");
@@ -542,8 +554,7 @@ namespace parsers
 
             size_t numVertices = vertex_x.size();
             if (vertex_y.size() != numVertices || vertex_z.size() != numVertices ||
-                vertex_nx.size() != numVertices || vertex_ny.size() != numVertices ||
-                vertex_nz.size() != numVertices || vertex_f_dc_0.size() != numVertices ||
+                vertex_f_dc_0.size() != numVertices ||
                 vertex_f_dc_1.size() != numVertices || vertex_f_dc_2.size() != numVertices ||
                 vertex_opacity.size() != numVertices || vertex_scale_0.size() != numVertices ||
                 vertex_scale_1.size() != numVertices || vertex_scale_2.size() != numVertices ||
@@ -551,6 +562,10 @@ namespace parsers
                 vertex_rot_2.size() != numVertices || vertex_rot_3.size() != numVertices) {
                 throw std::runtime_error("Inconsistent vertex property sizes in PLY file.");
             }
+
+            hasPbr = vertex_metallic.size() == numVertices && vertex_roughness.size() == numVertices &&
+                     vertex_nx.size() == numVertices && vertex_ny.size() == numVertices &&
+                     vertex_nz.size() == numVertices;
 
             gaussians.clear();
             gaussians.reserve(numVertices);
@@ -575,10 +590,18 @@ namespace parsers
                 gaussian.scale.z = glm::exp(vertex_scale_2[i]);
                 gaussian.scale.w = 1.0f;
 
-                gaussian.normal.x = vertex_nx[i];
-                gaussian.normal.y = vertex_ny[i];
-                gaussian.normal.z = vertex_nz[i];
-                gaussian.normal.w = 0.0f;
+                if (hasPbr)
+                {
+                    gaussian.normal.x = vertex_nx[i];
+                    gaussian.normal.y = vertex_ny[i];
+                    gaussian.normal.z = vertex_nz[i];
+                    gaussian.normal.w = 0.0f;
+                }
+                else
+                {
+	                gaussian.normal = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+                }
+
                 glm::quat rot = glm::quat(vertex_rot_0[i], vertex_rot_1[i], vertex_rot_2[i], vertex_rot_3[i]);
                 rot = glm::normalize(rot);
                 gaussian.rotation.x = rot.w;
@@ -586,7 +609,14 @@ namespace parsers
                 gaussian.rotation.z = rot.y;
                 gaussian.rotation.w = rot.z;
 
-                gaussian.pbr = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+                if (hasPbr)
+                {
+	                gaussian.pbr = glm::vec4(vertex_metallic[i], vertex_roughness[i], 0.0f, 0.0f);
+                }
+                else
+                {
+					gaussian.pbr = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+                }
 
                 gaussians.push_back(gaussian);
             }
