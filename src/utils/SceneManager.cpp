@@ -36,7 +36,7 @@ bool SceneManager::loadModel(const std::string& filePath, const std::string& par
 
 bool SceneManager::loadPly(const std::string& filePath) {
     try {
-        parsers::loadPlyFile(filePath, renderContext.readGaussians);
+        parsers::loadPlyFile(filePath, renderContext.readGaussians, renderContext.plyHasPbr);
         return true;
     }
     catch (const std::exception& e)
