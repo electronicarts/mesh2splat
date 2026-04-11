@@ -296,7 +296,8 @@ namespace parsers
             //-----------------------------------------------------------------
 
             //Opacity
-            file.write(reinterpret_cast<const char*>(&gaussian.color.a), sizeof(gaussian.color.a));
+            float opacity = utils::invSigmoid(gaussian.color.a);
+            file.write(reinterpret_cast<const char*>(&opacity), sizeof(opacity));
             
             gaussian.scale.x = std::log(gaussian.scale.x * scaleMultiplier);
             gaussian.scale.y = std::log(gaussian.scale.y * scaleMultiplier);
@@ -490,7 +491,8 @@ namespace parsers
             }
 
             // Opacity
-            file.write(reinterpret_cast<const char*>(&gaussian.color.a), sizeof(gaussian.color.a));
+            float opacity = utils::invSigmoid(gaussian.color.a);
+            file.write(reinterpret_cast<const char*>(&opacity), sizeof(opacity));
 
             gaussian.scale.x = std::log(gaussian.scale.x * scaleMultiplier);
             gaussian.scale.y = std::log(gaussian.scale.y * scaleMultiplier);

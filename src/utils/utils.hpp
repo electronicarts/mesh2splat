@@ -267,6 +267,7 @@ namespace utils
     bool shouldSkip(const GaussianDataSSBO& g);
 
     inline float sigmoid(float opacity) { return 1.0 / (1.0 + std::exp(-opacity)); };
+    inline float invSigmoid(float alpha) { alpha = std::clamp(alpha, 0.0f, 1.0f); return -std::log((1.0f / (alpha + 1e-8f)) - 1.0f); }
 
     std::string formatWithCommas(int value);
 
