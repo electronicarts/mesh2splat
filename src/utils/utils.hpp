@@ -29,10 +29,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#ifndef _WIN32
 #include <filesystem>
-#define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
-#endif
 #define EMPTY_TEXTURE "empty_texture"
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/string_cast.hpp>
@@ -73,11 +70,7 @@ static void CheckOpenGLError(const char* stmt, const char* fname, int line)
     #define GL_CHECK(stmt) stmt
 #endif
 
-#ifdef _WIN32
-namespace fs = std::experimental::filesystem;
-#else
 namespace fs = std::filesystem;
-#endif
 
 namespace utils
 {
