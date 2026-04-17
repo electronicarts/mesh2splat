@@ -118,7 +118,7 @@ void ImGuiUI::renderFileSelectorWindow()
     {
         if (ImGuiFileDialog::Instance()->IsOk()) {
             std::string chosenFolder = ImGuiFileDialog::Instance()->GetCurrentPath();
-            destinationFilePathFolder = chosenFolder + "\\";
+            destinationFilePathFolder = chosenFolder;
         }
 
         // Close the dialog

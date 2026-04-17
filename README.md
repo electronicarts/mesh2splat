@@ -109,6 +109,37 @@ To build **Mesh2Splat**, follow the following steps:
 
    > **Tip**: Use the release build if you only need the final executable in optimized (Release) mode.
 
+## Build Instructions (Linux)
+
+### Prerequisites
+
+Install dependencies:
+
+```bash
+sudo apt install build-essential cmake pkg-config git \
+    libfreeimage-dev libglew-dev libglfw3-dev libgl1-mesa-dev \
+    libxinerama-dev libxcursor-dev libxi-dev libxxf86vm-dev
+```
+
+### Build Steps
+
+1. Create and enter the build directory:
+   ```bash
+   mkdir build && cd build
+   ```
+
+2. Configure and build:
+   ```bash
+   cmake ..
+   cmake --build . -j16
+   ```
+
+3. Run the executable located in the `build` directory.
+
+<br>
+
+   > **Tip**: Use `cmake .. -DCMAKE_BUILD_TYPE=Release` if you only need the final executable in optimized (Release) mode.
+
 
 ## Limitations
 - Volumetric Data such as foliage, grass, hair, clouds, etc. has not being targeted and will probably not be converted correctly if using primitives different from triangles.<br>
