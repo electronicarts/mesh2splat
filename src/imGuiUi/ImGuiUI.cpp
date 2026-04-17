@@ -3,7 +3,7 @@
 //        Copyright (c) 2025 Electronic Arts Inc. All rights reserved.       //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "ImGuiUI.hpp"
+#include "ImGuiUi.hpp"
 
 ImGuiUI::ImGuiUI(float defaultGaussianStd, float defaultMesh2SPlatQuality)
     : resolutionIndex(0),
@@ -118,7 +118,7 @@ void ImGuiUI::renderFileSelectorWindow()
     {
         if (ImGuiFileDialog::Instance()->IsOk()) {
             std::string chosenFolder = ImGuiFileDialog::Instance()->GetCurrentPath();
-            destinationFilePathFolder = chosenFolder + "\\";
+            destinationFilePathFolder = chosenFolder;
         }
 
         // Close the dialog

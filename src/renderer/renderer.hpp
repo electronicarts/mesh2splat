@@ -5,7 +5,7 @@
 
 #pragma once
 #include "utils/utils.hpp"
-#include "ioHandler.hpp"
+#include "IoHandler.hpp"
 #include "imGuiUi/ImGuiUi.hpp"
 #include "parsers/parsers.hpp"
 #include "utils/glUtils.hpp"

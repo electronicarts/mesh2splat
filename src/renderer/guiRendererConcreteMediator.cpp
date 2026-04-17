@@ -3,7 +3,7 @@
 //        Copyright (c) 2025 Electronic Arts Inc. All rights reserved.       //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "GuiRendererConcreteMediator.hpp"
+#include "guiRendererConcreteMediator.hpp"
 
 void GuiRendererConcreteMediator::notify(EventType event)
 {

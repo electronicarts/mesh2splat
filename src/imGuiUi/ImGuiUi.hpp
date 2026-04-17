@@ -110,7 +110,7 @@ public:
     void markBatchItemDone(const std::string& path);  // Processing -> Done
     void markBatchItemFailed(const std::string& path, const std::string& err);
     void cancelBatch();     
-    const std::vector<ImGuiUI::BatchItem>& ImGuiUI::getBatchItems() const;
+    const std::vector<ImGuiUI::BatchItem>& getBatchItems() const;
 
 private:
     int resolutionIndex = 0;
