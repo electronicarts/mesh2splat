@@ -25,6 +25,9 @@ void GuiRendererConcreteMediator::notify(EventType event)
             imguiUI.setMeshLoaded(true);
             
             imguiUI.setPlyLoaded(false); //need to reset this
+
+            // Auto-fit camera to loaded model
+            renderer.fitCameraToScene();
             break;
         }
         case EventType::LoadPly: {
@@ -45,6 +48,9 @@ void GuiRendererConcreteMediator::notify(EventType event)
                 
 
                 imguiUI.setMeshLoaded(false); //need to reset this
+
+                // Auto-fit camera to loaded PLY
+                renderer.fitCameraToScene();
             }
             break;
         }
@@ -99,6 +105,9 @@ void GuiRendererConcreteMediator::notify(EventType event)
                 renderer.getRenderContext()->projMat,
                 modelM
             );
+
+            // Camera controls
+            imguiUI.renderCameraControls(renderer.getCamera());
 
             break;
         }

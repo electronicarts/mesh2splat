@@ -12,6 +12,7 @@
 #include <imgui_impl_opengl3.h>
 #include <glm/glm.hpp>
 #include "utils/utils.hpp"
+#include "utils/Camera.hpp"
 #include "Imguizmo.hpp"
 #include "ImGuiFileDialog.h"
 
@@ -79,6 +80,8 @@ public:
 
     bool isSplitScreenEnabled() const;
     float getSplitScreenPosition() const;
+
+    void renderCameraControls(Camera& camera);
 
 
     enum class VisualizationOption
