@@ -252,6 +252,10 @@ void GuiRendererConcreteMediator::startBatchJob(ImGuiUI::BatchItem* job, ImGuiUI
         renderer.getSceneManager().loadModel(job->path, job->parent);
         renderer.gaussianBufferFromSize(ui.getResolutionTarget() * ui.getResolutionTarget());
         renderer.setViewportResolutionForConversion(ui.getResolutionTarget());
+
+        // Fit camera to scene to ensure proper state initialization before conversion
+        renderer.fitCameraToScene();
+
         renderer.enableRenderPass(conversionPassName);
         batchSubstate = BatchSubstate::Converting;
     } else {
