@@ -3,7 +3,7 @@
 //        Copyright (c) 2025 Electronic Arts Inc. All rights reserved.       //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "GuiRendererConcreteMediator.hpp"
+#include "guiRendererConcreteMediator.hpp"
 
 void GuiRendererConcreteMediator::notify(EventType event)
 {
@@ -25,6 +25,9 @@ void GuiRendererConcreteMediator::notify(EventType event)
             imguiUI.setMeshLoaded(true);
             
             imguiUI.setPlyLoaded(false); //need to reset this
+
+            // Auto-fit camera to loaded model
+            renderer.fitCameraToScene();
             break;
         }
         case EventType::LoadPly: {
@@ -45,6 +48,9 @@ void GuiRendererConcreteMediator::notify(EventType event)
                 
 
                 imguiUI.setMeshLoaded(false); //need to reset this
+
+                // Auto-fit camera to loaded PLY
+                renderer.fitCameraToScene();
             }
             break;
         }
@@ -99,6 +105,9 @@ void GuiRendererConcreteMediator::notify(EventType event)
                 renderer.getRenderContext()->projMat,
                 modelM
             );
+
+            // Camera controls
+            imguiUI.renderCameraControls(renderer.getCamera());
 
             break;
         }
@@ -239,10 +248,17 @@ void GuiRendererConcreteMediator::startBatchJob(ImGuiUI::BatchItem* job, ImGuiUI
     renderer.resetModelMatrices();
     renderer.setFormatType(0); 
 
+    // Set gaussian std to match manual mode (default value from ImGuiUI)
+    renderer.setStdDevFromImGui(ui.getGaussianStd());
+
     if (isGlb(job->ext)) {
         renderer.getSceneManager().loadModel(job->path, job->parent);
         renderer.gaussianBufferFromSize(ui.getResolutionTarget() * ui.getResolutionTarget());
         renderer.setViewportResolutionForConversion(ui.getResolutionTarget());
+
+        // Fit camera to scene to ensure proper state initialization before conversion
+        renderer.fitCameraToScene();
+
         renderer.enableRenderPass(conversionPassName);
         batchSubstate = BatchSubstate::Converting;
     } else {

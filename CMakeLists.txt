@@ -68,7 +68,7 @@ if (WIN32)
         ${GLEW_DIR}/lib/Release/x64/glew32s.lib 
         opengl32)
 else()
-    target_link_libraries(Mesh2Splat glfw glew GL) #todo
+    target_link_libraries(Mesh2Splat glfw GLEW GL X11 Xrandr Xinerama Xcursor Xi Xxf86vm pthread dl) #todo
 endif()
 
 set_target_properties(Mesh2Splat PROPERTIES 

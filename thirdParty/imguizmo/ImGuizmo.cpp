@@ -29,7 +29,7 @@
 #endif
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "ImGuizmo.hpp"
+#include "Imguizmo.hpp"
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #include <malloc.h>

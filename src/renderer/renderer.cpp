@@ -181,23 +181,19 @@ void Renderer::updateTransformations()
     int width, height;
     glfwGetFramebufferSize(rendererGlfwWindow, &width, &height);
 
-    float fov = camera.GetFOV();
+    renderContext.nearPlane = 0.001f;
+    renderContext.farPlane = 10000.0f;
 
-    renderContext.nearPlane = 0.01f;
-    renderContext.farPlane = 100.0f;
-
-    renderContext.projMat = glm::perspective(glm::radians(fov),
-                                            (float)width / (float)height,
-                                            renderContext.nearPlane, renderContext.farPlane);
     // Set viewport
     glViewport(0, 0, width, height);
 
-    // Use Camera's view matrix
+    // Use Camera's view and projection matrices
     renderContext.viewMat = camera.GetViewMatrix();
+    renderContext.projMat = camera.GetProjectionMatrix(width, height, renderContext.nearPlane, renderContext.farPlane);
 
     renderContext.MVP = renderContext.projMat * renderContext.viewMat * renderContext.modelMat;
 
-    float htany = tan(glm::radians(fov) / 2);
+    float htany = tan(glm::radians(camera.GetFOV()) / 2);
     float htanx = htany / height * width;
     float focal_z = height / (2 * htany);
     renderContext.hfov_focal = glm::vec3(htanx, htany, focal_z);
@@ -566,5 +562,30 @@ void Renderer::setSplitScreenEnabled(bool enabled)
 void Renderer::setSplitScreenPosition(float position)
 {
     renderContext.splitScreenPosition = position;
+}
+
+void Renderer::fitCameraToScene()
+{
+    auto& meshes = renderContext.dataMeshAndGlMesh;
+    if (meshes.empty()) return;
+
+    glm::vec3 globalMin = glm::vec3(
+        std::numeric_limits<float>::max(),
+        std::numeric_limits<float>::max(),
+        std::numeric_limits<float>::max()
+    );
+    glm::vec3 globalMax = glm::vec3(
+        std::numeric_limits<float>::lowest(),
+        std::numeric_limits<float>::lowest(),
+        std::numeric_limits<float>::lowest()
+    );
+
+    for (auto& pair : meshes) {
+        const auto& mesh = pair.first;
+        globalMin = glm::min(globalMin, mesh.bbox.min);
+        globalMax = glm::max(globalMax, mesh.bbox.max);
+    }
+
+    camera.FitToBounds(globalMin, globalMax);
 }
 

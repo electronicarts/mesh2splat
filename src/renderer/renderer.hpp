@@ -5,7 +5,7 @@
 
 #pragma once
 #include "utils/utils.hpp"
-#include "ioHandler.hpp"
+#include "IoHandler.hpp"
 #include "imGuiUi/ImGuiUi.hpp"
 #include "parsers/parsers.hpp"
 #include "utils/glUtils.hpp"
@@ -60,6 +60,12 @@ public:
 	void deleteMeshGBuffer();
 	void setSplitScreenEnabled(bool enabled);
 	void setSplitScreenPosition(float position);
+
+	// Compute bounding box of loaded scene and auto-fit camera
+	void fitCameraToScene();
+
+	// Access to camera (for mediator to pass to UI)
+	Camera& getCamera() { return camera; }
 
 
 

@@ -98,7 +98,7 @@ namespace glUtils
     std::string resolveIncludes(const std::string& source, const fs::path& baseDir);
     std::string readShaderFile(const char* filePath);
 
-    namespace fs = std::experimental::filesystem;
+    namespace fs = std::filesystem;
 
     struct ShaderFileEditingInfo {
         fs::file_time_type lastWriteTime;

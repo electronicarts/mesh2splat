@@ -4,7 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "glUtils.hpp"
-#include "utils/shaderRegistry.hpp"
+#include "utils/ShaderRegistry.hpp"
 
 namespace glUtils 
 {

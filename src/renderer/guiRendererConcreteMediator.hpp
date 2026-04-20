@@ -4,8 +4,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #pragma once
-#include "Mediator.hpp"
-#include "Renderer.hpp"
+#include "mediator.hpp"
+#include "renderer.hpp"
 #include "imGuiUi/ImGuiUi.hpp"
 
 class GuiRendererConcreteMediator : public IMediator {
