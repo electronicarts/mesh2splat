@@ -1,0 +1,42 @@
+# manylinux_2_28 (AlmaLinux 8 based) - newer glibc, better C++17 support
+# Produces wheels compatible with newer Linux systems (glibc 2.28+)
+FROM quay.io/pypa/manylinux_2_28_x86_64
+
+# Install EGL/OpenGL dependencies for GPU backend
+RUN dnf install -y \
+    mesa-libGL-devel \
+    mesa-libEGL-devel \
+    libX11-devel \
+    && dnf clean all
+
+# Set up build environment
+WORKDIR /build
+
+# Copy source code
+COPY . /build/
+
+# Build wheels for Python 3.10, 3.11, 3.12
+RUN for PYBIN in /opt/python/cp310-cp310/bin /opt/python/cp311-cp311/bin /opt/python/cp312-cp312/bin; do \
+        "${PYBIN}/pip" install --upgrade pip build scikit-build-core pybind11 && \
+        "${PYBIN}/python" -m build --wheel -o /build/wheelhouse/ && \
+        rm -rf /build/build /build/*.egg-info; \
+    done
+
+# Repair wheels to be manylinux compliant
+RUN for whl in /build/wheelhouse/*.whl; do \
+        auditwheel repair "$whl" -w /build/dist/ || cp "$whl" /build/dist/; \
+    done
+
+# Test the wheels
+RUN for PYBIN in /opt/python/cp310-cp310/bin /opt/python/cp311-cp311/bin /opt/python/cp312-cp312/bin; do \
+        PYVER=$("${PYBIN}/python" -c "import sys; print(f'cp{sys.version_info.major}{sys.version_info.minor}')") && \
+        WHL=$(ls /build/dist/*${PYVER}*.whl 2>/dev/null | head -1) && \
+        if [ -n "$WHL" ]; then \
+            "${PYBIN}/pip" install "$WHL" numpy && \
+            "${PYBIN}/python" -c "import mesh2splat; print(f'${PYVER}: {mesh2splat.get_build_info()}')"; \
+        fi; \
+    done
+
+# Output directory
+VOLUME /output
+CMD ["sh", "-c", "cp /build/dist/*.whl /output/ 2>/dev/null || echo 'No wheels to copy'"]

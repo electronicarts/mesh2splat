@@ -1,0 +1,45 @@
+# Build artifacts
+build/
+build_py/
+dist/
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+*.so
+*.pyd
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Git
+.git/
+.gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test outputs
+/tmp/
+*.ply
+
+# Binaries
+bin/
+
+# Documentation (not needed for build)
+*.md
+!README.md
+docs/
+
+# Models (test data)
+models/

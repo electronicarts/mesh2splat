@@ -45,11 +45,11 @@ void ImGuiUI::renderFileSelectorWindow()
 
     ImGui::SeparatorText("Input");
 
-    if (ImGui::Button("Select file to load (.glb / .ply)")) {
+    if (ImGui::Button("Select file to load (.glb / .gltf / .ply)")) {
         IGFD::FileDialogConfig config;
         config.path = ".";
         ImGui::SetNextWindowSize(ImVec2(700, 400), ImGuiCond_Always);
-        ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".glb,.ply", config);
+        ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".glb,.gltf,.ply", config);
     }
 
     if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey")) {
@@ -60,8 +60,19 @@ void ImGuiUI::renderFileSelectorWindow()
             switch (currentModelFormat)
             {
             case utils::ModelFileExtension::GLB:
+            case utils::ModelFileExtension::GLTF:
                 meshFilePath = file;
                 meshParentFolder = parentFolder;
+                {
+                    // Set output filename to match input filename (with .ply extension)
+                    std::filesystem::path p(file);
+                    std::string stem = p.stem().string();
+                    snprintf(outputFilename, sizeof(outputFilename), "%s.ply", stem.c_str());
+                    
+                    // Auto-set destination folder to source folder + /ply
+                    std::filesystem::path plyDir = p.parent_path() / "ply";
+                    destinationFilePathFolder = plyDir.string();
+                }
                 break;
             case utils::ModelFileExtension::PLY:
                 plyFilePath = file;
@@ -76,10 +87,24 @@ void ImGuiUI::renderFileSelectorWindow()
         ImGuiFileDialog::Instance()->Close();
     }
 
+    // Projection mode dropdown (shown for mesh files)
+    const char* projectionLabels[] = { "UV Mapping", "Orthogonal (Recommended)" };
+
     switch (currentModelFormat)
     {
     case utils::ModelFileExtension::GLB:
         ImGui::Text("Selected Glb file: %s", meshFilePath.c_str());
+        ImGui::Combo("Projection Mode", &projectionMode, projectionLabels, IM_ARRAYSIZE(projectionLabels));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.60f, 0.20f, 1.0f)); 
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.30f, 0.75f, 0.30f, 1.0f)); 
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.50f, 0.15f, 1.0f)); 
+        loadNewMesh = ImGui::Button("Convert Mesh to 3DGS");
+        ImGui::PopStyleColor(3);
+
+        break;
+    case utils::ModelFileExtension::GLTF:
+        ImGui::Text("Selected Gltf file: %s", meshFilePath.c_str());
+        ImGui::Combo("Projection Mode", &projectionMode, projectionLabels, IM_ARRAYSIZE(projectionLabels));
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.60f, 0.20f, 1.0f)); 
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.30f, 0.75f, 0.30f, 1.0f)); 
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.50f, 0.15f, 1.0f)); 
@@ -118,7 +143,7 @@ void ImGuiUI::renderFileSelectorWindow()
     {
         if (ImGuiFileDialog::Instance()->IsOk()) {
             std::string chosenFolder = ImGuiFileDialog::Instance()->GetCurrentPath();
-            destinationFilePathFolder = chosenFolder;
+            destinationFilePathFolder = (std::filesystem::path(chosenFolder) / "").string();
         }
 
         // Close the dialog
@@ -136,6 +161,9 @@ void ImGuiUI::renderFileSelectorWindow()
 
     ImGui::SetNextItemWidth(comboWidth);
     ImGui::Combo("##Combobox", &formatIndex, formatLabels, IM_ARRAYSIZE(formatLabels));
+    
+    ImGui::SameLine();
+    ImGui::Checkbox("Flip Y (SuperSplat)", &flipYOnExport);
 
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.60f, 0.20f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.30f, 0.75f, 0.30f, 1.0f));
@@ -143,7 +171,15 @@ void ImGuiUI::renderFileSelectorWindow()
     if (ImGui::Button("Save splat")) {
         savePly = true;
     }
-    ImGui::PopStyleColor(3);
+    ImGui::SameLine();
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.40f, 0.70f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.30f, 0.50f, 0.80f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.35f, 0.60f, 1.0f));
+    if (ImGui::Button("Save All Formats")) {
+        saveAllFormats = true;
+        saveAllFormatsIndex = 0;
+    }
+    ImGui::PopStyleColor(6);
 
     ImGui::End();
 }
@@ -276,10 +312,16 @@ void ImGuiUI::renderGpuFrametime()
     const float history_length = 5.0f; //seconds
     const float plot_height = 100.0f;
 
+    // PlotLines with getter function for deque compatibility
+    auto getter = [](void* data, int idx) -> float {
+        auto* deq = static_cast<std::deque<float>*>(data);
+        return (*deq)[static_cast<size_t>(idx)];
+    };
     ImGui::PlotLines(
         "Frame Times",
-        frameTimeHistory.data(),
-        frameTimeHistory.size(),
+        getter,
+        &frameTimeHistory,
+        static_cast<int>(frameTimeHistory.size()),
         0,
         nullptr,
         0.0f,                   
@@ -492,7 +534,6 @@ bool ImGuiUI::shouldSavePly() const { return savePly; } ;
 std::string ImGuiUI::getMeshFilePath() const { return meshFilePath; };
 std::string ImGuiUI::getMeshFilePathParentFolder() const {return meshParentFolder;};
 std::string ImGuiUI::getMeshFullFilePathDestination() const {
-    
     if (utils::getFileExtension(std::string(outputFilename)) == utils::ModelFileExtension::NONE)
     {
         return destinationFilePathFolder + "/" + std::string(outputFilename) + ".ply";
@@ -504,10 +545,29 @@ std::string ImGuiUI::getMeshFullFilePathDestination() const {
     return destinationFilePathFolder + "/" + std::string(outputFilename);
 };
 
+std::string ImGuiUI::getMeshFullFilePathDestinationWithSuffix(int formatIdx) const {
+    // Get base filename without extension
+    std::filesystem::path p(outputFilename);
+    std::string stem = p.stem().string();
+    
+    // Add format-specific suffix
+    const char* suffixes[] = { "", "_pbr", "_pbr_compressed" };
+    std::string suffix = (formatIdx >= 0 && formatIdx < 3) ? suffixes[formatIdx] : "";
+    
+    return destinationFilePathFolder + "/" + stem + suffix + ".ply";
+};
+
 std::string ImGuiUI::getPlyFilePath() const { return std::string(plyFilePath); };
 std::string ImGuiUI::getPlyFilePathParentFolder() const { return plyParentFolder; };
 
+void ImGuiUI::ensureOutputDirectoryExists() const {
+    if (!destinationFilePathFolder.empty()) {
+        std::filesystem::create_directories(destinationFilePathFolder);
+    }
+}
+
 unsigned int ImGuiUI::getFormatOption() const { return formatOptions[formatIndex]; };
+bool ImGuiUI::getFlipYOnExport() const { return flipYOnExport; };
 glm::vec4 ImGuiUI::getSceneBackgroundColor() const { return sceneBackgroundColor; };
 float ImGuiUI::getGaussianStd() const { return gaussian_std; };
 int ImGuiUI::getResolutionTarget() const { return static_cast<int>(minRes + quality * (maxRes - minRes)); };
@@ -524,13 +584,28 @@ void ImGuiUI::setPlyLoaded(bool loadedPly) { hasPlyBeenLoaded = loadedPly; };
 void ImGuiUI::setRunConversion(bool shouldRunConversionFlag) { runConversionFlag = shouldRunConversionFlag; };
 void ImGuiUI::setShouldSavePly(bool shouldSavePly) { savePly = shouldSavePly; };
 
+bool ImGuiUI::shouldSaveAllFormats() const { return saveAllFormats; };
+int ImGuiUI::getSaveAllFormatsIndex() const { return saveAllFormatsIndex; };
+
+void ImGuiUI::advanceSaveAllFormats() {
+    saveAllFormatsIndex++;
+    if (saveAllFormatsIndex >= 3) {
+        saveAllFormats = false;
+        saveAllFormatsIndex = 0;
+    }
+}
+
+void ImGuiUI::resetSaveAllFormats() {
+    saveAllFormats = false;
+    saveAllFormatsIndex = 0;
+}
+
 void ImGuiUI::setFrameMetrics(double gpuFrameTime) {
     this->gpuFrameTime = static_cast<float>(gpuFrameTime);
-    this->gpuFrameTime = static_cast<float>(gpuFrameTime);
     
-    // Rolling buffer as vector
+    // Rolling buffer - deque provides O(1) pop_front
     if(frameTimeHistory.size() >= MAX_FRAME_HISTORY) {
-        frameTimeHistory.erase(frameTimeHistory.begin());
+        frameTimeHistory.pop_front();
     }
 
     frameTimeHistory.push_back(this->gpuFrameTime);
@@ -546,6 +621,7 @@ bool ImGuiUI::getIsDepthTestEnabled() const { return enableDepthTest; }
 
 bool ImGuiUI::isSplitScreenEnabled() const { return splitScreenEnabled; }
 float ImGuiUI::getSplitScreenPosition() const { return splitScreenPosition; }
+int ImGuiUI::getProjectionMode() const { return projectionMode; }
 
 //TODO: batching utility code, I think refactor is needed to move batching logic to separate file, for later refactor pass
 void ImGuiUI::enqueueFolder(const std::string& dir)
@@ -601,18 +677,23 @@ bool ImGuiUI::hasBatchWork() const
 
 bool ImGuiUI::isBatchRunning() const { return batchRunning && !batchCancelRequested; }
 
-ImGuiUI::BatchItem* ImGuiUI::popNextBatchItem()
+int ImGuiUI::popNextBatchItemIndex()
 {
-    if (batchCancelRequested) return nullptr;
-    for (auto& it : batchItems) {
-        if (it.status == BatchItem::Status::Queued) {
-            it.status = BatchItem::Status::Processing;
-            return &it; // return pointer to live storage
+    if (batchCancelRequested) return -1;
+    for (int i = 0; i < static_cast<int>(batchItems.size()); ++i) {
+        if (batchItems[i].status == BatchItem::Status::Queued) {
+            batchItems[i].status = BatchItem::Status::Processing;
+            return i;
         }
     }
     // Nothing left
     if (batchRunning) batchRunning = false;
-    return nullptr;
+    return -1;
+}
+
+ImGuiUI::BatchItem& ImGuiUI::getBatchItemAt(int index)
+{
+    return batchItems.at(index);
 }
 
 void ImGuiUI::markBatchItemDone(const std::string& path)

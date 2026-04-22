@@ -29,7 +29,8 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include <filesystem>
+// Note: std::experimental::filesystem was previously used here but has been removed.
+// All filesystem operations now use <filesystem> (already included above).
 #define EMPTY_TEXTURE "empty_texture"
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/string_cast.hpp>
@@ -51,7 +52,7 @@
 #endif
 
 
-static void CheckOpenGLError(const char* stmt, const char* fname, int line)
+inline void CheckOpenGLError(const char* stmt, const char* fname, int line)
 {
     GLenum err = glGetError();
     if (err != GL_NO_ERROR)
@@ -93,8 +94,17 @@ namespace utils
         std::vector<unsigned char> texture;
         int width, height;
         unsigned int channels;
+        int textureIndex = -1;
+        int imageIndex = -1;
+        int samplerIndex = -1;
+        int wrapS = 0;
+        int wrapT = 0;
+        int minFilter = 0;
+        int magFilter = 0;
+        std::string mimeType;
 
-        TextureInfo(const std::string& path = EMPTY_TEXTURE, int texCoordIndex = 0, std::vector<unsigned char> texture = {}, int width = 0, int height = 0, unsigned int channels = 0) : path(path), texCoordIndex(texCoordIndex), texture(texture), width(width), height(height), channels(channels) {}
+        TextureInfo(const std::string& path = EMPTY_TEXTURE, int texCoordIndex = 0, std::vector<unsigned char> texture = {}, int width = 0, int height = 0, unsigned int channels = 0)
+            : path(path), texCoordIndex(texCoordIndex), texture(texture), width(width), height(height), channels(channels) {}
     };
 
     struct MaterialGltf {
@@ -135,7 +145,7 @@ namespace utils
     struct Gaussian3D {
         Gaussian3D(glm::vec3 position, glm::vec3 normal, glm::vec3 scale, glm::vec4 rotation, glm::vec3 RGB, float opacity, MaterialGltf material)
             : position(position), normal(normal), scale(scale), rotation(rotation), sh0(RGB), opacity(opacity), material(material) {};
-        Gaussian3D() : position(NULL), normal(NULL), scale(NULL), rotation(NULL), sh0(NULL), opacity(NULL), material(MaterialGltf()) {};
+        Gaussian3D() : position(0.0f), normal(0.0f), scale(0.0f), rotation(0.0f), sh0(0.0f), opacity(0.0f), material(MaterialGltf()) {};
         glm::vec3 position;
         glm::vec3 normal;
         glm::vec3 scale;
@@ -148,7 +158,7 @@ namespace utils
     struct GaussianDataSSBO {
         glm::vec4 position;
         glm::vec4 color;
-        glm::vec4 scale;
+        glm::vec4 linearScale;  // Renamed from 'scale' for clarity (linear-space scale)
         glm::vec4 normal;
         glm::vec4 rotation;
         glm::vec4 pbr;
@@ -176,6 +186,23 @@ namespace utils
 
     struct Mesh {
         std::string name;
+        std::string sourceName;
+        int primitiveIndex = -1;
+        int materialIndex = -1;
+        struct UVAccessorInfo {
+            bool hasTexcoord = false;
+            int accessorIndex = -1;
+            int accessorType = 0;
+            int componentType = 0;
+            bool normalized = false;
+            size_t count = 0;
+            size_t accessorByteOffset = 0;
+            int bufferViewIndex = -1;
+            size_t bufferViewByteOffset = 0;
+            size_t bufferViewByteStride = 0;
+            int bufferIndex = -1;
+            size_t bufferByteLength = 0;
+        } uvAccessor;
         std::vector<Face> faces; // Tuple of vertex indices, uv indices and normalIndices
         MaterialGltf material; 
         float surfaceArea = 0;
@@ -196,6 +223,11 @@ namespace utils
         unsigned int glTextureID    = 0;
         unsigned int width          = 0;
         unsigned int height         = 0;
+        int wrapS = 0;
+        int wrapT = 0;
+        int minFilter = 0;
+        int magFilter = 0;
+        bool srgb = false;
 
         TextureDataGl(std::vector<unsigned char> textureData, unsigned int channels, unsigned int glTextureID, unsigned int width, unsigned int height) : textureData(textureData), channels(channels), glTextureID(glTextureID), width(width), height(height){}
         
@@ -208,6 +240,10 @@ namespace utils
             glTextureID = 0;
             width = info.width;
             height = info.height;
+            wrapS = info.wrapS;
+            wrapT = info.wrapT;
+            minFilter = info.minFilter;
+            magFilter = info.magFilter;
         }
 
 
@@ -218,6 +254,7 @@ namespace utils
         NONE,
         PLY,
         GLB,
+        GLTF,
     };
 
 
@@ -286,9 +323,9 @@ namespace utils
 
     std::string modelFileExtensionEnumToString(ModelFileExtension ext);
 
-    static std::string pad3(int i) { char b[8]; std::snprintf(b, sizeof(b), "%03d", i); return b; }
+    inline std::string pad3(int i) { char b[8]; std::snprintf(b, sizeof(b), "%03d", i); return b; }
 
-    static std::string makeUniquePath(const std::filesystem::path& p) {
+    inline std::string makeUniquePath(const std::filesystem::path& p) {
         namespace fs = std::filesystem;
         fs::path candidate = p;
         int n = 1;

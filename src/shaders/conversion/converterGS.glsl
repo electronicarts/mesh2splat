@@ -11,6 +11,7 @@ layout(triangle_strip, max_vertices = 3) out;
 uniform vec2 metallicRoughnessFactors;
 uniform vec3 u_bboxMin;
 uniform vec3 u_bboxMax;
+uniform int u_useOrthogonalProjection; // 0 = use UV, 1 = use orthogonal bbox projection
 
 
 in VS_OUT{
@@ -436,7 +437,15 @@ void main() {
         Normal                  = gs_in[i].normal;
         UV                      = gs_in[i].uv;
         Quaternion              = quaternion;
-        gl_Position             = vec4(orthogonalUvs[i] * 2.0 - 1.0, 0.0, 1.0);
+        
+        // Choose projection mode: UV-based or orthogonal bbox projection
+        vec2 projUv;
+        if (u_useOrthogonalProjection != 0) {
+            projUv = orthogonalUvs[i];
+        } else {
+            projUv = gs_in[i].normalizedUv;
+        }
+        gl_Position             = vec4(projUv * 2.0 - 1.0, 0.0, 1.0);
         EmitVertex();
     }
     EndPrimitive();

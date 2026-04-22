@@ -42,6 +42,14 @@ void IoHandler::processInput(float deltaTime)
                                upMove, downMove,
                                rotateLeftFrontVect, rotateRightFrontVect, boostSpeed, slowSpeed
         );
+        
+        // F key to frame object
+        static bool fKeyWasPressed = false;
+        bool fKeyPressed = glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS;
+        if (fKeyPressed && !fKeyWasPressed && frameObjectCallback) {
+            frameObjectCallback();
+        }
+        fKeyWasPressed = fKeyPressed;
     }
 
     if (!io.WantCaptureMouse)

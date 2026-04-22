@@ -34,6 +34,12 @@ GaussianSplattingPass::GaussianSplattingPass(RenderContext& renderContext)
 
 }
 
+GaussianSplattingPass::~GaussianSplattingPass()
+{
+    if (quadVBO != 0) glDeleteBuffers(1, &quadVBO);
+    if (quadEBO != 0) glDeleteBuffers(1, &quadEBO);
+}
+
 void GaussianSplattingPass::execute(RenderContext& renderContext)
 {
     glBindFramebuffer(GL_FRAMEBUFFER, renderContext.gBufferFBO);
@@ -74,7 +80,7 @@ void GaussianSplattingPass::execute(RenderContext& renderContext)
     unsigned int vec4sPerInstance = 6;
     unsigned int stride = sizeof(glm::vec4) * vec4sPerInstance; //This is the ndc stride
     
-    //i=0 is for the per-vertex quad pos, see line 27. Technically we´ll have a byte "hole" between per vertex-data (vec3) and the per-instance one (vec4) considering "(void*)(sizeof(glm::vec4) * (i - 1))" pointer
+    //i=0 is for the per-vertex quad pos, see line 27. Technically weï¿½ll have a byte "hole" between per vertex-data (vec3) and the per-instance one (vec4) considering "(void*)(sizeof(glm::vec4) * (i - 1))" pointer
     for (int i = 1; i <= vec4sPerInstance; ++i) {
         glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(glm::vec4) * (i - 1)));
         glEnableVertexAttribArray(i);

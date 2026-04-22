@@ -28,6 +28,11 @@ GaussianShadowPass::GaussianShadowPass(RenderContext& renderContext)
     glGenFramebuffers(1, &m_shadowFBO);
 
     glGenBuffers(1, &(renderContext.pointLightData.perQuadTransformationsUnified));
+    // Pre-allocate transformation buffer once (avoid 2GB per-frame allocation)
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, renderContext.pointLightData.perQuadTransformationsUnified);
+    size_t transformationBufferSize = MAX_GAUSSIANS_TO_SORT * sizeof(glm::vec4) * 3 * 6;
+    glBufferData(GL_SHADER_STORAGE_BUFFER, transformationBufferSize, nullptr, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     for (int face = 0; face < 6; face++) {
         glGenBuffers(1, &renderContext.pointLightData.atomicCounterBufferPerFace[face]);
@@ -78,6 +83,15 @@ GaussianShadowPass::GaussianShadowPass(RenderContext& renderContext)
 
     glBufferData(GL_DRAW_INDIRECT_BUFFER, 6 * sizeof(DrawElementsIndirectCommand), cmds, GL_DYNAMIC_DRAW);
 
+}
+
+GaussianShadowPass::~GaussianShadowPass()
+{
+    if (m_shadowFBO != 0)         glDeleteFramebuffers(1, &m_shadowFBO);
+    if (m_vao != 0)               glDeleteVertexArrays(1, &m_vao);
+    if (m_vbo != 0)               glDeleteBuffers(1, &m_vbo);
+    if (m_ebo != 0)               glDeleteBuffers(1, &m_ebo);
+    if (m_indirectDrawBuffer != 0) glDeleteBuffers(1, &m_indirectDrawBuffer);
 }
 
 void GaussianShadowPass::execute(RenderContext& renderContext)
@@ -131,14 +145,19 @@ void GaussianShadowPass::execute(RenderContext& renderContext)
            
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, renderContext.gaussianBuffer);
 
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, renderContext.pointLightData.perQuadTransformationsUnified);
-    size_t transformationBufferSize = MAX_GAUSSIANS_TO_SORT * sizeof(glm::vec4) * 3 * 6;
-    glBufferData(GL_SHADER_STORAGE_BUFFER, transformationBufferSize, nullptr, GL_DYNAMIC_DRAW);
+    // Bind pre-allocated transformation buffer (no per-frame reallocation)
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, renderContext.pointLightData.perQuadTransformationsUnified);
     
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_indirectDrawBuffer);
 
     unsigned int totalInvocations = renderContext.numberOfGaussians;
+    if (totalInvocations == 0) {
+        // No gaussians to process - skip shadow pass
+#ifdef  _DEBUG
+        glPopDebugGroup();
+#endif
+        return;
+    }
     unsigned int threadsPerGroup = 256;
     unsigned int totalGroupsNeeded = (totalInvocations + threadsPerGroup - 1) / threadsPerGroup;
     unsigned int groupsX = (unsigned int)ceil(sqrt((float)totalGroupsNeeded));
