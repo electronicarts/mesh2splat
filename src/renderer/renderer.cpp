@@ -181,6 +181,9 @@ void Renderer::updateTransformations()
     int width, height;
     glfwGetFramebufferSize(rendererGlfwWindow, &width, &height);
 
+    // Guard against zero-size framebuffer (e.g. window minimized)
+    if (width <= 0 || height <= 0) return;
+
     float fov = camera.GetFOV();
 
     renderContext.nearPlane = 0.01f;
