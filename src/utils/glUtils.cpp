@@ -21,6 +21,8 @@ namespace glUtils
         {
             glGetShaderInfoLog(shaderID, 512, NULL, infoLog);
             std::cerr << "ERROR::SHADER::COMPILATION_FAILED\n" << infoLog << std::endl;
+            glDeleteShader(shaderID);
+            return 0;
         }
 
         return shaderID;
@@ -662,7 +664,7 @@ namespace glUtils
             return;
         }
         gaussianCount = drawCmd->instanceCount;
-        //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
         // Bind and map the Gaussian buffer to read vertex data
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, gaussianBuffer);
@@ -675,6 +677,11 @@ namespace glUtils
 
     void fillGaussianBufferSsbo(GLuint& gaussianBuffer, std::vector<utils::GaussianDataSSBO>& gaussians)
     {
+        // Delete existing buffer if present to avoid leaks
+        if (gaussianBuffer != 0) {
+            glDeleteBuffers(1, &gaussianBuffer);
+            gaussianBuffer = 0;
+        }
         glGenBuffers(1, &gaussianBuffer);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, gaussianBuffer);
         //TODO: I will categorize this hardcoding issue of the number of output float4 params from the SSBO as: ISSUE6
@@ -685,6 +692,11 @@ namespace glUtils
 
     void fillGaussianBufferSsbo(GLuint& gaussianBuffer, unsigned int size)
     {
+        // Delete existing buffer if present to avoid leaks
+        if (gaussianBuffer != 0) {
+            glDeleteBuffers(1, &gaussianBuffer);
+            gaussianBuffer = 0;
+        }
         glGenBuffers(1, &gaussianBuffer);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, gaussianBuffer);
         //TODO: I will categorize this hardcoding issue of the number of output float4 params from the SSBO as: ISSUE6

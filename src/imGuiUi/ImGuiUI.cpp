@@ -615,6 +615,25 @@ ImGuiUI::BatchItem* ImGuiUI::popNextBatchItem()
     return nullptr;
 }
 
+int ImGuiUI::popNextBatchItemIndex()
+{
+    if (batchCancelRequested) return -1;
+    for (int i = 0; i < static_cast<int>(batchItems.size()); ++i) {
+        if (batchItems[i].status == BatchItem::Status::Queued) {
+            batchItems[i].status = BatchItem::Status::Processing;
+            return i;
+        }
+    }
+    // Nothing left
+    if (batchRunning) batchRunning = false;
+    return -1;
+}
+
+ImGuiUI::BatchItem& ImGuiUI::getBatchItemAt(int index)
+{
+    return batchItems.at(index);
+}
+
 void ImGuiUI::markBatchItemDone(const std::string& path)
 {
     //TODO: use a map for O(1)

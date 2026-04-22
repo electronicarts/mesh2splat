@@ -12,7 +12,7 @@
 #include <imgui_impl_opengl3.h>
 #include <glm/glm.hpp>
 #include "utils/utils.hpp"
-#include "Imguizmo.hpp"
+#include "ImGuizmo.hpp"
 #include "ImGuiFileDialog.h"
 
 
@@ -107,10 +107,12 @@ public:
     };
 
     BatchItem* popNextBatchItem();      // get next Queued -> set to Processing
+    int popNextBatchItemIndex();         // get next Queued -> set to Processing, returns index (-1 if none)
+    BatchItem& getBatchItemAt(int index);
     void markBatchItemDone(const std::string& path);  // Processing -> Done
     void markBatchItemFailed(const std::string& path, const std::string& err);
     void cancelBatch();     
-    const std::vector<ImGuiUI::BatchItem>& getBatchItems() const;
+    const std::vector<BatchItem>& getBatchItems() const;
 
 private:
     int resolutionIndex = 0;
