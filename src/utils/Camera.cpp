@@ -73,6 +73,28 @@ void Camera::ProcessMouseScroll(float yoffset) {
         FOV = 90.0f;
 }
 
+void Camera::FrameObject(glm::vec3 bboxMin, glm::vec3 bboxMax) {
+    // Calculate center and size of bounding box
+    glm::vec3 center = (bboxMin + bboxMax) * 0.5f;
+    glm::vec3 size = bboxMax - bboxMin;
+    float maxExtent = glm::max(size.x, glm::max(size.y, size.z));
+    
+    // Calculate distance needed to fit object in view
+    float halfFovRad = glm::radians(FOV * 0.5f);
+    float distance = (maxExtent * 0.5f) / tan(halfFovRad);
+    distance *= 1.5f; // Add some padding
+    
+    // Position camera looking at center from front
+    Position = center + glm::vec3(0.0f, 0.0f, distance);
+    
+    // Reset orientation to look at center
+    Yaw = -90.0f;  // Looking along -Z
+    Pitch = 0.0f;
+    Roll = 0.0f;
+    
+    updateCameraVectors();
+}
+
 void Camera::updateCameraVectors()
 {
     glm::vec3 front;

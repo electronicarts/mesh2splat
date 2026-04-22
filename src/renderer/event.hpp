@@ -11,6 +11,7 @@ enum class EventType {
     ViewDepth,
     RunConversion,
     SavePLY,
+    SaveAllFormats,
     EnableGaussianRendering,
     CheckShaderUpdate,
     ResizedWindow,

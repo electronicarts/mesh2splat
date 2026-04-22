@@ -35,6 +35,7 @@ public:
 	RenderContext* getRenderContext();
 	void enableRenderPass(std::string renderPassName);
 	void setViewportResolutionForConversion(int resolutionTarget);
+	void setProjectionMode(bool useOrthogonal);
 	void setFormatType(unsigned int format);
 
 	void setStdDevFromImGui(float stdDev);
@@ -75,7 +76,7 @@ private:
 
 	double lastShaderCheckTime;
 
-	double gpuFrameTimeMs;
+	double gpuFrameTimeMs = 0.0;
 
 	Camera& camera;
 

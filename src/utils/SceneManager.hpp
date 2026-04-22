@@ -17,7 +17,7 @@ public:
 
     bool loadModel(const std::string& filePath, const std::string& parentFolder);
     bool loadPly(const std::string& filePath);
-    void exportPly(const std::string outputFile, unsigned int exportFormat);
+    void exportPly(const std::string outputFile, unsigned int exportFormat, bool flipY = false);
 
     void updateMeshes();
     void cleanup();

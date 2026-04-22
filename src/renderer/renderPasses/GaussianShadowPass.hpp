@@ -9,8 +9,8 @@
 class GaussianShadowPass : public IRenderPass {
 public:
     GaussianShadowPass(RenderContext& renderContext);
-    ~GaussianShadowPass() = default;
-    void execute(RenderContext& renderContext);
+    ~GaussianShadowPass() override;
+    void execute(RenderContext& renderContext) override;
     void drawToCubeMapFaces(RenderContext& renderContext);
 
 private:
@@ -18,5 +18,5 @@ private:
     GLuint m_vao = 0;
     GLuint m_vbo = 0;
     GLuint m_ebo = 0;
-    GLuint m_indirectDrawBuffer;
+    GLuint m_indirectDrawBuffer = 0;
 };

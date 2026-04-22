@@ -31,4 +31,6 @@ void main() {
     vs_out.uv = uv;
     vs_out.normalizedUv = normalizedUv;
     vs_out.scale = scale;
+    // Ensure a defined clip-space position for primitive assembly.
+    gl_Position = vec4(position, 1.0);
 }
