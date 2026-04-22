@@ -4,6 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #pragma once
+#include <cstdint>
 #include "tiny_gltf.h"
 #include "stb_image.h"   
 #include "stb_image_resize.h"
@@ -13,6 +14,20 @@
 
 namespace parsers
 {
+	enum class DcMode : uint32_t
+	{
+		Current = 0,      // SH0 encoding (default)
+		DirectLinear = 1, // Direct linear color
+		DirectSrgb = 2    // Direct sRGB color
+	};
+
+	enum class OpacityMode : uint32_t
+	{
+		Current = 0,      // Use default behavior
+		Raw = 1,          // Store opacity directly
+		Logit = 2         // Apply inverse sigmoid
+	};
+
 	utils::TextureDataGl loadImageAndBpp(std::string texturePath, int& textureWidth, int& textureHeight);
 
 	void writePbrPLY(const std::string& filename, std::vector<utils::GaussianDataSSBO>& gaussians, float scaleMultiplier);

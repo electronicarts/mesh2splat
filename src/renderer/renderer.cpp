@@ -107,6 +107,9 @@ Renderer::~Renderer()
     glDeleteBuffers(1, &(renderContext.valuesBuffer));
     glDeleteBuffers(1, &(renderContext.perQuadTransformationBufferSorted));
     glDeleteBuffers(1, &(renderContext.gaussianDepthPostFiltering));
+    glDeleteBuffers(1, &(renderContext.perQuadTransformationsBuffer));
+    glDeleteBuffers(1, &(renderContext.atomicCounterBuffer));
+    glDeleteBuffers(1, &(renderContext.atomicCounterBufferConversionPass));
 
     deleteMeshGBuffer();
 
@@ -169,9 +172,13 @@ void Renderer::renderFrame()
     
     if (renderContext.queryPool.size() > 5) {
         GLuint completedQuery = renderContext.queryPool.front();
-        GLuint64 elapsedTime = 0;
-        glGetQueryObjectui64v(completedQuery, GL_QUERY_RESULT, &elapsedTime);
-        this->gpuFrameTimeMs = static_cast<double>(elapsedTime) / 1e6; // ns to ms
+        GLint available = 0;
+        glGetQueryObjectiv(completedQuery, GL_QUERY_RESULT_AVAILABLE, &available);
+        if (available) {
+            GLuint64 elapsedTime = 0;
+            glGetQueryObjectui64v(completedQuery, GL_QUERY_RESULT, &elapsedTime);
+            this->gpuFrameTimeMs = static_cast<double>(elapsedTime) / 1e6; // ns to ms
+        }
     }
 };        
 
@@ -180,6 +187,9 @@ void Renderer::updateTransformations()
 
     int width, height;
     glfwGetFramebufferSize(rendererGlfwWindow, &width, &height);
+
+    // Guard against zero-size framebuffer (e.g. window minimized)
+    if (width <= 0 || height <= 0) return;
 
     float fov = camera.GetFOV();
 

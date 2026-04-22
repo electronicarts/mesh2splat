@@ -12,7 +12,7 @@
 #include <imgui_impl_opengl3.h>
 #include <glm/glm.hpp>
 #include "utils/utils.hpp"
-#include "Imguizmo.hpp"
+#include "ImGuizmo.hpp"
 #include "ImGuiFileDialog.h"
 
 
@@ -107,10 +107,12 @@ public:
     };
 
     BatchItem* popNextBatchItem();      // get next Queued -> set to Processing
+    int popNextBatchItemIndex();         // get next Queued -> set to Processing, returns index (-1 if none)
+    BatchItem& getBatchItemAt(int index);
     void markBatchItemDone(const std::string& path);  // Processing -> Done
     void markBatchItemFailed(const std::string& path, const std::string& err);
     void cancelBatch();     
-    const std::vector<ImGuiUI::BatchItem>& getBatchItems() const;
+    const std::vector<BatchItem>& getBatchItems() const;
 
 private:
     int resolutionIndex = 0;
@@ -203,13 +205,14 @@ private:
         if (!e.is_regular_file()) return false;
         auto ext = e.path().extension().string();
         std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-        return (ext == ".glb" || ext == ".ply");
+        return (ext == ".glb" || ext == ".gltf" || ext == ".ply");
     };
 
     static utils::ModelFileExtension extFromPath(const std::string& p)
     {
         auto ext = utils::getFileExtension(p);
         if (ext == utils::ModelFileExtension::GLB) return utils::ModelFileExtension::GLB;
+        if (ext == utils::ModelFileExtension::GLTF) return utils::ModelFileExtension::GLTF;
         if (ext == utils::ModelFileExtension::PLY) return utils::ModelFileExtension::PLY;
         return utils::ModelFileExtension::NONE;
     };
