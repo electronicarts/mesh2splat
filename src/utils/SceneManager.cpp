@@ -7,6 +7,7 @@
 #include <iostream>
 #include <cstring>
 #include <functional>
+#include <algorithm>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
@@ -198,8 +199,17 @@ bool SceneManager::parseGltfFile(const std::string& filePath, const std::string&
     std::string err;
     std::string warn;
 
+    // Determine if file is binary (.glb) or ASCII (.gltf) based on extension
+    bool ret = false;
+    std::string ext = filePath.substr(filePath.find_last_of('.') + 1);
+    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
     
-    bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, filePath);
+    if (ext == "glb") {
+        ret = loader.LoadBinaryFromFile(&model, &err, &warn, filePath);
+    } else {
+        ret = loader.LoadASCIIFromFile(&model, &err, &warn, filePath);
+    }
+    
     if (!ret) {
         std::cerr << "Failed to load glTF: " << err << std::endl;
         return false;

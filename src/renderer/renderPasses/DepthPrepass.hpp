@@ -8,6 +8,6 @@
 
 class DepthPrepass : public IRenderPass {
 public:
-    ~DepthPrepass() = default;
-    void execute(RenderContext& renderContext);
+    ~DepthPrepass() override = default;
+    void execute(RenderContext& renderContext) override;
 };

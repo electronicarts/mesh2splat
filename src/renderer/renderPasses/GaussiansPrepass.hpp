@@ -8,6 +8,6 @@
 
 class GaussiansPrepass : public IRenderPass {
 public:
-    ~GaussiansPrepass() = default;
-    void execute(RenderContext& renderContext);
+    ~GaussiansPrepass() override = default;
+    void execute(RenderContext& renderContext) override;
 };

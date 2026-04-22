@@ -9,8 +9,8 @@
 
 class RadixSortPass : public IRenderPass {
 public:
-    ~RadixSortPass() = default;
-    void execute(RenderContext& renderContext);
+    ~RadixSortPass() override = default;
+    void execute(RenderContext& renderContext) override;
 
 private:
     

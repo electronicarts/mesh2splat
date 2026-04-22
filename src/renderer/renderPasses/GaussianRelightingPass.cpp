@@ -39,6 +39,13 @@ GaussianRelightingPass::GaussianRelightingPass()
 
 }
 
+GaussianRelightingPass::~GaussianRelightingPass()
+{
+    if (m_fullscreenQuadVAO != 0) glDeleteVertexArrays(1, &m_fullscreenQuadVAO);
+    if (m_fullscreenQuadVBO != 0) glDeleteBuffers(1, &m_fullscreenQuadVBO);
+    if (m_fullscreenQuadEBO != 0) glDeleteBuffers(1, &m_fullscreenQuadEBO);
+}
+
 void GaussianRelightingPass::bindGBufferAndDraw(
     GLuint shader,
     RenderContext& renderContext,
@@ -61,6 +68,7 @@ void GaussianRelightingPass::setLightingUniforms(GLuint shader, RenderContext& r
 {
     glUtils::setUniform3f(shader, "u_LightPosition", glm::vec3(renderContext.pointLightData.pointLightModel[3]));
     glUtils::setUniform3f(shader, "u_camPos", renderContext.camPos);
+    glUtils::setUniform1i(shader, "u_isLightingEnabled", renderContext.pointLightData.lightingEnabled);
     glUtils::setUniform1f(shader, "u_farPlane", renderContext.farPlane);
     glUtils::setUniform1f(shader, "u_lightIntensity", renderContext.pointLightData.lightIntensity);
     glUtils::setUniform1i(shader, "u_renderMode", renderContext.renderMode);

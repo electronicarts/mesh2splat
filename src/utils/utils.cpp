@@ -9,6 +9,13 @@
 #endif
 #include "utils.hpp"
 
+// Platform-specific includes for getExecutablePath
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#elif defined(__linux__)
+#include <unistd.h>
+#endif
+
 namespace utils
 {
     // Function to check if a point is inside a triangle
@@ -273,10 +280,11 @@ namespace utils
 
     glm::vec3 GenerateTangent(glm::vec3& normal) {
         glm::vec3 tangent;
+        // Choose reference vector not parallel to normal: X-axis if normal is more aligned with Z, else Z-axis
         if (abs(normal.x) < abs(normal.z))
-            tangent = glm::cross(normal, glm::vec3(0.0f, 0.0f, 0.0f));
+            tangent = glm::cross(normal, glm::vec3(1.0f, 0.0f, 0.0f));
         else
-            tangent = glm::cross(normal, glm::vec3(1.0f, 1.0f, 1.0f));
+            tangent = glm::cross(normal, glm::vec3(0.0f, 0.0f, 1.0f));
         return glm::normalize(tangent);
     }
 
@@ -442,6 +450,7 @@ namespace utils
         std::string ext = filename.substr(pos+1);
 
         if (ext == "glb") return ModelFileExtension::GLB;
+        else if (ext == "gltf") return ModelFileExtension::GLTF;
         else if (ext == "ply") return ModelFileExtension::PLY;
 
         return ModelFileExtension::NONE;
@@ -460,13 +469,22 @@ namespace utils
         char buffer[MAX_PATH];
         GetModuleFileNameA(nullptr, buffer, MAX_PATH);
         return std::string(buffer);
-#else
-        char buffer[PATH_MAX];
+#elif defined(__APPLE__)
+        char buffer[1024];
+        uint32_t size = sizeof(buffer);
+        if (_NSGetExecutablePath(buffer, &size) == 0) {
+            return std::string(buffer);
+        }
+        return "";
+#elif defined(__linux__)
+        char buffer[1024];
         ssize_t len = readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
         if (len != -1) {
             buffer[len] = '\0';
             return std::string(buffer);
         }
+        return "";
+#else
         return "";
 #endif
     }
@@ -504,6 +522,7 @@ namespace utils
             case ModelFileExtension::NONE: return "none";
             case ModelFileExtension::PLY: return "ply";
             case ModelFileExtension::GLB: return "glb";
+            case ModelFileExtension::GLTF: return "gltf";
             default: return "Unknown";
         }
     }

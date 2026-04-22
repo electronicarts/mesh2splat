@@ -8,6 +8,6 @@
 
 class MeshRenderPass : public IRenderPass {
 public:
-    ~MeshRenderPass() = default;
-    void execute(RenderContext& renderContext);
+    ~MeshRenderPass() override = default;
+    void execute(RenderContext& renderContext) override;
 };

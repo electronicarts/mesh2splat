@@ -45,11 +45,11 @@ void ImGuiUI::renderFileSelectorWindow()
 
     ImGui::SeparatorText("Input");
 
-    if (ImGui::Button("Select file to load (.glb / .ply)")) {
+    if (ImGui::Button("Select file to load (.glb / .gltf / .ply)")) {
         IGFD::FileDialogConfig config;
         config.path = ".";
         ImGui::SetNextWindowSize(ImVec2(700, 400), ImGuiCond_Always);
-        ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".glb,.ply", config);
+        ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".glb,.gltf,.ply", config);
     }
 
     if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey")) {
@@ -60,6 +60,7 @@ void ImGuiUI::renderFileSelectorWindow()
             switch (currentModelFormat)
             {
             case utils::ModelFileExtension::GLB:
+            case utils::ModelFileExtension::GLTF:
                 meshFilePath = file;
                 meshParentFolder = parentFolder;
                 break;
@@ -80,6 +81,15 @@ void ImGuiUI::renderFileSelectorWindow()
     {
     case utils::ModelFileExtension::GLB:
         ImGui::Text("Selected Glb file: %s", meshFilePath.c_str());
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.60f, 0.20f, 1.0f)); 
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.30f, 0.75f, 0.30f, 1.0f)); 
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.50f, 0.15f, 1.0f)); 
+        loadNewMesh = ImGui::Button("Convert Mesh to 3DGS");
+        ImGui::PopStyleColor(3);
+
+        break;
+    case utils::ModelFileExtension::GLTF:
+        ImGui::Text("Selected Gltf file: %s", meshFilePath.c_str());
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.60f, 0.20f, 1.0f)); 
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.30f, 0.75f, 0.30f, 1.0f)); 
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.50f, 0.15f, 1.0f)); 
@@ -613,6 +623,25 @@ ImGuiUI::BatchItem* ImGuiUI::popNextBatchItem()
     // Nothing left
     if (batchRunning) batchRunning = false;
     return nullptr;
+}
+
+int ImGuiUI::popNextBatchItemIndex()
+{
+    if (batchCancelRequested) return -1;
+    for (int i = 0; i < static_cast<int>(batchItems.size()); ++i) {
+        if (batchItems[i].status == BatchItem::Status::Queued) {
+            batchItems[i].status = BatchItem::Status::Processing;
+            return i;
+        }
+    }
+    // Nothing left
+    if (batchRunning) batchRunning = false;
+    return -1;
+}
+
+ImGuiUI::BatchItem& ImGuiUI::getBatchItemAt(int index)
+{
+    return batchItems.at(index);
 }
 
 void ImGuiUI::markBatchItemDone(const std::string& path)
