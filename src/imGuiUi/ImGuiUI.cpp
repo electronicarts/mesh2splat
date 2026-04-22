@@ -199,6 +199,94 @@ void ImGuiUI::renderUI()
     renderBatchWindow();
 }
 
+void ImGuiUI::renderCameraControls(Camera& camera)
+{
+    ImGui::SetNextWindowPos(ImVec2(1070, 20), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(200, 280), ImGuiCond_FirstUseEver);
+
+    ImGui::Begin("Camera Controls");
+
+    // Orthographic / Perspective toggle
+    bool isOrtho = camera.IsOrthographic();
+    if (ImGui::Checkbox("Orthographic", &isOrtho)) {
+        camera.SetOrthographic(isOrtho);
+    }
+
+    ImGui::SameLine();
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Toggle between orthographic and perspective projection");
+
+    // Orthographic size control
+    if (camera.IsOrthographic()) {
+        float orthoSize = camera.GetOrthoSize();
+        if (ImGui::SliderFloat("View Size", &orthoSize, 0.1f, 100.0f, "%.1f")) {
+            camera.SetOrthoSize(orthoSize);
+        }
+    }
+
+    // Zoom buttons (+ / -) side by side
+    ImGui::SeparatorText("Zoom");
+
+    float btnSize = 50.0f;
+    float windowContentWidth = ImGui::GetContentRegionAvail().x;
+    float spacing = ImGui::GetStyle().ItemSpacing.x;
+    float totalWidth = btnSize * 2 + spacing;
+    float offset = (windowContentWidth - totalWidth) * 0.5f;
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offset);
+
+    if (ImGui::Button(" + ", ImVec2(btnSize, 30))) {
+        camera.Zoom(1.2f);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(" - ", ImVec2(btnSize, 30))) {
+        camera.Zoom(1.0f / 1.2f);
+    }
+
+    // Direction controls (D-pad layout with arrow symbols)
+    ImGui::SeparatorText("Direction");
+
+    const float dBtnW = 50.0f;
+    const float dBtnH = 30.0f;
+    const float rotationStep = 15.0f; // degrees per click
+    float availW = ImGui::GetContentRegionAvail().x;
+    float padLeft = (availW - dBtnW) * 0.5f;
+
+    // Row 1: Up
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + padLeft);
+    if (ImGui::Button("up", ImVec2(dBtnW, dBtnH))) {
+        camera.OrbitPitch(rotationStep);
+    }
+
+    // Row 2: Left, Reset, Right
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + padLeft - dBtnW - spacing);
+    if (ImGui::Button("left", ImVec2(dBtnW, dBtnH))) {
+        camera.OrbitYaw(rotationStep);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Reset", ImVec2(dBtnW, dBtnH))) {
+        camera.SetYawPitch(-90.0f, 0.0f);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("right", ImVec2(dBtnW, dBtnH))) {
+        camera.OrbitYaw(-rotationStep);
+    }
+
+    // Row 3: Down
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + padLeft);
+    if (ImGui::Button("down", ImVec2(dBtnW, dBtnH))) {
+        camera.OrbitPitch(-rotationStep);
+    }
+
+    // Show camera info
+    ImGui::SeparatorText("Camera Info");
+    glm::vec3 pos = camera.GetPosition();
+    ImGui::Text("Position: (%.1f, %.1f, %.1f)", pos.x, pos.y, pos.z);
+    ImGui::Text("Yaw: %.1f  Pitch: %.1f", camera.GetYaw(), camera.GetPitch());
+
+    ImGui::End();
+}
+
 void ImGuiUI::renderGizmoUi(glm::mat4& glmViewMat, glm::mat4& glmProjMat, glm::mat4& glmModelMat)
 {
     ImGui::SetNextWindowPos(ImVec2(100, 400), ImGuiCond_FirstUseEver);

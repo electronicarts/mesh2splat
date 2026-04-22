@@ -47,6 +47,7 @@ int main(int argc, char** argv) {
 
         ImGuiUI.preframe();
         ImGuiUI.renderUI();
+        ImGuiUI.renderCameraControls(camera);
         
         guiRendererMediator.update();
 
