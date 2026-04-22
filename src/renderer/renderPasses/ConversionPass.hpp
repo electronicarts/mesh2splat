@@ -8,8 +8,8 @@
 
 class ConversionPass : public IRenderPass {
 public:
-    ~ConversionPass() = default;
-    void execute(RenderContext &renderContext);
+    ~ConversionPass() override = default;
+    void execute(RenderContext &renderContext) override;
 
 private:
     void conversion(RenderContext& renderContext, std::pair<utils::Mesh, utils::GLMesh>& mesh, GLuint dummyFramebuffer);

@@ -7,6 +7,7 @@
 #include <iostream>
 #include <cstring>
 #include <functional>
+#include <algorithm>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
@@ -36,7 +37,7 @@ bool SceneManager::loadModel(const std::string& filePath, const std::string& par
 
 bool SceneManager::loadPly(const std::string& filePath) {
     try {
-        parsers::loadPlyFile(filePath, renderContext.readGaussians, renderContext.plyHasPbr);
+        parsers::loadPlyFile(filePath, renderContext.readGaussians);
         return true;
     }
     catch (const std::exception& e)
@@ -198,8 +199,17 @@ bool SceneManager::parseGltfFile(const std::string& filePath, const std::string&
     std::string err;
     std::string warn;
 
+    // Determine if file is binary (.glb) or ASCII (.gltf) based on extension
+    bool ret = false;
+    std::string ext = filePath.substr(filePath.find_last_of('.') + 1);
+    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
     
-    bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, filePath);
+    if (ext == "glb") {
+        ret = loader.LoadBinaryFromFile(&model, &err, &warn, filePath);
+    } else {
+        ret = loader.LoadASCIIFromFile(&model, &err, &warn, filePath);
+    }
+    
     if (!ret) {
         std::cerr << "Failed to load glTF: " << err << std::endl;
         return false;
@@ -480,6 +490,9 @@ void SceneManager::setupMeshBuffers(std::vector<utils::Mesh>& meshes)
         utils::GLMesh glMesh;
         std::vector<float> vertices;  
         float meshSurface = 0;
+        // Reset per-mesh bounding box (must be inside loop to avoid accumulating across meshes)
+        minBB = glm::vec3(FLT_MAX);
+        maxBB = glm::vec3(-FLT_MAX);
         for (const auto& face : mesh.faces) {
             for (int i = 0; i < 3; ++i) { // Assuming each face is a triangle (and it must be as we are only reading .gltf/.glb files)
                 // Position
@@ -648,7 +661,7 @@ void SceneManager::loadTextures(const std::vector<utils::Mesh>& meshes)
     
 }
 
-void SceneManager::exportPly(const std::string outputFile, unsigned int exportFormat)
+void SceneManager::exportPly(const std::string outputFile, unsigned int exportFormat, bool flipY)
 {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, renderContext.gaussianBuffer);
 
@@ -671,7 +684,7 @@ void SceneManager::exportPly(const std::string outputFile, unsigned int exportFo
     std::thread(
         [=, data = std::move(cpuData)]() mutable 
         {
-            parsers::savePlyVector(outputFile, data, format, scaleMultiplier);
+            parsers::savePlyVector(outputFile, std::move(data), format, scaleMultiplier, parsers::DcMode::Current, parsers::OpacityMode::Current, flipY);
         }
     ).detach();
     

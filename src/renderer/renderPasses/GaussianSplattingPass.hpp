@@ -9,9 +9,9 @@
 class GaussianSplattingPass : public IRenderPass {
 public:
     GaussianSplattingPass(RenderContext& renderContext);
-    ~GaussianSplattingPass() = default;
-    void execute(RenderContext& renderContext);
+    ~GaussianSplattingPass() override;
+    void execute(RenderContext& renderContext) override;
 private:
-    GLuint quadVBO;
-    GLuint quadEBO;
+    GLuint quadVBO = 0;
+    GLuint quadEBO = 0;
 };

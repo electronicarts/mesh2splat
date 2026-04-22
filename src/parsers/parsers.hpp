@@ -13,15 +13,31 @@
 
 namespace parsers
 {
+	enum class DcMode : uint32_t
+	{
+		Current = 0,      // SH0 encoding (default)
+		DirectLinear = 1, // Direct linear color
+		DirectSrgb = 2    // Direct sRGB color
+	};
+
+	enum class OpacityMode : uint32_t
+	{
+		Current = 0,      // Use default behavior
+		Raw = 1,          // Store opacity directly
+		Logit = 2         // Apply inverse sigmoid
+	};
+
 	utils::TextureDataGl loadImageAndBpp(std::string texturePath, int& textureWidth, int& textureHeight);
 
-	void writePbrPLY(const std::string& filename, std::vector<utils::GaussianDataSSBO>& gaussians, float scaleMultiplier);
+	void writePbrPLY(const std::string& filename, std::vector<utils::GaussianDataSSBO>& gaussians, float scaleMultiplier, DcMode dcMode = DcMode::Current, OpacityMode opacityMode = OpacityMode::Current, bool flipY = false);
 
-	void writeBinaryPlyStandardFormat(const std::string& filename, const std::vector<utils::GaussianDataSSBO>& gaussians, float scaleMultiplier);
+	void writeBinaryPlyStandardFormat(const std::string& filename, const std::vector<utils::GaussianDataSSBO>& gaussians, float scaleMultiplier, DcMode dcMode = DcMode::Current, OpacityMode opacityMode = OpacityMode::Current, bool flipY = false);
 
-	void loadPlyFile(std::string plyFileLocation, std::vector<utils::GaussianDataSSBO>& gaussians, bool& hasPbr);
+	void loadPlyFile(std::string plyFileLocation, std::vector<utils::GaussianDataSSBO>& gaussians);
 
-	void savePlyVector(std::string outputFileLocation, std::vector<utils::GaussianDataSSBO> gaussians_3D_list, unsigned int format, float scaleMultiplier);
+	void savePlyVector(std::string outputFileLocation, std::vector<utils::GaussianDataSSBO>&& gaussians_3D_list, unsigned int format, float scaleMultiplier, DcMode dcMode = DcMode::Current, OpacityMode opacityMode = OpacityMode::Current, bool flipY = false);
+	
+	void writeCompressedPbrPLY(const std::string& filename, std::vector<utils::GaussianDataSSBO>& gaussians, float scaleMultiplier, bool flipY = false);
 
 	unsigned char* combineMetallicRoughness(const char* path1, const char* path2, int& width, int& height, int& channels);
 
