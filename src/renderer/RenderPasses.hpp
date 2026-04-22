@@ -19,11 +19,11 @@
 #include "renderPasses/MeshRenderPass.hpp"
 
 
-static std::string conversionPassName					= "conversion";
-static std::string depthPrepassName						= "depthPrepass";
-static std::string meshRenderPassName					= "meshRender";
-static std::string gaussiansPrePassName					= "gaussianPrepass";
-static std::string radixSortPassName					= "radixSort";
-static std::string gaussianSplattingPassName			= "gaussianSplatting";
-static std::string gaussianSplattingRelightingPassName	= "gaussianSplattingDeferredLighting";
-static std::string gaussianSplattingShadowsPassName		= "gaussianSplattingShadows";
+inline const std::string conversionPassName                  = "conversion";
+inline const std::string depthPrepassName                    = "depthPrepass";
+inline const std::string meshRenderPassName                  = "meshRender";
+inline const std::string gaussiansPrePassName                = "gaussianPrepass";
+inline const std::string radixSortPassName                   = "radixSort";
+inline const std::string gaussianSplattingPassName           = "gaussianSplatting";
+inline const std::string gaussianSplattingRelightingPassName = "gaussianSplattingDeferredLighting";
+inline const std::string gaussianSplattingShadowsPassName    = "gaussianSplattingShadows";

@@ -29,7 +29,6 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include <filesystem>
 #define EMPTY_TEXTURE "empty_texture"
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/string_cast.hpp>
@@ -51,7 +50,7 @@
 #endif
 
 
-static void CheckOpenGLError(const char* stmt, const char* fname, int line)
+inline void CheckOpenGLError(const char* stmt, const char* fname, int line)
 {
     GLenum err = glGetError();
     if (err != GL_NO_ERROR)
@@ -135,7 +134,7 @@ namespace utils
     struct Gaussian3D {
         Gaussian3D(glm::vec3 position, glm::vec3 normal, glm::vec3 scale, glm::vec4 rotation, glm::vec3 RGB, float opacity, MaterialGltf material)
             : position(position), normal(normal), scale(scale), rotation(rotation), sh0(RGB), opacity(opacity), material(material) {};
-        Gaussian3D() : position(NULL), normal(NULL), scale(NULL), rotation(NULL), sh0(NULL), opacity(NULL), material(MaterialGltf()) {};
+        Gaussian3D() : position(0.0f), normal(0.0f), scale(0.0f), rotation(0.0f), sh0(0.0f), opacity(0.0f), material(MaterialGltf()) {};
         glm::vec3 position;
         glm::vec3 normal;
         glm::vec3 scale;
@@ -148,7 +147,7 @@ namespace utils
     struct GaussianDataSSBO {
         glm::vec4 position;
         glm::vec4 color;
-        glm::vec4 scale;
+        glm::vec4 linearScale;  // Renamed from 'scale' for clarity (linear-space scale)
         glm::vec4 normal;
         glm::vec4 rotation;
         glm::vec4 pbr;
@@ -180,6 +179,7 @@ namespace utils
         MaterialGltf material; 
         float surfaceArea = 0;
         BBox bbox = BBox(glm::vec3(0), glm::vec3(0));
+        int primitiveIndex = -1;
 
         Mesh(const std::string& name = "Unnamed") : name(name) {}
     };
@@ -218,6 +218,7 @@ namespace utils
         NONE,
         PLY,
         GLB,
+        GLTF,
     };
 
 
