@@ -7,6 +7,7 @@
 #include "renderer/renderer.hpp"
 #include "glewGlfwHandlers/glewGlfwHandler.hpp"
 #include "renderer/guiRendererConcreteMediator.hpp"
+#include <cfloat>
 
 int main(int argc, char** argv) {
     GlewGlfwHandler glewGlfwHandler(glm::ivec2(1080, 720), "Mesh2Splat");
@@ -29,6 +30,20 @@ int main(int argc, char** argv) {
     Renderer renderer(glewGlfwHandler.getWindow(), camera);
     renderer.initialize();
     GuiRendererConcreteMediator guiRendererMediator(renderer, ImGuiUI);
+    
+    // Set up F key to frame object based on scene bbox
+    ioHandler.setFrameObjectCallback([&camera, &renderer]() {
+        auto* ctx = renderer.getRenderContext();
+        if (ctx->dataMeshAndGlMesh.empty()) return;
+        
+        // Compute combined bbox of all meshes
+        glm::vec3 bboxMin(FLT_MAX), bboxMax(-FLT_MAX);
+        for (auto& mesh : ctx->dataMeshAndGlMesh) {
+            bboxMin = glm::min(bboxMin, mesh.first.bbox.min);
+            bboxMax = glm::max(bboxMax, mesh.first.bbox.max);
+        }
+        camera.FrameObject(bboxMin, bboxMax);
+    });
 
     float deltaTime = 0.0f; 
     float lastFrame = 0.0f;

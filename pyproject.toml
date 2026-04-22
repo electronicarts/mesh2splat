@@ -1,0 +1,106 @@
+[build-system]
+requires = ["scikit-build-core>=0.8", "pybind11>=2.11"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "mesh2splat"
+version = "0.1.0"
+description = "Convert 3D meshes to Gaussian splats for 3D Gaussian Splatting"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Mesh2Splat Contributors"}
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Graphics :: 3D Modeling",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
+keywords = ["gaussian-splatting", "3dgs", "mesh", "splat", "3d", "graphics"]
+dependencies = [
+    "numpy>=1.20",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "build",
+    "twine",
+]
+
+[project.urls]
+Homepage = "https://github.com/electronicarts/mesh2splat"
+Repository = "https://github.com/electronicarts/mesh2splat"
+Issues = "https://github.com/electronicarts/mesh2splat/issues"
+
+[tool.scikit-build]
+cmake.build-type = "Release"
+cmake.source-dir = "."
+# Let CMake handle installation, don't duplicate with wheel.packages
+wheel.install-dir = "mesh2splat"
+sdist.include = [
+    "python/",
+    "thirdParty/glm/glm/",
+    "thirdParty/happly.h",
+    "thirdParty/json.hpp",
+    "thirdParty/stb_image.h",
+    "thirdParty/stb_image_write.h",
+    "thirdParty/stb_image_resize.h",
+    "thirdParty/tiny_gltf.h",
+    "CMakeLists.txt",
+]
+sdist.exclude = [
+    "thirdParty/glfw/",
+    "thirdParty/glew/",
+    "thirdParty/imgui/",
+    "thirdParty/ImGuiFileDialog/",
+    "thirdParty/imguizmo/",
+    "thirdParty/xatlas/",
+    "thirdParty/pybind11/",
+    "thirdParty/glm/doc/",
+    "thirdParty/glm/test/",
+    "src/",
+    "bin/",
+    "build/",
+    "models/",
+    ".venv/",
+    "dist/",
+    ".git/",
+    "*.whl",
+    "*.tar.gz",
+]
+
+[tool.scikit-build.cmake.define]
+BUILD_PYTHON_BINDINGS = "ON"
+MESH2SPLAT_ENABLE_GPU = "ON"
+MESH2SPLAT_STANDALONE_PYTHON = "ON"
+
+[tool.cibuildwheel]
+build-verbosity = 1
+# Only build for Python 3.10, 3.11, 3.12
+build = ["cp310-*", "cp311-*", "cp312-*"]
+# Skip 32-bit builds, PyPy, and musllinux
+skip = ["*-win32", "*-manylinux_i686", "pp*", "*-musllinux*"]
+
+[tool.cibuildwheel.linux]
+# Install g++, static libraries, and OpenGL headers for build; use system GCC 8.5.0 to avoid too-recent glibc symbols
+before-all = "yum install -y gcc-c++ libstdc++-static mesa-libGL-devel mesa-libEGL-devel || (apt-get update && apt-get install -y g++ libgl1-mesa-dev libegl1-mesa-dev)"
+environment = { MESH2SPLAT_ENABLE_GPU = "ON", CC = "/usr/bin/gcc", CXX = "/usr/bin/g++" }
+
+[tool.cibuildwheel.macos]
+environment = { MESH2SPLAT_ENABLE_GPU = "ON" }
+
+[tool.cibuildwheel.windows]
+environment = { MESH2SPLAT_ENABLE_GPU = "OFF" }

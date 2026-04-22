@@ -1,0 +1,10 @@
+# Mesh2Splat Python Bindings Dependencies
+
+# Build dependencies
+pybind11>=2.11.0
+
+# Runtime dependencies
+numpy>=1.24.0
+
+# Development/testing dependencies
+pytest>=7.0.0
