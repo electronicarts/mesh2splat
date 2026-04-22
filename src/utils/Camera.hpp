@@ -18,6 +18,7 @@ public:
     void ProcessKeyboard(float deltaTime, bool forward, bool backward, bool left, bool right, bool upMove, bool downMove, bool rotateLeftFrontVect, bool rotateRightFrontVect, bool boostSpeed, bool slowSpeed);
     void ProcessMouseMovement(float xoffset, float yoffset, bool constrainPitch = true);
     void ProcessMouseScroll(float yoffset);
+    void FrameObject(glm::vec3 bboxMin, glm::vec3 bboxMax);
     float GetFOV() const { return FOV; }
     glm::vec3 GetPosition() const { return Position; }
 

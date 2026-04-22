@@ -404,3 +404,20 @@ FodyWeavers.xsd
 *.zip
 *.tga
 *.ply
+
+# Python
+.venv/
+__pycache__/
+*.pyd
+*.so
+*.cpython-*.so
+*.cpython-*.pyd
+*.egg-info/
+dist/
+
+# Models (test data - large files)
+models/
+
+# macOS
+.DS_Store
+.idea/

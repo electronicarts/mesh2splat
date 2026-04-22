@@ -1,0 +1,40 @@
+# Debian 12 (Bookworm) - stable, widely used
+FROM debian:bookworm
+
+# Avoid interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    ninja-build \
+    python3 \
+    python3-pip \
+    python3-venv \
+    python3.11 \
+    python3.11-venv \
+    libgl1-mesa-dev \
+    libegl1-mesa-dev \
+    libx11-dev \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up build environment
+WORKDIR /build
+
+# Copy source code
+COPY . /build/
+
+# Create virtual environment and build wheel
+RUN python3 -m venv /venv && \
+    /venv/bin/pip install --upgrade pip build scikit-build-core pybind11 numpy && \
+    /venv/bin/python -m build --wheel -o /build/dist/
+
+# Test the wheel
+RUN /venv/bin/pip install /build/dist/*.whl --force-reinstall && \
+    /venv/bin/python -c "import mesh2splat; print(f'Debian 12: {mesh2splat.get_build_info()}')"
+
+# Output directory
+VOLUME /output
+CMD ["sh", "-c", "cp /build/dist/*.whl /output/ 2>/dev/null || echo 'No wheels to copy'"]

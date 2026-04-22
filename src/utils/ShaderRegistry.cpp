@@ -3,7 +3,6 @@
 //        Copyright (c) 2025 Electronic Arts Inc. All rights reserved.       //
 ///////////////////////////////////////////////////////////////////////////////
 
-#pragma once
 #include "utils/ShaderRegistry.hpp"
 
 ShaderRegistry::~ShaderRegistry() {
