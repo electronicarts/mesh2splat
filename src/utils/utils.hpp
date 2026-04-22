@@ -29,7 +29,6 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include <filesystem>
 #define EMPTY_TEXTURE "empty_texture"
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/string_cast.hpp>
@@ -51,7 +50,7 @@
 #endif
 
 
-static void CheckOpenGLError(const char* stmt, const char* fname, int line)
+inline void CheckOpenGLError(const char* stmt, const char* fname, int line)
 {
     GLenum err = glGetError();
     if (err != GL_NO_ERROR)
