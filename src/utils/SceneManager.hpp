@@ -5,6 +5,7 @@
 
 #pragma once
 #include "utils.hpp"
+#include "coordinateSystem.hpp"
 #include "renderer/renderPasses/RenderContext.hpp"
 #include "normalizedUvUnwrapping.hpp"
 #include "parsers/parsers.hpp"
@@ -17,7 +18,8 @@ public:
 
     bool loadModel(const std::string& filePath, const std::string& parentFolder);
     bool loadPly(const std::string& filePath);
-    void exportPly(const std::string outputFile, unsigned int exportFormat);
+    void exportPly(const std::string outputFile, unsigned int exportFormat,
+                   utils::CoordinateSystem coordinateSystem = utils::CoordinateSystem::GltfYUp);
 
     void updateMeshes();
     void cleanup();

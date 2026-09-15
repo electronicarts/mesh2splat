@@ -10,6 +10,7 @@
 #include "stb_image_write.h"
 #include "happly.h"
 #include "utils/utils.hpp"
+#include "utils/coordinateSystem.hpp"
 
 namespace parsers
 {
@@ -21,7 +22,8 @@ namespace parsers
 
 	void loadPlyFile(std::string plyFileLocation, std::vector<utils::GaussianDataSSBO>& gaussians, bool& hasPbr);
 
-	void savePlyVector(std::string outputFileLocation, std::vector<utils::GaussianDataSSBO> gaussians_3D_list, unsigned int format, float scaleMultiplier);
+	void savePlyVector(std::string outputFileLocation, std::vector<utils::GaussianDataSSBO> gaussians_3D_list, unsigned int format, float scaleMultiplier,
+		utils::CoordinateSystem coordinateSystem = utils::CoordinateSystem::GltfYUp);
 
 	unsigned char* combineMetallicRoughness(const char* path1, const char* path2, int& width, int& height, int& channels);
 

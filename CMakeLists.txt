@@ -4,6 +4,12 @@ project(Mesh2Splat)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# The viewer needs GLFW, GLEW and a GPU. The unit tests need none of those, so
+# they can be configured on their own for CI and sandboxed environments:
+#   cmake -B build -DMESH2SPLAT_BUILD_APP=OFF && cmake --build build && ctest --test-dir build
+option(MESH2SPLAT_BUILD_APP   "Build the Mesh2Splat viewer application" ON)
+option(MESH2SPLAT_BUILD_TESTS "Build the Mesh2Splat unit tests"         ON)
+
 set(THIRD_PARTY_DIR         ${CMAKE_SOURCE_DIR}/thirdParty)
 set(GLFW_DIR                ${THIRD_PARTY_DIR}/glfw)
 set(GLEW_DIR                ${THIRD_PARTY_DIR}/glew)
@@ -67,6 +73,8 @@ else()
     set_source_files_properties(${THIRD_PARTY_SOURCES} PROPERTIES COMPILE_FLAGS "-w")
 endif()
 
+if(MESH2SPLAT_BUILD_APP)
+
 add_executable(Mesh2Splat ${SOURCES})
 
 target_compile_definitions(Mesh2Splat PRIVATE GLEW_STATIC)
@@ -101,3 +109,10 @@ set_target_properties(Mesh2Splat PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/lib/Debug
     LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/lib/Release
 )
+
+endif() # MESH2SPLAT_BUILD_APP
+
+if(MESH2SPLAT_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

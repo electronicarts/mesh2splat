@@ -628,8 +628,15 @@ namespace parsers
         
     }
 
-    void savePlyVector(std::string outputFileLocation, std::vector<utils::GaussianDataSSBO> gaussians_3D_list, unsigned int FORMAT, float scaleMultiplier)
+    void savePlyVector(std::string outputFileLocation, std::vector<utils::GaussianDataSSBO> gaussians_3D_list, unsigned int FORMAT, float scaleMultiplier,
+        utils::CoordinateSystem coordinateSystem)
     {
+        // Conversion keeps gaussians in the source glTF world frame, so this is
+        // the single point where the exported splat can be rotated into another
+        // convention. `gaussians_3D_list` is taken by value, so the rotation
+        // never touches the live GPU-side buffer the viewer is rendering.
+        utils::convertGaussiansInPlace(gaussians_3D_list, coordinateSystem);
+
         switch (FORMAT)
         {
             case 0:

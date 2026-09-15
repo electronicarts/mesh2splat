@@ -648,7 +648,7 @@ void SceneManager::loadTextures(const std::vector<utils::Mesh>& meshes)
     
 }
 
-void SceneManager::exportPly(const std::string outputFile, unsigned int exportFormat)
+void SceneManager::exportPly(const std::string outputFile, unsigned int exportFormat, utils::CoordinateSystem coordinateSystem)
 {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, renderContext.gaussianBuffer);
 
@@ -671,7 +671,7 @@ void SceneManager::exportPly(const std::string outputFile, unsigned int exportFo
     std::thread(
         [=, data = std::move(cpuData)]() mutable 
         {
-            parsers::savePlyVector(outputFile, data, format, scaleMultiplier);
+            parsers::savePlyVector(outputFile, data, format, scaleMultiplier, coordinateSystem);
         }
     ).detach();
     

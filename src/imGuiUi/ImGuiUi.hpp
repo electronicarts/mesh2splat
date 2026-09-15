@@ -12,6 +12,7 @@
 #include <imgui_impl_opengl3.h>
 #include <glm/glm.hpp>
 #include "utils/utils.hpp"
+#include "utils/coordinateSystem.hpp"
 #include "Imguizmo.hpp"
 #include "ImGuiFileDialog.h"
 
@@ -54,6 +55,7 @@ public:
     float getGaussianStd() const;
     int getResolutionTarget() const;
     unsigned int getFormatOption() const;
+    utils::CoordinateSystem getCoordinateSystemOption() const;
 
     glm::vec4 getSceneBackgroundColor() const;
 
@@ -120,6 +122,16 @@ private:
     int formatIndex = 0;
     const unsigned int formatOptions[3] = { 0, 1, 2 };
     const char* formatLabels[3] = { "PLY Standard Format", "PLY PBR", "PLY Compressed PBR"};
+
+    // Export-time world convention. Index 0 keeps the historical behaviour of
+    // emitting the splat in the source glTF frame, so existing pipelines are
+    // unaffected unless the user opts in. See utils/coordinateSystem.hpp.
+    int coordinateSystemIndex = 0;
+    const utils::CoordinateSystem coordinateSystemOptions[2] = {
+        utils::CoordinateSystem::GltfYUp,
+        utils::CoordinateSystem::ColmapYDown
+    };
+    const char* coordinateSystemLabels[2] = { "World: glTF/OpenGL (+Y up)", "World: COLMAP/OpenCV (+Y down)" };
 
     int renderIndex = 0;
     int prevRenderIndexBeforeLighting = 0;

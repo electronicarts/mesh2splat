@@ -109,7 +109,7 @@ void GuiRendererConcreteMediator::notify(EventType event)
             break;
         }
         case EventType::SavePLY: {
-            renderer.getSceneManager().exportPly(imguiUI.getMeshFullFilePathDestination(), imguiUI.getFormatOption());
+            renderer.getSceneManager().exportPly(imguiUI.getMeshFullFilePathDestination(), imguiUI.getFormatOption(), imguiUI.getCoordinateSystemOption());
             imguiUI.setShouldSavePly(false);
             break;
         }
@@ -169,7 +169,7 @@ void GuiRendererConcreteMediator::update()
                 case BatchSubstate::Exporting: {
                     try {
                         const unsigned int fmt = imguiUI.getFormatOption();
-                        renderer.getSceneManager().exportPly(currentJob->outPath, fmt);
+                        renderer.getSceneManager().exportPly(currentJob->outPath, fmt, imguiUI.getCoordinateSystemOption());
                         finishBatchJobSuccess(imguiUI);
                     } catch (const std::exception& e) {
                         finishBatchJobFail(imguiUI, e.what());

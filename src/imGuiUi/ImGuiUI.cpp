@@ -8,6 +8,7 @@
 ImGuiUI::ImGuiUI(float defaultGaussianStd, float defaultMesh2SPlatQuality)
     : resolutionIndex(0),
       formatIndex(0),
+      coordinateSystemIndex(0),
       gaussian_std(defaultGaussianStd),
       quality(defaultMesh2SPlatQuality),
       runConversionFlag(false),
@@ -136,6 +137,18 @@ void ImGuiUI::renderFileSelectorWindow()
 
     ImGui::SetNextItemWidth(comboWidth);
     ImGui::Combo("##Combobox", &formatIndex, formatLabels, IM_ARRAYSIZE(formatLabels));
+
+    ImGui::SetNextItemWidth(comboWidth);
+    ImGui::Combo("##CoordinateSystemCombobox", &coordinateSystemIndex, coordinateSystemLabels, IM_ARRAYSIZE(coordinateSystemLabels));
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip(
+            "World convention of the exported splat.\n\n"
+            "glTF/OpenGL (+Y up): positions exactly as authored in the source asset. Default.\n"
+            "COLMAP/OpenCV (+Y down): rotated 180 degrees about X, matching the reference\n"
+            "3DGS rasterizer, Nerfstudio and gsplat. Pick this if your camera poses come\n"
+            "from COLMAP and the splat renders empty."
+        );
+    }
 
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.60f, 0.20f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.30f, 0.75f, 0.30f, 1.0f));
@@ -508,6 +521,7 @@ std::string ImGuiUI::getPlyFilePath() const { return std::string(plyFilePath); }
 std::string ImGuiUI::getPlyFilePathParentFolder() const { return plyParentFolder; };
 
 unsigned int ImGuiUI::getFormatOption() const { return formatOptions[formatIndex]; };
+utils::CoordinateSystem ImGuiUI::getCoordinateSystemOption() const { return coordinateSystemOptions[coordinateSystemIndex]; };
 glm::vec4 ImGuiUI::getSceneBackgroundColor() const { return sceneBackgroundColor; };
 float ImGuiUI::getGaussianStd() const { return gaussian_std; };
 int ImGuiUI::getResolutionTarget() const { return static_cast<int>(minRes + quality * (maxRes - minRes)); };

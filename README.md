@@ -141,6 +141,84 @@ sudo apt install build-essential cmake pkg-config git \
    > **Tip**: Use `cmake .. -DCMAKE_BUILD_TYPE=Release` if you only need the final executable in optimized (Release) mode.
 
 
+## Running the Tests
+
+The unit tests cover the CPU-side math only, so they need neither a GPU nor a window server and
+build without the GLFW/GLEW dependencies:
+
+```bash
+cmake -B build -DMESH2SPLAT_BUILD_APP=OFF -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
+
+Drop `-DMESH2SPLAT_BUILD_APP=OFF` to build the viewer and the tests together. Both are on by
+default.
+
+
+## Coordinate System
+
+**Mesh2Splat does not change the world coordinate system.** A gaussian ends up at exactly the
+world-space position of the surface it was sampled from, with glTF node transforms applied. No
+axis swap, no handedness flip, no recentering and no rescaling happens during conversion.
+
+That means the exported `.ply` inherits the glTF/OpenGL convention:
+
+| | Convention | +X | +Y | +Z |
+|---|---|---|---|---|
+| **Mesh2Splat output** (default) | glTF / OpenGL, right-handed | right | **up** | towards the viewer |
+| Reference 3DGS, COLMAP, Nerfstudio, gsplat | COLMAP / OpenCV, right-handed | right | **down** | forward, into the scene |
+
+Both frames are right-handed; they differ by a rotation of 180° about the X axis.
+
+### "My splat renders empty with my own cameras"
+
+This is the usual symptom of the mismatch above. If your camera poses follow the COLMAP/OpenCV
+convention — which is what the reference 3DGS rasterizer, and anything that consumes a COLMAP
+reconstruction, expects — then applying them to a splat that is still in the glTF frame places the
+whole scene *behind* the camera. Every gaussian is then frustum-culled and you get an empty image
+rather than an error.
+
+You have two ways to line the two up.
+
+**Option 1 — export in the COLMAP convention.** Next to the export format dropdown there is a
+world-convention dropdown. Pick `World: COLMAP/OpenCV (+Y down)` before saving and the splat is
+rotated for you; positions, normals and gaussian orientations are all transformed consistently.
+The default remains `World: glTF/OpenGL (+Y up)`, so existing pipelines are unaffected.
+
+**Option 2 — move your cameras into the glTF frame.** Keep the default export and transform your
+poses instead. With `C2W` a camera-to-world matrix in the COLMAP convention:
+
+```python
+import numpy as np
+
+# 180 degrees about X: COLMAP/OpenCV world <-> glTF/OpenGL world.
+# The matrix is its own inverse, so the same line converts either direction.
+FLIP = np.diag([1.0, -1.0, -1.0, 1.0])
+
+C2W_gltf = FLIP @ C2W_colmap
+W2C_gltf = np.linalg.inv(C2W_gltf)
+```
+
+Note that this only reconciles the *world* frame. If your renderer also assumes an OpenCV *camera*
+frame (+Y down, +Z forward in view space) while your poses are OpenGL-style (+Y up, +Z backwards),
+the camera-local axes need the same 180° flip applied on the right-hand side of `C2W`.
+
+### Things that are not baked into the export
+
+- **The viewer gizmo transform.** Moving, rotating or scaling the model in the viewport only
+  affects rendering. `exportPly` reads the gaussian buffer directly, so the saved `.ply` is always
+  in the original glTF world frame regardless of where the gizmo has been dragged.
+- **Gaussian scale from the UI slider.** The `Gaussian Scale` slider is applied at export time via
+  the scale multiplier, not stored back into the live buffer.
+
+### Quaternion packing
+
+The PLY `rot_0..rot_3` properties are written scalar-first, `(w, x, y, z)`, matching the reference
+3DGS format. Internally `GaussianDataSSBO::rotation` uses the same packing: the `vec4` components
+`(.x, .y, .z, .w)` hold `(w, x, y, z)`. Readers that assume `(x, y, z, w)` will produce a splat
+whose gaussians are individually mis-oriented while the point cloud still looks correct.
+
 ## Limitations
 - Volumetric Data such as foliage, grass, hair, clouds, etc. has not being targeted and will probably not be converted correctly if using primitives different from triangles.<br>
 
