@@ -1,19 +1,21 @@
-cff-version: "1.2.0"
-message: "If you use PERF-GS in your research, please cite it as follows."
-type: software
-title: "PERF-GS"
+cff-version: 1.2.0
+message: "If you use this repository, please cite it as below. You may also cite the original thesis it is based on."
+title: "Mesh2Splat"
 authors:
   - family-names: Scolari
     given-names: Stefano
-repository-code: "https://github.com/electronicarts/perf-gs"
-
-preferred-citation:
-  type: software
-  title: "PERF-GS"
-  authors:
-    - family-names: Scolari
-      given-names: Stefano
-  year: 2026
-  publisher:
-    name: Electronic Arts
-  url: "https://github.com/electronicarts/perf-gs"
+version: 1.0.0
+date-released: 2025-04-02
+repository-code: https://github.com/electronicarts/mesh2splat
+abstract: >
+  Fast mesh to 3D Gaussian splat conversion. This project extends and updates the author's 2024 Master's thesis work by introducing new features, optimizations, and rendering improvements.
+license: MIT  
+references:
+  - type: thesis
+    authors:
+      - family-names: Scolari
+        given-names: Stefano
+    title: "Mesh2Splat: Gaussian Splatting from 3D Geometry and Materials"
+    year: 2024
+    publisher: KTH Royal Institute of Technology
+    url: https://urn.kb.se/resolve?urn=urn:nbn:se:kth:diva-359582
