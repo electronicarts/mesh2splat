@@ -675,7 +675,6 @@ namespace glUtils
 
     void fillGaussianBufferSsbo(GLuint& gaussianBuffer, std::vector<utils::GaussianDataSSBO>& gaussians)
     {
-        glGenBuffers(1, &gaussianBuffer);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, gaussianBuffer);
         //TODO: I will categorize this hardcoding issue of the number of output float4 params from the SSBO as: ISSUE6
         GLsizeiptr bufferSize = gaussians.size() * sizeof(glm::vec4) * 6;
@@ -685,7 +684,6 @@ namespace glUtils
 
     void fillGaussianBufferSsbo(GLuint& gaussianBuffer, unsigned int size)
     {
-        glGenBuffers(1, &gaussianBuffer);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, gaussianBuffer);
         //TODO: I will categorize this hardcoding issue of the number of output float4 params from the SSBO as: ISSUE6
         GLsizeiptr bufferSize = size * sizeof(glm::vec4) * 6;

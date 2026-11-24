@@ -243,6 +243,7 @@ void GuiRendererConcreteMediator::startBatchJob(ImGuiUI::BatchItem* job, ImGuiUI
         renderer.getSceneManager().loadModel(job->path, job->parent);
         renderer.gaussianBufferFromSize(ui.getResolutionTarget() * ui.getResolutionTarget());
         renderer.setViewportResolutionForConversion(ui.getResolutionTarget());
+        renderer.setStdDevFromImGui(ui.getGaussianStd());
         renderer.enableRenderPass(conversionPassName);
         batchSubstate = BatchSubstate::Converting;
     } else {
